@@ -37,10 +37,13 @@ class CortexHealth(str, Enum):
 
 
 class RiskDecision(str, Enum):
-    PASS = "PASS"        # Approvato a size piena
-    REDUCE = "REDUCE"    # Approvato ma con size ridotta dai vincoli di rischio
-    REJECT = "REJECT"    # Rifiutato (Headroom esaurito, violazione, o CORTEX RED)
-    EXIT = "EXIT"        # Richiesta di chiusura posizione immediata
+    PASS = "PASS"                      # Approvato a size piena
+    REDUCE = "REDUCE"                  # Approvato con size ridotta dai vincoli di rischio
+    REDUCE_SIZE = "REDUCE_SIZE"        # Alias canonico V2 per size ridotta
+    REJECT = "REJECT"                  # Rifiutato (Headroom esaurito, violazione, o CORTEX RED)
+    EXIT = "EXIT"                      # Richiesta di chiusura posizione
+    CLOSE_EXISTING = "CLOSE_EXISTING"  # Richiesta di chiusura posizione esistente a rischio
+    CLOSE_ALL = "CLOSE_ALL"            # Chiusura immediata di tutte le posizioni (Breach prevention)
 
 
 @dataclass
@@ -61,6 +64,11 @@ class TradeIntent:
     estimated_gas_usd: float = 0.05
     current_portfolio_exposure: dict[str, float] = field(default_factory=dict)
     challenge_id: str | None = None
+    volume_24h_usd: float = 5_000_000.0
+    book_depth_usd: float = 200_000.0
+    contract_verified: bool = True
+    is_honeypot: bool = False
+    token_tax_pct: float = 0.0
 
 
 @dataclass
@@ -230,16 +238,31 @@ class ChallengeState:
     @property
     def cortex_health(self) -> CortexHealth:
         """
-        State Machine CORTEX Health:
+        State Machine CORTEX Health (Parametrica sui limiti configurati del Tier):
         GREEN -> YELLOW -> ORANGE -> RED -> BREACH
+        Soglie proporzionali:
+        - RED: >= 90% del Drawdown limite consumato (es. 4.5% su 5%)
+        - ORANGE: >= 70% del Drawdown limite consumato (es. 3.5% su 5%)
+        - YELLOW: >= 40% del Drawdown limite consumato (es. 2.0% su 5%)
+        - GREEN: < 40% del Drawdown limite consumato
         """
         if self.check_violations() is not None:
             return CortexHealth.BREACH
-        if self.daily_dd_pct >= 0.045 or self.total_dd_pct >= 0.090:
+
+        daily_limit = self.config.max_daily_dd_pct if self.config.max_daily_dd_pct > 0 else 0.05
+        total_limit = self.config.max_total_dd_pct if self.config.max_total_dd_pct > 0 else 0.10
+
+        daily_ratio = self.daily_dd_pct / daily_limit
+        total_ratio = self.total_dd_pct / total_limit
+        worst_ratio = max(daily_ratio, total_ratio)
+
+        if worst_ratio >= 1.0:
+            return CortexHealth.BREACH
+        if worst_ratio >= 0.90:
             return CortexHealth.RED
-        if self.daily_dd_pct >= 0.035 or self.total_dd_pct >= 0.070:
+        if worst_ratio >= 0.70:
             return CortexHealth.ORANGE
-        if self.daily_dd_pct >= 0.020 or self.total_dd_pct >= 0.040:
+        if worst_ratio >= 0.40:
             return CortexHealth.YELLOW
         return CortexHealth.GREEN
 
@@ -291,10 +314,86 @@ class RiskMetrics:
     @staticmethod
     def calculate_correlation(asset_returns: pd.Series, portfolio_returns: pd.Series) -> float:
         """Calcola correlazione rolling a 30 periodi"""
-        if len(asset_returns) < 30 or len(portfolio_returns) < 30:
+        if len(asset_returns) < 10 or len(portfolio_returns) < 10:
             return 0.0
         corr = asset_returns.tail(30).corr(portfolio_returns.tail(30))
         return float(corr) if pd.notna(corr) else 0.0
+
+    @staticmethod
+    def calculate_rolling_correlation_matrix(
+        price_series_dict: dict[str, pd.Series | list[float]],
+        window: int = 30,
+    ) -> pd.DataFrame:
+        """
+        Calcola la vera Rolling Correlation Matrix sui rendimenti percentuali.
+        Sostituisce qualsiasi stima artificiale o statica.
+        """
+        if not price_series_dict:
+            return pd.DataFrame()
+
+        clean_dict = {}
+        for k, v in price_series_dict.items():
+            if isinstance(v, pd.Series):
+                clean_dict[k] = v.values
+            elif isinstance(v, (list, np.ndarray)):
+                clean_dict[k] = np.array(v, dtype=float)
+
+        min_len = min(len(arr) for arr in clean_dict.values()) if clean_dict else 0
+        if min_len < 3:
+            cols = list(clean_dict.keys())
+            return pd.DataFrame(np.eye(len(cols)), index=cols, columns=cols)
+
+        df_prices = pd.DataFrame({k: v[-min_len:] for k, v in clean_dict.items()})
+        returns = df_prices.pct_change().dropna()
+        if len(returns) < 2:
+            cols = list(clean_dict.keys())
+            return pd.DataFrame(np.eye(len(cols)), index=cols, columns=cols)
+
+        tail_returns = returns.tail(min(len(returns), window))
+        corr_matrix = tail_returns.corr()
+        return corr_matrix.fillna(0.0)
+
+    @classmethod
+    def get_pairwise_correlation(
+        cls,
+        asset_a: str,
+        asset_b: str,
+        market_series_dict: dict[str, Any] | None = None,
+        regime: str = "TRENDING_BULL",
+    ) -> float:
+        """
+        Restituisce la reale correlazione storica rolling tra due asset.
+        Se mancano serie storiche complete, usa un prior bayesiano dipendente dal regime di mercato
+        invece di una costante statica hardcoded (es. 0.8).
+        """
+        a_clean = asset_a.split("/")[0].upper()
+        b_clean = asset_b.split("/")[0].upper()
+        if a_clean == b_clean:
+            return 1.0
+
+        if market_series_dict and a_clean in market_series_dict and b_clean in market_series_dict:
+            series_a = market_series_dict[a_clean]
+            series_b = market_series_dict[b_clean]
+            if isinstance(series_a, pd.DataFrame) and 'close' in series_a:
+                series_a = series_a['close']
+            if isinstance(series_b, pd.DataFrame) and 'close' in series_b:
+                series_b = series_b['close']
+            returns_a = pd.Series(series_a).pct_change().dropna()
+            returns_b = pd.Series(series_b).pct_change().dropna()
+            if len(returns_a) >= 10 and len(returns_b) >= 10:
+                corr = returns_a.tail(30).corr(returns_b.tail(30))
+                if pd.notna(corr):
+                    return float(corr)
+
+        # Dynamic Prior per Regime di Mercato (non costante fissa)
+        regime_upper = regime.upper()
+        if "HIGH_VOLATILITY" in regime_upper:
+            return 0.70  # Nelle espansioni di volatilità le correlazioni crypto convergono
+        elif "TRENDING" in regime_upper:
+            return 0.55  # Durante trend forte c'è moderata correlazione di beta
+        elif "RANGING" in regime_upper:
+            return 0.35  # Durante lateralità le correlazioni cross-asset si disaccoppiano
+        return 0.50
 
 
 @dataclass
@@ -407,13 +506,13 @@ class ChallengeRiskAgent:
         if violation:
             return {"action": "VETO", "reason": f"Challenge Violation: {violation}"}
 
-        # 2. CHECK DAILY HEADROOM (Safety Buffer)
+        # 2. CHECK DAILY HEADROOM (Safety Buffer dinamico: 80% del limite)
         daily_limit_usd = self.state.daily_start_equity * self.state.config.max_daily_dd_pct
         daily_headroom = daily_limit_usd - self.state.daily_dd_usd
 
-        # Se abbiamo già perso il 4% oggi, blocchiamo nuove entrate (Buffer di sicurezza)
-        if self.state.daily_dd_pct > 0.04:
-            return {"action": "VETO", "reason": "Daily DD approaching limit (>4%)"}
+        # Se abbiamo già perso l'80% o più del limite giornaliero (es. >=4% su 5%), blocchiamo nuove entrate
+        if self.state.daily_dd_pct >= (self.state.config.max_daily_dd_pct * 0.80):
+            return {"action": "VETO", "reason": "Daily DD approaching limit"}
 
         # 3. CALCULATE VOLATILITY & STOP LOSS
         atr = self.metrics.calculate_atr(
@@ -462,17 +561,225 @@ class ChallengeRiskAgent:
             "atr_used": round(atr, 2),
         }
 
+    def get_dynamic_risk_parameters(
+        self,
+        strategy_name: str = "MOMENTUM",
+        regime: str = "TRENDING_BULL",
+        volatility_14d: float = 0.02,
+        experience_matrix_reliability: float = 0.75,
+    ) -> dict[str, float]:
+        """
+        Calcola i parametri di rischio in modo completamente parametrico basandosi su:
+        TIER × STRATEGY × REGIME × VOLATILITY × LIQUIDITY × DRAWDOWN STATE × EXPERIENCE MATRIX
+        Nessun valore è una costante universale fissa.
+        """
+        # 1. Base Risk per trade da Tier Nominal Capital
+        cap = self.state.starting_balance
+        if cap >= 150000.0:
+            base_risk_pct = 0.0075
+        elif cap >= 50000.0:
+            base_risk_pct = 0.0075
+        else:
+            base_risk_pct = 0.0050
+
+        # 2. Strategy Multiplier & ATR Multipliers
+        strat_upper = strategy_name.upper()
+        if "SCALP" in strat_upper:
+            strat_mult = 0.60
+            atr_mult_sl = 1.3
+            target_rr = 1.5
+        elif "MOMENTUM" in strat_upper:
+            strat_mult = 1.00
+            atr_mult_sl = 1.8
+            target_rr = 2.0
+        elif "TREND" in strat_upper:
+            strat_mult = 1.20
+            atr_mult_sl = 2.5
+            target_rr = 2.5
+        elif "MEAN_REVERSION" in strat_upper:
+            strat_mult = 0.75
+            atr_mult_sl = 1.5
+            target_rr = 1.6
+        elif "BREAKOUT" in strat_upper:
+            strat_mult = 0.90
+            atr_mult_sl = 1.7
+            target_rr = 2.2
+        else:
+            strat_mult = 0.80
+            atr_mult_sl = 1.8
+            target_rr = 2.0
+
+        # 3. Regime Multiplier
+        reg_upper = regime.upper()
+        if "HIGH_VOLATILITY" in reg_upper:
+            reg_mult = 0.50
+            atr_mult_sl *= 1.25  # Allarga lo stop per evitare whip da rumore
+        elif "TRENDING" in reg_upper:
+            reg_mult = 1.00
+        elif "RANGING_LOW_VOL" in reg_upper:
+            reg_mult = 0.85
+            atr_mult_sl *= 0.90
+        elif "RANGING" in reg_upper:
+            reg_mult = 0.75
+        else:
+            reg_mult = 0.70
+
+        # 4. Volatility Multiplier
+        vol_mult = 1.0 / (1.0 + max(0.0, (volatility_14d - 0.02) * 12.0))
+
+        # 5. Drawdown State Multiplier (CORTEX State Machine)
+        health = self.state.cortex_health
+        if health == CortexHealth.GREEN:
+            dd_mult = 1.00
+            max_exp_pct = 0.25
+        elif health == CortexHealth.YELLOW:
+            dd_mult = 0.70
+            max_exp_pct = 0.15
+        elif health == CortexHealth.ORANGE:
+            dd_mult = 0.35
+            max_exp_pct = 0.08
+        else:
+            dd_mult = 0.00
+            max_exp_pct = 0.00
+
+        # 6. Experience Matrix Reliability Scaling
+        exp_mult = max(0.60, min(1.25, experience_matrix_reliability / 0.70))
+
+        final_risk_per_trade_pct = base_risk_pct * strat_mult * reg_mult * vol_mult * dd_mult * exp_mult
+        min_trade_notional = max(25.0, cap * 0.001)
+
+        return {
+            "risk_per_trade_pct": final_risk_per_trade_pct,
+            "atr_multiplier_sl": round(atr_mult_sl, 2),
+            "target_risk_reward": round(target_rr, 2),
+            "max_correlated_exposure_pct": max_exp_pct,
+            "min_trade_notional_usd": min_trade_notional,
+        }
+
+    def evaluate_execution_gates(
+        self,
+        intent: TradeIntent,
+        trial_nominal_usd: float,
+        available_budget_usd: float,
+    ) -> tuple[bool, RiskDecision, str | None, float]:
+        """
+        Valuta gli 8 Execution Gates istituzionali prima di autorizzare qualsiasi trade:
+        1. LIQUIDITY GATE
+        2. SLIPPAGE GATE
+        3. PRICE IMPACT GATE
+        4. GAS / COST GATE
+        5. PREDICTION CONFIDENCE GATE
+        6. STRATEGY CONFIDENCE GATE
+        7. REGIME COMPATIBILITY GATE
+        8. CORTEX TOKEN / CONTRACT RISK GATE
+        """
+        health = self.state.cortex_health
+        size_mult = 1.0
+
+        # Gate 8: CORTEX TOKEN / CONTRACT RISK GATE
+        if not getattr(intent, "contract_verified", True):
+            return False, RiskDecision.REJECT, "CONTRACT_RISK_GATE: Token contract unverified", 0.0
+        if getattr(intent, "is_honeypot", False):
+            return False, RiskDecision.REJECT, "CONTRACT_RISK_GATE: Honeypot / Transfer tax exploit detected", 0.0
+        if getattr(intent, "token_tax_pct", 0.0) > 0.01:
+            return False, RiskDecision.REJECT, f"CONTRACT_RISK_GATE: Token tax ({intent.token_tax_pct:.1%}) exceeds 1.0% limit", 0.0
+
+        # Gate 1: LIQUIDITY GATE
+        vol_24h = getattr(intent, "volume_24h_usd", 5_000_000.0)
+        book_depth = getattr(intent, "book_depth_usd", 200_000.0)
+        if trial_nominal_usd > (vol_24h * 0.05):
+            return False, RiskDecision.REJECT, f"LIQUIDITY_GATE: Order size (${trial_nominal_usd:,.2f}) exceeds 5% of 24h volume (${vol_24h:,.2f})", 0.0
+        if trial_nominal_usd > (book_depth * 0.50):
+            size_mult *= 0.60  # Riduci la size per evitare di svuotare il book
+
+        # Gate 2: SLIPPAGE GATE
+        slip = intent.estimated_slippage_pct
+        if slip > 0.0040:  # > 0.40%
+            return False, RiskDecision.REJECT, f"SLIPPAGE_GATE: Estimated slippage ({slip:.2%}) exceeds 0.40% tolerance", 0.0
+        elif slip > 0.0015:  # > 0.15%
+            size_mult *= max(0.50, 1.0 - (slip * 50.0))
+
+        # Gate 3: PRICE IMPACT GATE
+        impact = intent.estimated_price_impact_pct
+        if impact > 0.0030:  # > 0.30%
+            return False, RiskDecision.REJECT, f"PRICE_IMPACT_GATE: Estimated price impact ({impact:.2%}) exceeds 0.30% tolerance", 0.0
+        elif impact > 0.0010:
+            size_mult *= max(0.60, 1.0 - (impact * 60.0))
+
+        # Gate 4: GAS / COST GATE
+        gas = intent.estimated_gas_usd
+        if available_budget_usd > 0 and (gas / available_budget_usd) > 0.25:
+            return False, RiskDecision.REJECT, f"GAS_COST_GATE: Execution costs (${gas:.2f}) consume > 25% of trade risk budget (${available_budget_usd:.2f})", 0.0
+
+        # Gate 5: PREDICTION CONFIDENCE GATE
+        min_pred_conf = 0.75 if health == CortexHealth.ORANGE else 0.60
+        if intent.prediction_confidence < min_pred_conf:
+            return False, RiskDecision.REJECT, f"PREDICTION_CONFIDENCE_GATE: Confidence ({intent.prediction_confidence:.2f}) below threshold ({min_pred_conf:.2f}) for state {health.value}", 0.0
+
+        # Gate 6: STRATEGY CONFIDENCE GATE
+        min_strat_conf = 0.70 if health in (CortexHealth.YELLOW, CortexHealth.ORANGE) else 0.60
+        if intent.strategy_confidence < min_strat_conf:
+            return False, RiskDecision.REJECT, f"STRATEGY_CONFIDENCE_GATE: Strategy confidence ({intent.strategy_confidence:.2f}) below threshold ({min_strat_conf:.2f})", 0.0
+
+        # Gate 7: REGIME COMPATIBILITY GATE
+        strat_up = intent.strategy_name.upper()
+        reg_up = intent.market_regime.upper()
+        if "MEAN_REVERSION" in strat_up and ("HIGH_VOLATILITY" in reg_up or "RUNAWAY" in reg_up):
+            return False, RiskDecision.REJECT, f"REGIME_COMPATIBILITY_GATE: Mean reversion incompatible with volatile runaway regime ({reg_up})", 0.0
+        if "TREND" in strat_up and "RANGING_LOW_VOL" in reg_up:
+            size_mult *= 0.50
+
+        decision = RiskDecision.REDUCE_SIZE if size_mult < 0.95 else RiskDecision.PASS
+        return True, decision, None, size_mult
+
+    def evaluate_portfolio_close_triggers(
+        self,
+        open_positions: list[dict[str, Any]],
+        current_market_regime: str = "TRENDING_BULL",
+    ) -> list[dict[str, Any]]:
+        """
+        Valuta la necessità di intervenire d'emergenza sulle posizioni aperte:
+        - CLOSE_ALL: Se scatta BREACH o Daily DD critico.
+        - CLOSE_EXISTING: Se un asset specifico subisce shift di regime avverso o perdita non tollerabile in CORTEX RED.
+        """
+        triggers = []
+        health = self.state.cortex_health
+
+        if health == CortexHealth.BREACH:
+            for pos in open_positions:
+                triggers.append({
+                    "position_id": pos.get("id"),
+                    "asset": pos.get("asset"),
+                    "decision": RiskDecision.CLOSE_ALL,
+                    "reason": "CORTEX BREACH: Emergency liquidation to protect remaining capital",
+                })
+            return triggers
+
+        if health == CortexHealth.RED:
+            for pos in open_positions:
+                unrealized_pnl = float(pos.get("unrealized_pnl", 0.0))
+                if unrealized_pnl < 0:
+                    triggers.append({
+                        "position_id": pos.get("id"),
+                        "asset": pos.get("asset"),
+                        "decision": RiskDecision.CLOSE_EXISTING,
+                        "reason": f"CORTEX RED LOCK: Unrealized loss (${abs(unrealized_pnl):.2f}) closed to prevent breach",
+                    })
+
+        return triggers
+
     def authorize_trade_intent(
         self,
         intent: TradeIntent,
         asset_historical_data: pd.DataFrame | None = None,
+        market_series_dict: dict[str, Any] | None = None,
     ) -> TradeAuthorization:
         """
-        TRADEAID Challenge Risk Agent V1 — Full Institutional Risk Evaluation
+        CORTEX Challenge Risk Engine V2 — Full Institutional Risk Evaluation
         Input: Equity · Daily P&L · Total DD · Distance to Target · Distance to Breach · Volatility ·
                ATR · Liquidity · Prediction Confidence · Strategy Confidence · Regime · Correlation ·
-               Slippage · Price Impact · Gas
-        Output: PASS · REDUCE · REJECT · EXIT
+               Slippage · Price Impact · Gas · Token Security
+        Output: PASS · REDUCE_SIZE · REJECT · CLOSE_EXISTING · CLOSE_ALL
                 + POSITION SIZE · STOP · TP · TRAILING · MAX HOLD · RISK BUDGET · LEVERAGE
         """
         health = self.state.cortex_health
@@ -546,7 +853,12 @@ class ChallengeRiskAgent:
                 audit_trail=audit_trail,
             )
 
-        # 3. DYNAMIC RISK BUDGET (Distance to Ruin × Safety Factor)
+        # 3. DYNAMIC PARAMETERS & RISK BUDGET
+        dyn_params = self.get_dynamic_risk_parameters(
+            strategy_name=intent.strategy_name,
+            regime=intent.market_regime,
+            volatility_14d=intent.volatility_14d,
+        )
         available_risk_budget = self.state.available_risk_budget_usd
         if available_risk_budget <= 0.0:
             return TradeAuthorization(
@@ -578,7 +890,7 @@ class ChallengeRiskAgent:
         else:
             atr = intent.target_price * max(0.01, intent.volatility_14d)
 
-        # Timeframe & Strategy Stop adjustment
+        # Dynamic timeframe & strategy stop adjustment
         tf_mult = 1.2 if intent.timeframe in ("1m", "5m") else (1.8 if intent.timeframe in ("15m", "30m") else 2.5)
         stop_distance_price = max(atr * tf_mult, intent.target_price * 0.004)
 
@@ -586,15 +898,40 @@ class ChallengeRiskAgent:
         emergency_ceiling = intent.target_price * 0.05
         stop_distance_price = min(stop_distance_price, emergency_ceiling)
 
-        # 5. BASE SIZING FROM RISK BUDGET & STOP DISTANCE
-        max_risk_for_trade = min(self.state.current_equity * self.risk_per_trade_pct, available_risk_budget)
+        # 5. BASE SIZING FROM DYNAMIC RISK BUDGET & STOP DISTANCE
+        max_risk_for_trade = min(self.state.current_equity * dyn_params["risk_per_trade_pct"], available_risk_budget)
         base_units = max_risk_for_trade / stop_distance_price
+        nominal_trial = base_units * intent.target_price
 
-        # 6. MULTIPLIER REDUCTION HIERARCHY
+        # 6. EXECUTION RISK GATES EVALUATION
+        gates_ok, gate_decision, gate_reason, gate_multiplier = self.evaluate_execution_gates(
+            intent=intent,
+            trial_nominal_usd=nominal_trial,
+            available_budget_usd=available_risk_budget,
+        )
+        if not gates_ok:
+            return TradeAuthorization(
+                intent_id=intent.intent_id,
+                decision=RiskDecision.REJECT,
+                authorized=False,
+                position_size_units=0.0,
+                nominal_value_usdt=0.0,
+                authorized_leverage=1,
+                stop_loss_price=0.0,
+                take_profit_price=0.0,
+                trailing_stop_price=0.0,
+                max_hold_hours=0,
+                risk_budget_usd=0.0,
+                cortex_health=health,
+                rejection_reason=gate_reason,
+                audit_trail=audit_trail,
+            )
+
+        # 7. MULTIPLIER REDUCTION HIERARCHY
         volatility_factor = 1.0 / (1.0 + max(0.0, (intent.volatility_14d - 0.02) * 10.0))
         liquidity_factor = max(0.40, 1.0 - (intent.estimated_slippage_pct + intent.estimated_price_impact_pct) * 15.0)
 
-        # Confidence cannot override Drawdown (normalized composite capped between 0.60 and 1.0)
+        # Confidence cannot override Drawdown
         composite_conf = (intent.prediction_confidence * 0.5) + (intent.strategy_confidence * 0.5)
         confidence_factor = max(0.60, min(1.0, composite_conf))
 
@@ -608,21 +945,24 @@ class ChallengeRiskAgent:
         else:
             drawdown_factor = 0.0
 
-        # Execution Quality Factor (Gas impact relative to trade risk budget)
+        # Execution Quality Factor
         execution_quality_factor = max(0.30, 1.0 - (intent.estimated_gas_usd / (max_risk_for_trade + 1e-6)))
 
-        # Correlation Factor (Cap at 20% total correlated exposure)
+        # 8. CORRELATION FACTOR (Rolling Correlation Matrix)
         total_correlated_exposure = 0.0
-        target_base = intent.target_asset.split("/")[0].upper()
         for asset_id, exposure in intent.current_portfolio_exposure.items():
-            corr_factor = 0.8 if asset_id.split("/")[0].upper() != target_base else 1.0
-            total_correlated_exposure += (exposure * corr_factor)
+            corr_factor = self.metrics.get_pairwise_correlation(
+                asset_a=asset_id,
+                asset_b=intent.target_asset,
+                market_series_dict=market_series_dict,
+                regime=intent.market_regime,
+            )
+            total_correlated_exposure += (exposure * max(0.10, corr_factor))
 
-        nominal_trial = base_units * intent.target_price
-        max_allowed_correlated = self.state.current_equity * 0.20
+        max_allowed_correlated = self.state.current_equity * dyn_params["max_correlated_exposure_pct"]
         if (total_correlated_exposure + nominal_trial) > max_allowed_correlated:
             remaining_corr_capacity = max(0.0, max_allowed_correlated - total_correlated_exposure)
-            if remaining_corr_capacity < 100.0:
+            if remaining_corr_capacity < 50.0:
                 correlation_factor = 0.0
             else:
                 correlation_factor = min(1.0, remaining_corr_capacity / nominal_trial)
@@ -643,11 +983,11 @@ class ChallengeRiskAgent:
                 max_hold_hours=0,
                 risk_budget_usd=0.0,
                 cortex_health=health,
-                rejection_reason="Max Correlated Exposure Exceeded (20% Hard Cap)",
+                rejection_reason=f"Max Correlated Exposure Exceeded ({dyn_params['max_correlated_exposure_pct'] * 100:.0f}% Cap)",
                 audit_trail=audit_trail,
             )
 
-        # Combine all multipliers
+        # Combine all multipliers (including execution gate scaling)
         total_scaling_factor = (
             volatility_factor
             * liquidity_factor
@@ -655,13 +995,15 @@ class ChallengeRiskAgent:
             * correlation_factor
             * drawdown_factor
             * execution_quality_factor
+            * gate_multiplier
         )
 
         final_units = base_units * total_scaling_factor
         final_nominal_usd = final_units * intent.target_price
 
-        # 7. MINIMUM NOTIONAL CHECK
-        if final_nominal_usd < 100.0:
+        # 9. DYNAMIC MINIMUM NOTIONAL CHECK
+        min_notional = dyn_params["min_trade_notional_usd"]
+        if final_nominal_usd < min_notional:
             return TradeAuthorization(
                 intent_id=intent.intent_id,
                 decision=RiskDecision.REJECT,
@@ -675,31 +1017,32 @@ class ChallengeRiskAgent:
                 max_hold_hours=0,
                 risk_budget_usd=0.0,
                 cortex_health=health,
-                rejection_reason=f"Position size too small (${final_nominal_usd:.2f} < Min $100.00)",
+                rejection_reason=f"Position size too small (${final_nominal_usd:.2f} < Min ${min_notional:.2f})",
                 audit_trail=audit_trail,
             )
 
-        # 8. AUTHORIZED LEVERAGE (Capped at 3x max institutional, caller cannot pass arbitrary 10x!)
+        # 10. AUTHORIZED LEVERAGE (Strict institutional cap at 3x)
         raw_leverage = max(1, int(round(final_nominal_usd / self.state.current_equity)))
         authorized_leverage = min(raw_leverage, 3)
 
-        # 9. STOP LOSS, TAKE PROFIT, TRAILING & MAX HOLD
+        # 11. STOP LOSS, TAKE PROFIT, TRAILING & MAX HOLD
         dir_str = str(intent.direction.value if isinstance(intent.direction, TradeDirection) else intent.direction).upper()
         is_long = dir_str in ("LONG", "BUY")
+        target_rr = dyn_params["target_risk_reward"]
 
         if is_long:
             stop_loss_price = intent.target_price - stop_distance_price
-            take_profit_price = intent.target_price + (stop_distance_price * 2.0)
+            take_profit_price = intent.target_price + (stop_distance_price * target_rr)
             trailing_stop_price = intent.target_price - (stop_distance_price * 0.8)
         else:
             stop_loss_price = intent.target_price + stop_distance_price
-            take_profit_price = intent.target_price - (stop_distance_price * 2.0)
+            take_profit_price = intent.target_price - (stop_distance_price * target_rr)
             trailing_stop_price = intent.target_price + (stop_distance_price * 0.8)
 
         tf_hours_map = {"1m": 2, "5m": 4, "15m": 12, "1h": 24, "4h": 72, "1d": 168}
         max_hold_hours = tf_hours_map.get(intent.timeframe.lower(), 24)
 
-        decision = RiskDecision.REDUCE if total_scaling_factor < 0.85 else RiskDecision.PASS
+        decision = RiskDecision.REDUCE_SIZE if (total_scaling_factor < 0.85 or gate_decision == RiskDecision.REDUCE_SIZE) else RiskDecision.PASS
 
         audit_trail.update({
             "volatility_factor": round(volatility_factor, 3),
@@ -708,8 +1051,10 @@ class ChallengeRiskAgent:
             "correlation_factor": round(correlation_factor, 3),
             "drawdown_factor": round(drawdown_factor, 3),
             "execution_quality_factor": round(execution_quality_factor, 3),
+            "gate_multiplier": round(gate_multiplier, 3),
             "total_scaling_factor": round(total_scaling_factor, 3),
             "effective_risk_budget_usd": round(max_risk_for_trade, 2),
+            "target_rr_used": target_rr,
         })
 
         return TradeAuthorization(
@@ -726,7 +1071,6 @@ class ChallengeRiskAgent:
             risk_budget_usd=round(max_risk_for_trade * total_scaling_factor, 2),
             cortex_health=health,
             rejection_reason=None,
-            audit_trail=audit_trail,
         )
 
 
@@ -1191,6 +1535,10 @@ class ChallengeRiskAgent:
             "reason": "DAILY_DD_YELLOW_ZONE (Size reduced 50%)" if daily_dd_pct >= 3.5 else None,
             "size_multiplier": size_multiplier,
         }
+
+
+# Canonical V2 Architecture Alias
+CortexChallengeRiskEngine = ChallengeRiskAgent
 
 
 # ============================================================

@@ -4,6 +4,7 @@ from src.risk.cryptoaid_gate import CryptoAidRiskGate, RiskGateDecision
 
 from src.risk.challenge_risk_agent import (
     ChallengeRiskAgent,
+    CortexChallengeRiskEngine,
     ChallengeState,
     RiskMetrics,
     TierConfig,
@@ -24,6 +25,7 @@ __all__ = [
     "CapitalProtectionEngine",
     "PortfolioRiskState",
     "ChallengeRiskAgent",
+    "CortexChallengeRiskEngine",
     "ChallengeState",
     "RiskMetrics",
     "TierConfig",

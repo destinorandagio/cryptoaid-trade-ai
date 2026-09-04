@@ -8,7 +8,7 @@
 
 ## 1. Obiettivo Matematico & Filosofia di Rischio
 
-Il **Challenge Risk Agent** ha un unico mandato categorico: **massimizzare la probabilità di raggiungere il target del +8% garantendo matematicamente che il Daily Drawdown non superi mai il 5.00% e il Total Drawdown non superi mai il 10.00%**, anche in presenza di una serie avversa di trade consecutivi in perdita (*consecutive loss streak*).
+Il **Challenge Risk Agent** ha un unico mandato categorico: **massimizzare la probabilità di raggiungere il target del +8% senza violare il Daily Drawdown (5.00%) né il Total Drawdown (10.00%)**, mitigando rigorosamente il rischio di serie avverse di trade consecutivi in perdita (*consecutive loss streak*), gap di mercato e slippage.
 
 ### Assiomi Fondamentali:
 1. **Zero-Ruin Daily Constraint**: Il budget di rischio intraday è partizionato in "slot" di perdita indipendenti. Nessun singolo trade può assorbire più di $\frac{1}{3}$ della capacità di perdita giornaliera residua.
@@ -125,7 +125,7 @@ Se il potenziale guadagno al Take Profit ($Q \times D_{TP}$) supera $TP_{max}$:
 $$ScaleDown = \frac{TP_{max}}{Q \times D_{TP}}$$
 $$Q = Q \times ScaleDown$$
 
-Questo assicura matematicamente che il trader non rischi l'annullamento della prova per eccesso di concentrazione dei profitti in un solo colpo fortunato.
+Questo assicura in modo deterministico che il trader non rischi l'annullamento della prova per eccesso di concentrazione dei profitti in un solo colpo fortunato.
 
 ---
 

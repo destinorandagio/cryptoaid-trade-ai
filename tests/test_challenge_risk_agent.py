@@ -421,7 +421,7 @@ def test_authorize_trade_intent_stop_determines_size():
 
     auth = agent.authorize_trade_intent(intent)
     assert auth.authorized is True
-    assert auth.decision in (RiskDecision.PASS, RiskDecision.REDUCE)
+    assert auth.decision in (RiskDecision.PASS, RiskDecision.REDUCE, RiskDecision.REDUCE_SIZE)
     assert auth.position_size_units > 0
     assert auth.stop_loss_price < 65000.0
     assert auth.take_profit_price > 65000.0
@@ -505,7 +505,7 @@ def test_api_engine_trade_intents_and_cortex_health():
     data = resp.json()
     assert data["status"] == "AUTHORIZED_AND_EXECUTED"
     assert data["authorized"] is True
-    assert data["decision"] in ("PASS", "REDUCE")
+    assert data["decision"] in ("PASS", "REDUCE", "REDUCE_SIZE")
     assert data["position_size_units"] > 0
     assert data["authorized_leverage"] <= 3
     assert data["order"] is not None
