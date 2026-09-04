@@ -1,0 +1,5 @@
+# Ignore all cloned research repositories to prevent repo bloat
+*
+!.gitignore
+!README.md
+!manifest.json

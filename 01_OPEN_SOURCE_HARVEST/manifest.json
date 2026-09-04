@@ -1,0 +1,335 @@
+{
+  "version": "1.0.0-GOLDEN-MASTER",
+  "generated_at": "2026-09-04T16:15:00Z",
+  "total_repositories": 32,
+  "runtime_dependency_budget": "8-12 max",
+  "protocol": "CLONE/READ -> LICENSE -> SECURITY -> EXTRACT DNA -> ADAPT -> TEST",
+  "waves": {
+    "wave_1_first_hour": [
+      "gateway",
+      "0x-examples",
+      "web3.py",
+      "eth-account",
+      "viem",
+      "quantstats",
+      "freqtrade",
+      "freqtrade-strategies",
+      "polygon_arbitrage",
+      "multimodal-crypto-forecasting-xai-sentiments",
+      "crypto-agentic-trader",
+      "market-regime-detection"
+    ],
+    "wave_2_secondary": [
+      "hummingbot",
+      "smart-order-router",
+      "universal-router",
+      "permit2",
+      "meta-aggregation-api",
+      "TRANSACTION_SIMULATION",
+      "vectorbt",
+      "backtrader",
+      "optuna",
+      "FinRL",
+      "FinRL-Meta",
+      "alcyone-trading-bot",
+      "crypto-trading-bot",
+      "crypto-regime-trading",
+      "backtest-strategy-scanner-skill",
+      "arb-bot",
+      "dex-arbitrage",
+      "mev-chaser",
+      "polygon-mcp",
+      "0x-ai"
+    ]
+  },
+  "repositories": [
+    {
+      "id": "gateway",
+      "group": "A_CORE",
+      "url": "https://github.com/hummingbot/gateway",
+      "license": "Apache-2.0",
+      "role": "DEX/EVM/Polygon middleware, 0x and Uniswap connectors",
+      "agy_action": "ACQUIRE_CORE",
+      "wave": 1
+    },
+    {
+      "id": "hummingbot",
+      "group": "A_CORE",
+      "url": "https://github.com/hummingbot/hummingbot",
+      "license": "Apache-2.0",
+      "role": "Arbitrage, market making, controller and trading patterns",
+      "agy_action": "ACQUIRE_CORE",
+      "wave": 2
+    },
+    {
+      "id": "0x-examples",
+      "group": "A_CORE",
+      "url": "https://github.com/0xProject/0x-examples",
+      "license": "MIT",
+      "role": "Swap API v2, Permit2/AllowanceHolder headless execution. NEVER allowance to Settler",
+      "agy_action": "ACQUIRE_CORE",
+      "wave": 1
+    },
+    {
+      "id": "0x-ai",
+      "group": "A_CORE",
+      "url": "https://github.com/0xProject/0x-ai",
+      "license": "Apache-2.0",
+      "role": "0x AI tooling and skills for agents and signing flows",
+      "agy_action": "ACQUIRE_CORE",
+      "wave": 2
+    },
+    {
+      "id": "web3.py",
+      "group": "A_CORE",
+      "url": "https://github.com/ethereum/web3.py",
+      "license": "MIT",
+      "role": "Python base for Polygon RPC (137), gas estimation, EVM transactions",
+      "agy_action": "ACQUIRE_CORE",
+      "wave": 1
+    },
+    {
+      "id": "eth-account",
+      "group": "A_CORE",
+      "url": "https://github.com/ethereum/eth-account",
+      "license": "MIT",
+      "role": "Signing and non-custodial account management on EVM",
+      "agy_action": "ACQUIRE_CORE",
+      "wave": 1
+    },
+    {
+      "id": "viem",
+      "group": "A_CORE",
+      "url": "https://github.com/wevm/viem",
+      "license": "MIT",
+      "role": "TypeScript/PWA lightweight EVM interaction layer",
+      "agy_action": "ACQUIRE_CORE",
+      "wave": 1
+    },
+    {
+      "id": "quantstats",
+      "group": "A_CORE",
+      "url": "https://github.com/ranaroussi/quantstats",
+      "license": "Apache-2.0",
+      "role": "Institutional portfolio performance analytics",
+      "agy_action": "ACQUIRE_CORE",
+      "wave": 1
+    },
+    {
+      "id": "smart-order-router",
+      "group": "B_ROUTING_EXECUTION",
+      "url": "https://github.com/Uniswap/smart-order-router",
+      "license": "GPL-3.0",
+      "role": "Polygon 137 route splitting & gas-aware routing. Do NOT copy code directly",
+      "agy_action": "STUDY_BENCHMARK",
+      "wave": 2
+    },
+    {
+      "id": "universal-router",
+      "group": "B_ROUTING_EXECUTION",
+      "url": "https://github.com/Uniswap/universal-router",
+      "license": "GPL-3.0",
+      "role": "Uniswap modern multihop/multitoken execution pattern",
+      "agy_action": "STUDY_BENCHMARK",
+      "wave": 2
+    },
+    {
+      "id": "permit2",
+      "group": "B_ROUTING_EXECUTION",
+      "url": "https://github.com/Uniswap/permit2",
+      "license": "AGPL-3.0",
+      "role": "Permit2 allowance model and token transfer contract specification",
+      "agy_action": "STUDY_SECURITY",
+      "wave": 2
+    },
+    {
+      "id": "meta-aggregation-api",
+      "group": "B_ROUTING_EXECUTION",
+      "url": "https://github.com/dex-guru/meta-aggregation-api",
+      "license": "MIT",
+      "role": "DexGuru FastAPI View->Service->Providers meta aggregator pattern",
+      "agy_action": "EXTRACT_PATTERN",
+      "wave": 2
+    },
+    {
+      "id": "TRANSACTION_SIMULATION",
+      "group": "B_ROUTING_EXECUTION",
+      "url": "https://github.com/router-protocol/TRANSACTION_SIMULATION",
+      "license": "MIT",
+      "role": "Pre-sign on-chain transaction simulation gate on Chain 137",
+      "agy_action": "EXTRACT_PATTERN",
+      "wave": 2
+    },
+    {
+      "id": "freqtrade",
+      "group": "C_STRATEGY_BACKTEST",
+      "url": "https://github.com/freqtrade/freqtrade",
+      "license": "GPL-3.0",
+      "role": "Strategy format, hyperopt, backtesting, SQLite persistence, dry-run",
+      "agy_action": "EXTRACT_PATTERN",
+      "wave": 1
+    },
+    {
+      "id": "freqtrade-strategies",
+      "group": "C_STRATEGY_BACKTEST",
+      "url": "https://github.com/freqtrade/freqtrade-strategies",
+      "license": "GPL-3.0",
+      "role": "Raw strategy candidates for the Strategy Tournament pipeline",
+      "agy_action": "WAREHOUSE_INPUT",
+      "wave": 1
+    },
+    {
+      "id": "vectorbt",
+      "group": "C_STRATEGY_BACKTEST",
+      "url": "https://github.com/polakowo/vectorbt",
+      "license": "Apache-2.0",
+      "role": "Massive vectorized backtesting engine for Strategy Tournament",
+      "agy_action": "RESEARCH_ONLY",
+      "wave": 2
+    },
+    {
+      "id": "backtrader",
+      "group": "C_STRATEGY_BACKTEST",
+      "url": "https://github.com/mementum/backtrader",
+      "license": "GPL-3.0",
+      "role": "Independent secondary validation engine for backtesting cross-checks",
+      "agy_action": "RESEARCH_ONLY",
+      "wave": 2
+    },
+    {
+      "id": "optuna",
+      "group": "C_STRATEGY_BACKTEST",
+      "url": "https://github.com/optuna/optuna",
+      "license": "MIT",
+      "role": "Bayesian hyperparameter optimization for Council agent weights",
+      "agy_action": "INTEGRATE_OPT",
+      "wave": 2
+    },
+    {
+      "id": "FinRL",
+      "group": "C_STRATEGY_BACKTEST",
+      "url": "https://github.com/AI4Finance-Foundation/FinRL",
+      "license": "MIT",
+      "role": "Reinforcement learning financial trading framework for research",
+      "agy_action": "RESEARCH_ONLY",
+      "wave": 2
+    },
+    {
+      "id": "FinRL-Meta",
+      "group": "C_STRATEGY_BACKTEST",
+      "url": "https://github.com/AI4Finance-Foundation/FinRL-Meta",
+      "license": "MIT",
+      "role": "Data and environment layer for financial reinforcement learning",
+      "agy_action": "RESEARCH_ONLY",
+      "wave": 2
+    },
+    {
+      "id": "alcyone-trading-bot",
+      "group": "D_PREDICTIVE_HEART",
+      "url": "https://github.com/msbel5/alcyone-trading-bot",
+      "license": "MIT",
+      "role": "9-layer composite quantitative structure (trend, momentum, volatility, etc.)",
+      "agy_action": "EXTRACT_DNA",
+      "wave": 2
+    },
+    {
+      "id": "crypto-trading-bot",
+      "group": "D_PREDICTIVE_HEART",
+      "url": "https://github.com/hamlou/crypto-trading-bot",
+      "license": "GPL-3.0",
+      "role": "Regime-aware multi-strategy ensemble with multi-agent confirmation",
+      "agy_action": "EXTRACT_DNA",
+      "wave": 2
+    },
+    {
+      "id": "crypto-regime-trading",
+      "group": "D_PREDICTIVE_HEART",
+      "url": "https://github.com/jakejk1285/crypto-regime-trading",
+      "license": "MIT",
+      "role": "PCA/K-Means regime classification and dynamic position sizing",
+      "agy_action": "EXTRACT_DNA",
+      "wave": 2
+    },
+    {
+      "id": "market-regime-detection",
+      "group": "D_PREDICTIVE_HEART",
+      "url": "https://github.com/taylorjmellon/market-regime-detection",
+      "license": "MIT",
+      "role": "K-Means and Hidden Markov Models for regime detection",
+      "agy_action": "EXTRACT_DNA",
+      "wave": 1
+    },
+    {
+      "id": "multimodal-crypto-forecasting-xai-sentiments",
+      "group": "D_PREDICTIVE_HEART",
+      "url": "https://github.com/atishay2411/multimodal-crypto-forecasting-xai-sentiments",
+      "license": "MIT",
+      "role": "OHLCV + Sentiment fusion with N-BEATS/TFT and explainability (WHY? inspector)",
+      "agy_action": "EXTRACT_DNA",
+      "wave": 1
+    },
+    {
+      "id": "crypto-agentic-trader",
+      "group": "D_PREDICTIVE_HEART",
+      "url": "https://github.com/weijuinlee/crypto-agentic-trader",
+      "license": "MIT",
+      "role": "Council of agents: trend, momentum, mean reversion, FinBERT, regime, cooldown",
+      "agy_action": "EXTRACT_DNA",
+      "wave": 1
+    },
+    {
+      "id": "backtest-strategy-scanner-skill",
+      "group": "D_PREDICTIVE_HEART",
+      "url": "https://github.com/ozik1967/backtest-strategy-scanner-skill",
+      "license": "MIT",
+      "role": "Pipeline: Market -> Regime -> Strategy Selection -> Backtest Spec",
+      "agy_action": "EXTRACT_DNA",
+      "wave": 2
+    },
+    {
+      "id": "polygon_arbitrage",
+      "group": "E_POLYGON_ARBITRAGE",
+      "url": "https://github.com/shandilyabh/polygon_arbitrage",
+      "license": "MIT",
+      "role": "Polygon native Rust bot (Uniswap V3 vs QuickSwap, gas calculation, min profit)",
+      "agy_action": "EXTRACT_DNA",
+      "wave": 1
+    },
+    {
+      "id": "arb-bot",
+      "group": "E_POLYGON_ARBITRAGE",
+      "url": "https://github.com/shaspitz/arb-bot",
+      "license": "MIT",
+      "role": "Event-driven EVM arbitrage: DEX event -> spread -> direction -> execute",
+      "agy_action": "EXTRACT_DNA",
+      "wave": 2
+    },
+    {
+      "id": "dex-arbitrage",
+      "group": "E_POLYGON_ARBITRAGE",
+      "url": "https://github.com/alextcn/dex-arbitrage",
+      "license": "MIT",
+      "role": "Multi-DEX, multi-route and optimal swap size calculation concepts",
+      "agy_action": "RESEARCH_ONLY",
+      "wave": 2
+    },
+    {
+      "id": "mev-chaser",
+      "group": "E_POLYGON_ARBITRAGE",
+      "url": "https://github.com/CorrM/mev-chaser",
+      "license": "MIT",
+      "role": "High-risk Polygon Chain 137 MEV research with debug_trace_call",
+      "agy_action": "RESEARCH_ONLY",
+      "wave": 2
+    },
+    {
+      "id": "polygon-mcp",
+      "group": "F_POLYGON_TOOLING",
+      "url": "https://github.com/Dbillionaer/polygon-mcp",
+      "license": "MIT",
+      "role": "MCP server tooling for Uniswap V3 quotes and simulation on Polygon",
+      "agy_action": "TOOLING_MCP",
+      "wave": 2
+    }
+  ]
+}
