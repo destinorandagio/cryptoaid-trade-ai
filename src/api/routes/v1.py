@@ -9,14 +9,18 @@ from src.agents.base import SignalType
 from src.agents.gem_hunter import GemHunterEngine
 from src.agents.meta_agent import MetaAgent, MetaDecision
 from src.agents.predictive_heart import PredictiveHeartEngine
+from src.agents.strategy_selector import MarketStateVector, StrategySelector
 from src.config import settings
 from src.data.digital_twins import DigitalTwinsManager
 from src.data.provider import CompositeMarketDataProvider
 from src.execution.models import OrderSide
 from src.execution.paper_engine import PaperExecutionEngine
+from src.learning.experience_matrix import ExperienceMatrix
+from src.learning.memory_weighting import ChampionChallengerSystem
 from src.performance.metrics import calculate_performance
 from src.risk.capital_protection import CapitalProtectionEngine
 from src.risk.cryptoaid_gate import CryptoAidRiskGate
+from src.risk.risk_agent_v1 import RiskAgentV1, RiskEvaluationInput
 from src.storage.db import DatabaseManager
 
 router = APIRouter(prefix="/api/v1", tags=["v1"])
@@ -31,6 +35,10 @@ capital_engine = CapitalProtectionEngine()
 execution_engine = PaperExecutionEngine(db=db, risk_engine=capital_engine, risk_gate=risk_gate)
 gem_hunter = GemHunterEngine(db=db)
 twins_manager = DigitalTwinsManager(db=db)
+risk_agent_v1 = RiskAgentV1()
+strategy_selector = StrategySelector()
+experience_matrix = ExperienceMatrix(db_manager=db)
+champion_system = ChampionChallengerSystem(db_manager=db)
 
 
 class OrderRequest(BaseModel):
@@ -366,6 +374,66 @@ def get_strategy_switches(limit: int = Query(20, ge=1, le=100)) -> list[dict[str
         return db.get_strategy_switches(limit=limit)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get strategy switches: {str(e)}")
+
+
+# =========================================================================
+# RISK AGENT V1 & STRATEGY SELECTOR & EXPERIENCE INTELLIGENCE ROUTES
+# =========================================================================
+@router.post("/risk/evaluate")
+def evaluate_risk_v1(input_data: RiskEvaluationInput) -> dict[str, Any]:
+    """Evaluate proposed trade through the 6-Stage Veto Hierarchy."""
+    try:
+        res = risk_agent_v1.evaluate(input_data)
+        return res.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to evaluate risk: {str(e)}")
+
+
+@router.post("/strategies/select")
+def select_strategy_dna(state: MarketStateVector) -> dict[str, Any]:
+    """Select optimal Strategy DNA or trigger EXIT from Market State Vector."""
+    try:
+        res = strategy_selector.evaluate(state)
+        return res.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to select strategy: {str(e)}")
+
+
+@router.get("/learning/experience")
+def get_experience_matrix_stats(
+    regime: str | None = Query(None, description="Optional regime filter"),
+    asset: str | None = Query(None, description="Optional asset filter"),
+) -> dict[str, Any]:
+    """Get global experience matrix stats and ranked strategies."""
+    try:
+        stats = experience_matrix.get_matrix_stats()
+        if regime:
+            stats["ranked_for_regime"] = experience_matrix.get_top_strategies(regime=regime, asset=asset)
+        return stats
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get experience matrix stats: {str(e)}")
+
+
+@router.get("/learning/champions")
+def get_champions_and_challengers() -> dict[str, Any]:
+    """Get active Champion strategies and competing Challengers per regime."""
+    try:
+        return champion_system.get_all_champions()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get champions: {str(e)}")
+
+
+@router.post("/learning/champions/evaluate")
+def evaluate_champion_promotion(
+    regime: str = Query("TRENDING_BULL", description="Regime to evaluate for promotion"),
+    asset: str = Query("POL/USDT", description="Asset to evaluate"),
+) -> dict[str, Any]:
+    """Evaluate whether any shadow Challenger deserves promotion over active Champion."""
+    try:
+        return champion_system.evaluate_promotion(regime=regime, experience_matrix=experience_matrix, asset=asset)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to evaluate promotion: {str(e)}")
+
 
 
 

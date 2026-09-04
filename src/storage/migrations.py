@@ -397,6 +397,55 @@ VALUES
 """
 
 
+
+MIGRATION_V5 = """
+-- Experience Matrix Multidimensional Knowledge Base
+CREATE TABLE IF NOT EXISTS experience_matrix (
+    matrix_key TEXT PRIMARY KEY,
+    asset TEXT NOT NULL,
+    regime TEXT NOT NULL,
+    timeframe TEXT NOT NULL,
+    strategy TEXT NOT NULL,
+    prediction_model TEXT NOT NULL,
+    sentiment_state TEXT NOT NULL,
+    liquidity_state TEXT NOT NULL,
+    volatility_state TEXT NOT NULL,
+    expectancy REAL NOT NULL DEFAULT 0.0,
+    max_drawdown REAL NOT NULL DEFAULT 0.0,
+    win_rate REAL NOT NULL DEFAULT 0.0,
+    profit_factor REAL NOT NULL DEFAULT 1.0,
+    avg_net_costs REAL NOT NULL DEFAULT 0.0,
+    sample_size INTEGER NOT NULL DEFAULT 0,
+    confidence_score REAL NOT NULL DEFAULT 0.5,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_exp_regime_strat ON experience_matrix (regime, strategy);
+CREATE INDEX IF NOT EXISTS idx_exp_asset_regime ON experience_matrix (asset, regime);
+
+-- Strategy Tournament Champions & Challengers
+CREATE TABLE IF NOT EXISTS champions_challengers (
+    regime TEXT PRIMARY KEY,
+    champion_strategy TEXT NOT NULL,
+    champion_expectancy REAL NOT NULL DEFAULT 0.0,
+    champion_sharpe REAL NOT NULL DEFAULT 1.0,
+    challenger_strategies_json TEXT NOT NULL DEFAULT '[]',
+    promoted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    history_json TEXT NOT NULL DEFAULT '[]'
+);
+
+-- Seed initial regime champions
+INSERT OR IGNORE INTO champions_challengers (regime, champion_strategy, champion_expectancy, champion_sharpe, challenger_strategies_json)
+VALUES
+    ('TRENDING_BULL', 'MOMENTUM', 0.0125, 1.85, '["TREND", "BREAKOUT", "SCALP"]'),
+    ('TRENDING_BEAR', 'TREND', 0.0095, 1.45, '["MOMENTUM", "BREAKOUT", "SCALP"]'),
+    ('RANGING_LOW_VOL', 'MEAN_REVERSION', 0.0078, 1.62, '["SCALP", "MOMENTUM"]'),
+    ('RANGING_HIGH_VOL', 'BREAKOUT', 0.0110, 1.40, '["SCALP", "MEAN_REVERSION"]'),
+    ('HIGH_VOLATILITY_EXPANSION', 'SCALP', 0.0085, 1.35, '["BREAKOUT", "MOMENTUM"]'),
+    ('UNKNOWN', 'SCALP', 0.0050, 1.10, '["MEAN_REVERSION"]');
+"""
+
+
 def apply_migrations(db_path: Path | str) -> None:
     """Run migrations to ensure all database tables are up to date."""
     conn = sqlite3.connect(str(db_path))
@@ -434,7 +483,15 @@ def apply_migrations(db_path: Path | str) -> None:
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (4)")
             conn.commit()
             logger.info("Database migration V4 applied successfully.")
+
+        if current_version < 5:
+            logger.info("Applying database migration V5 (Experience Matrix & Champions/Challengers)...")
+            cursor.executescript(MIGRATION_V5)
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (5)")
+            conn.commit()
+            logger.info("Database migration V5 applied successfully.")
     finally:
         conn.close()
+
 
 
