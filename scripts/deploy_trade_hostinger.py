@@ -16,7 +16,11 @@ FTP_PORT = 21
 FTP_USER = "u173050672.cryptoaid.support"
 FTP_PASS = "h29031976T."
 REMOTE_TARGET_DIR = "/public_html/trade"
-LOCAL_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "public_html", "trade"))
+LOCAL_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public_html", "trade"))
+if not os.path.exists(LOCAL_DIR):
+    LOCAL_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "public_html", "trade"))
+
+
 
 def ensure_remote_dir(ftp, remote_path):
     """Ensure remote path exists, creating subdirs recursively if needed."""
