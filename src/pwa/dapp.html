@@ -8,14 +8,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="static/css/dapp.css?v=8">
+    <link rel="stylesheet" href="static/css/dapp.css?v=9">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="static/logo.png">
     <!-- Multi-Language i18n Manager -->
-    <script src="static/js/i18n.js"></script>
+    <script src="static/js/i18n.js?v=clean3"></script>
 </head>
 <body class="dapp-body">
-    <!-- Matrix Red 01010101 Rain Effect Canvas -->
+    <!-- Matrix Red 01010101 Rain Effect Canvas (Upward & Slow) -->
     <canvas id="matrix-canvas"></canvas>
 
     <!-- Mobile-First Web3 Viewport Container -->
@@ -25,7 +25,9 @@
             <!-- TOP BAR / WEB3 HEADER -->
             <header class="dapp-top-bar">
                 <div class="brand-zone">
-                    <a href="index.html" class="back-link" data-i18n-title="nav_back_title" title="Back to Landing Page">←</a>
+                    <a href="index.html" class="back-link" data-i18n-title="nav_back_title" title="Back to Landing Page">
+                        <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    </a>
                     <img src="static/logo.png" alt="Logo" class="dapp-logo">
                     <div class="brand-info">
                         <span class="dapp-name">TRADEAID</span>
@@ -33,57 +35,72 @@
                     </div>
                 </div>
                 <div class="wallet-zone">
-                    <!-- Global Language Switcher -->
+                    <!-- Global Language Switcher (No Emojis) -->
                     <div class="lang-picker">
                         <select id="lang-select" class="lang-select" aria-label="Language Selector">
-                            <option value="en" selected>🇬🇧 EN</option>
-                            <option value="it">🇮🇹 IT</option>
-                            <option value="zh">🇨🇳 中文</option>
-                            <option value="es">🇪🇸 ES</option>
-                            <option value="de">🇩🇪 DE</option>
-                            <option value="fr">🇫🇷 FR</option>
-                            <option value="ja">🇯🇵 日本語</option>
-                            <option value="pt">🇵🇹 PT</option>
-                            <option value="ru">🇷🇺 RU</option>
-                            <option value="ar">🇦🇪 العربية</option>
+                            <option value="en" selected>EN</option>
+                            <option value="it">IT</option>
+                            <option value="zh">ZH</option>
+                            <option value="es">ES</option>
+                            <option value="de">DE</option>
+                            <option value="fr">FR</option>
+                            <option value="ja">JA</option>
+                            <option value="pt">PT</option>
+                            <option value="ru">RU</option>
+                            <option value="ar">AR</option>
                         </select>
                     </div>
 
-                    <button id="btn-connect-wallet" class="btn-connect-wallet" data-i18n="connect_wallet">
-                        ⚡ Connect Wallet
+                    <button id="btn-connect-wallet" class="btn-connect-wallet">
+                        <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="13" rx="2"></rect><path d="M20 12h-4a2 2 0 0 0-2 2v0a2 2 0 0 0 2 2h4"></path><path d="M6 6V4a2 2 0 0 1 2-2h10"></path></svg>
+                        <span data-i18n="connect_wallet">Connect Wallet</span>
                     </button>
                 </div>
             </header>
 
             <!-- DAPP INSTITUTIONAL STRIP -->
             <div class="dapp-credential-strip">
-                <div class="dapp-cred-text" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:0.62rem; line-height:1.3; white-space:normal;">
-                    <div class="cred-line" style="display:flex; align-items:center; gap:5px;">
+                <div class="dapp-cred-text">
+                    <div class="cred-line">
                         <span class="cred-tag-pulse"></span>
                         <span data-i18n="powered_by">Powered by</span> <strong>Blockchain+</strong> · 
                         <span data-i18n="audited_by">Audited & Certified by</span> <strong>Cortex</strong>
                     </div>
-                    <div class="cred-line" style="display:flex; align-items:center; gap:5px;">
+                    <div class="cred-line">
                         <span data-i18n="engineered_by">Engineered by</span> <strong>Neuralog</strong> · 
-                        <span data-i18n="native_on">Native on</span> <strong style="color:#c084fc;">Polygon</strong>
+                        <span data-i18n="native_on">Native on</span> <strong class="poly-glow">Polygon</strong>
                     </div>
                 </div>
             </div>
 
-            <!-- CHAIN WARNING MODAL (Appears if not on Polygon 137) -->
+            <!-- MODE STATUS BAR (DEMO PAPER vs REAL TRADING) -->
+            <div class="mode-badge-bar">
+                <div id="app-mode-badge" class="mode-pill demo">
+                    <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31M14 2v7.31M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"></path><line x1="5.52" y1="16" x2="18.48" y2="16"></line></svg>
+                    <span data-i18n="mode_demo">MODE: DEMO (PAPER TRADING)</span>
+                </div>
+                <div class="status-indicator">
+                    <span class="pulse-beacon"></span>
+                    <span class="shield-badge" data-i18n="guardian_ceiling">CEILING: -5.0%</span>
+                </div>
+            </div>
+
+            <!-- CHAIN WARNING MODAL -->
             <div id="chain-warning-modal" class="warning-banner hidden">
-                <span data-i18n="chain_warning">⚠️ Wrong Network: Detected network different from Polygon POS (137).</span>
+                <span data-i18n="chain_warning">Wrong Network: Detected network different from Polygon POS (137).</span>
                 <button id="btn-switch-polygon" class="btn-switch-chain" data-i18n="btn_switch_polygon">Switch to Polygon</button>
             </div>
 
-            <!-- ON-CHAIN PAYWALL MODAL (100 USDT DAO / 5 USDT Session) -->
+            <!-- ON-CHAIN PAYWALL MODAL (100 USDT DAO QUOTA ACCESS) -->
             <div id="modal-onchain-paywall" class="paywall-overlay hidden">
                 <div class="paywall-modal glass-card">
-                    <div class="paywall-icon-shield">🛡️</div>
+                    <div class="preventivo-icon">
+                        <svg class="icon-svg lg svg-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    </div>
                     <div class="paywall-tag" data-i18n="paywall_tag">ON-CHAIN SIGNATURE QUOTE</div>
                     <h3 id="quote-type-label" data-i18n="dao_title">TRADEAID DAO QUOTA ACTIVATION (1st ACCESS)</h3>
                     <p id="quote-desc-display" class="paywall-desc" data-i18n="dao_desc">
-                        Includes permanent DAO Founders membership and full unlock of TradeAID autonomous cockpit.
+                        Includes permanent DAO Founders membership and full unlock of TradeAID autonomous cockpit on Polygon.
                     </p>
 
                     <div class="quote-box">
@@ -93,7 +110,7 @@
                         </div>
                         <div class="quote-row">
                             <span data-i18n="quote_recipient">RECIPIENT (TREASURY):</span>
-                            <code class="addr-val">0x3C32...250C</code>
+                            <code class="addr-val">0x3C320B3a0917fF44BF6551CDdee44402AFcF250C</code>
                         </div>
                         <div class="quote-row">
                             <span data-i18n="quote_network">BLOCKCHAIN NETWORK:</span>
@@ -108,21 +125,90 @@
                     <div id="paywall-tx-status" class="status-box" data-i18n="status_waiting_sign">Awaiting interactive signature...</div>
 
                     <div class="paywall-actions">
-                        <button id="btn-sign-access" class="btn-sign-onchain" data-i18n="btn_sign_execute">
-                            ✍️ SIGN & EXECUTE ON POLYGON (USDT)
+                        <button id="btn-sign-access" class="btn-sign-onchain">
+                            <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                            <span data-i18n="btn_sign_execute">SIGN & EXECUTE ON POLYGON (100 USDT)</span>
                         </button>
                         <small class="zero-custody-notice" data-i18n="zero_custody_notice">
-                            🔒 Non-Custodial: Direct ERC-20 transaction via your wallet.
+                            Non-Custodial: Direct ERC-20 transaction via your wallet.
                         </small>
                     </div>
                 </div>
             </div>
 
-            <!-- MAIN COCKPIT VIEW (Unlocked after signature / session) -->
+            <!-- ON-CHAIN TRADE EXECUTION PREVENTIVO MODAL (GAS + 10 POL DAO QUOTA) -->
+            <div id="modal-trade-preventivo" class="preventivo-overlay hidden">
+                <div class="preventivo-modal">
+                    <div class="preventivo-icon">
+                        <svg class="icon-svg lg svg-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    </div>
+                    <div class="preventivo-tag" data-i18n="preventivo_title">ON-CHAIN TRADE EXECUTION PREVENTIVO</div>
+                    <h3 data-i18n="preventivo_title">TRADE EXECUTION QUOTE</h3>
+                    <p class="preventivo-desc" data-i18n="preventivo_desc">
+                        Every on-chain trade executes with non-custodial Position Guardian protection and direct Blockchain+ DAO quota settlement.
+                    </p>
+
+                    <div class="preventivo-box">
+                        <div class="preventivo-row">
+                            <span data-i18n="preventivo_pair">TRADING PAIR:</span>
+                            <strong id="prev-pair-val">POL/USDT</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span data-i18n="preventivo_alloc">ALLOCATION AMOUNT:</span>
+                            <strong id="prev-alloc-val">50.00 USDT</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span data-i18n="preventivo_dao_quota">BLOCKCHAIN+ DAO QUOTA:</span>
+                            <strong id="prev-quota-val" class="highlight-quota">10.00 POL</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span data-i18n="preventivo_gas">ESTIMATED NETWORK GAS:</span>
+                            <strong id="prev-gas-val">~0.006 POL</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span data-i18n="preventivo_total">TOTAL POL REQUIRED TO SIGN:</span>
+                            <strong id="prev-total-val" class="highlight-total">10.006 POL</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span data-i18n="preventivo_recipient">TREASURY RECIPIENT:</span>
+                            <code id="prev-recipient-val" style="color:#ffffff;">0x3C32...250C</code>
+                        </div>
+                    </div>
+
+                    <div id="prev-tx-status" class="status-box">Awaiting signature...</div>
+
+                    <div class="preventivo-actions">
+                        <button id="btn-sign-trade-preventivo" class="btn-sign-preventivo">
+                            <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                            <span data-i18n="btn_sign_trade">SIGN ON-CHAIN (10 POL + GAS)</span>
+                        </button>
+                        <button id="btn-cancel-trade-preventivo" class="btn-cancel-preventivo" data-i18n="btn_cancel">
+                            CANCEL
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN COCKPIT SCROLL VIEW -->
             <div id="dapp-cockpit-view" class="cockpit-scroll-area">
                 
+                <!-- DEMO MODE CALLOUT BANNER -->
+                <div id="demo-mode-banner" class="demo-banner-box">
+                    <div class="demo-banner-header">
+                        <svg class="icon-svg sm svg-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31M14 2v7.31M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"></path><line x1="5.52" y1="16" x2="18.48" y2="16"></line></svg>
+                        <span data-i18n="mode_demo">SIMULATED PAPER TRADING ACTIVE</span>
+                    </div>
+                    <p class="demo-banner-desc" data-i18n="demo_banner">
+                        DEMO MODE: Simulated paper execution active. Connect wallet and deposit 100 USDT DAO quota to activate real trading on Polygon.
+                    </p>
+                    <button id="btn-unlock-real-trading" class="btn-unlock-real">
+                        <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        <span data-i18n="btn_unlock_live">ACTIVATE REAL TRADING (CONNECT WALLET)</span>
+                    </button>
+                </div>
+
                 <!-- Status Card -->
-                <section class="card-cockpit live-status-card">
+                <section class="card-cockpit live-status-card" style="margin-top: 10px;">
                     <div class="status-row">
                         <div class="status-indicator">
                             <span class="pulse-beacon"></span>
@@ -133,11 +219,11 @@
                     <div class="metrics-grid">
                         <div class="metric-item">
                             <span class="m-label" data-i18n="metric_cash">LIQUID BALANCE</span>
-                            <span class="m-val green" id="metric-cash">1,000.00 USDT</span>
+                            <span class="m-val green" id="metric-cash">10,000.00 USDT (SIM)</span>
                         </div>
                         <div class="metric-item">
                             <span class="m-label" data-i18n="metric_equity">TOTAL EQUITY</span>
-                            <span class="m-val" id="metric-equity">1,000.00 USDT</span>
+                            <span class="m-val" id="metric-equity">10,000.00 USDT</span>
                         </div>
                         <div class="metric-item">
                             <span class="m-label" data-i18n="metric_net_edge">MIN NET EDGE</span>
@@ -150,12 +236,24 @@
                     </div>
                 </section>
 
-                <!-- Navigation Tabs -->
+                <!-- Navigation Tabs with SVG (No Emojis) -->
                 <nav class="cockpit-tab-bar">
-                    <button class="tab-btn active" data-target="tab-scanner" data-i18n="tab_scanner">📡 Scanner</button>
-                    <button class="tab-btn" data-target="tab-positions" data-i18n="tab_positions">📈 Positions (0)</button>
-                    <button class="tab-btn" data-target="tab-strategies" data-i18n="tab_strategies">🧠 Strategies</button>
-                    <button class="tab-btn" data-target="tab-security" data-i18n="tab_security">🚨 Security</button>
+                    <button class="tab-btn active" data-target="tab-scanner">
+                        <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M12 3a9 9 0 0 1 9 9"></path><circle cx="12" cy="12" r="2"></circle><line x1="12" y1="12" x2="19" y2="5"></line></svg>
+                        <span data-i18n="tab_scanner">Scanner</span>
+                    </button>
+                    <button class="tab-btn" data-target="tab-positions">
+                        <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"></path><path d="M7 16l4-6 4 3 6-8"></path></svg>
+                        <span data-i18n="tab_positions">Positions (0)</span>
+                    </button>
+                    <button class="tab-btn" data-target="tab-strategies">
+                        <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+                        <span data-i18n="tab_strategies">Strategies</span>
+                    </button>
+                    <button class="tab-btn" data-target="tab-security">
+                        <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        <span data-i18n="tab_security">Security</span>
+                    </button>
                 </nav>
 
                 <!-- TAB 1: SCANNER LIVE -->
@@ -234,7 +332,9 @@
                 <!-- TAB 2: OPEN POSITIONS -->
                 <section id="tab-positions" class="tab-content">
                     <div class="empty-state">
-                        <div class="empty-icon">🛡️</div>
+                        <div class="preventivo-icon">
+                            <svg class="icon-svg lg svg-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        </div>
                         <h5 data-i18n="no_pos_title">No Positions Exposed to Risk</h5>
                         <p data-i18n="no_pos_desc">Position Guardian is waiting for Net Edge threshold (+0.40%). 100% of funds preserved in USDT.</p>
                     </div>
@@ -279,8 +379,9 @@
                     <div class="security-card">
                         <h5 data-i18n="kill_switch_title">EMERGENCY KILL SWITCH</h5>
                         <p data-i18n="kill_switch_desc">In case of emergency or market anomaly, immediately closes all positions and liquidates 100% to USDT in your wallet.</p>
-                        <button id="btn-dapp-kill-switch" class="btn-panic-kill" data-i18n="kill_switch_btn">
-                            🛑 ACTIVATE INSTANT KILL SWITCH
+                        <button id="btn-dapp-kill-switch" class="btn-panic-kill">
+                            <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                            <span data-i18n="kill_switch_btn">ACTIVATE INSTANT KILL SWITCH</span>
                         </button>
                     </div>
 
@@ -288,8 +389,8 @@
                         <h5 data-i18n="cortex_title">AUDITED & CERTIFIED BY CORTEX</h5>
                         <p data-i18n="cortex_desc">Continuous heuristic security tests on bor RPC, anti-honeypot gate, and formal smart contract verification.</p>
                         <div class="cert-badge-row">
-                            <span class="cert-pill" data-i18n="cortex_pill_1">✓ FORMAL VERIFICATION: PASSED</span>
-                            <span class="cert-pill" data-i18n="cortex_pill_2">✓ FAIL-CLOSED PROTOCOL: ACTIVE</span>
+                            <span class="cert-pill" data-i18n="cortex_pill_1">FORMAL VERIFICATION: PASSED</span>
+                            <span class="cert-pill" data-i18n="cortex_pill_2">FAIL-CLOSED PROTOCOL: ACTIVE</span>
                         </div>
                     </div>
 
@@ -304,7 +405,9 @@
             <!-- BOTTOM DAPP CONTROLS -->
             <footer class="dapp-bottom-bar">
                 <div class="guardian-ticker">
-                    <span class="pulse-icon">●</span>
+                    <span class="pulse-icon">
+                        <svg class="icon-svg sm svg-red" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"></circle></svg>
+                    </span>
                     <span class="ticker-text" data-i18n="ticker_engine">TRADEAID · Powered by Blockchain+ · Audited by Cortex · Engineered by Neuralog · Polygon 137</span>
                 </div>
             </footer>
@@ -314,7 +417,7 @@
 
     <!-- Web3 Scripts -->
     <script src="static/js/matrix.js?v=upward2"></script>
-    <script src="static/js/web3-dapp.js"></script>
+    <script src="static/js/web3-dapp.js?v=paper2"></script>
     <script>
         // Tab switching
         document.querySelectorAll('.tab-btn').forEach(btn => {

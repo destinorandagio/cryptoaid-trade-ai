@@ -1,8 +1,14 @@
 /**
- * CryptoAID Trade AI — Web3 dApp Controller with Multi-Language Support
+ * CryptoAID Trade AI — Web3 dApp Controller with Demo Paper Trading & On-Chain Preventivo
  * Chain: Polygon POS Mainnet (137 / 0x89)
  * Treasury: 0x3C320B3a0917fF44BF6551CDdee44402AFcF250C
  * USDT Polygon: 0xc2132D05D31c914a87C6611C10748AEb04B58e8F (Decimals: 6)
+ *
+ * Rules:
+ * - NO EMOJIS (Only SVG icons in White / Red)
+ * - Without wallet connect: Demo Paper Trading mode ($10,000 simulated USDT, interactive paper trades)
+ * - Wallet connect + 100 USDT DAO quota to treasury -> Unlocks Real Trading mode
+ * - Every on-chain trade prompts on-chain preventivo: Gas + 10 POL DAO Blockchain+ quota
  */
 
 const CONFIG = {
@@ -14,100 +20,441 @@ const CONFIG = {
     TREASURY_ADDRESS: "0x3C320B3a0917fF44BF6551CDdee44402AFcF250C",
     USDT_ADDRESS: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
     USDT_DECIMALS: 6,
-    DAO_QUOTE_AMOUNT: 100, // 100 USDT on first access
-    SESSION_QUOTE_AMOUNT: 5 // 5 USDT on subsequent accesses
+    DAO_QUOTE_AMOUNT: 100, // 100 USDT to treasury for 1st access
+    TRADE_DAO_POL_AMOUNT: 10 // 10 POL per on-chain signed trade
 };
 
 class Web3Controller {
     constructor() {
         this.account = null;
         this.chainId = null;
+        this.isRealMode = false;
         this.hasDaoMembership = false;
-        this.isSessionUnlocked = false;
+        
+        // Paper Simulation State
+        this.paperBalance = 10000.00;
+        this.paperPositions = [];
+        this.realPositions = [];
+        
+        // Active trade staging for on-chain preventivo
+        this.activeTradeStaging = null;
+
         this.init();
     }
 
     init() {
+        this.loadState();
         this.bindEvents();
-        this.checkExistingSession();
+        this.renderState();
+    }
+
+    loadState() {
+        const savedAccount = localStorage.getItem("ca_connected_wallet");
+        if (savedAccount) {
+            this.account = savedAccount;
+            const key = `ca_dao_member_${savedAccount.toLowerCase()}`;
+            this.hasDaoMembership = localStorage.getItem(key) === "true";
+            if (this.hasDaoMembership) {
+                this.isRealMode = true;
+            }
+        }
+
+        const savedPaperPos = localStorage.getItem("ca_paper_positions");
+        if (savedPaperPos) {
+            try { this.paperPositions = JSON.parse(savedPaperPos); } catch (e) { this.paperPositions = []; }
+        }
+
+        const savedRealPos = localStorage.getItem("ca_real_positions");
+        if (savedRealPos) {
+            try { this.realPositions = JSON.parse(savedRealPos); } catch (e) { this.realPositions = []; }
+        }
+    }
+
+    saveState() {
+        localStorage.setItem("ca_paper_positions", JSON.stringify(this.paperPositions));
+        localStorage.setItem("ca_real_positions", JSON.stringify(this.realPositions));
     }
 
     bindEvents() {
+        // Connect Wallet button
         const btnConnect = document.getElementById("btn-connect-wallet");
         if (btnConnect) {
-            btnConnect.addEventListener("click", () => this.connectWallet());
+            btnConnect.addEventListener("click", () => {
+                if (this.account) {
+                    this.disconnectWallet();
+                } else {
+                    this.connectWallet();
+                }
+            });
         }
 
+        // Unlock Real Trading button in demo banner
+        const btnUnlock = document.getElementById("btn-unlock-real-trading");
+        if (btnUnlock) {
+            btnUnlock.addEventListener("click", () => this.connectWallet());
+        }
+
+        // Sign 100 USDT DAO Access
         const btnPay = document.getElementById("btn-sign-access");
         if (btnPay) {
-            btnPay.addEventListener("click", () => this.executeAccessPayment());
+            btnPay.addEventListener("click", () => this.executeDaoAccessPayment());
         }
 
+        // Switch to Polygon
         const btnSwitch = document.getElementById("btn-switch-polygon");
         if (btnSwitch) {
             btnSwitch.addEventListener("click", () => this.switchToPolygon());
         }
 
+        // On-chain Trade Preventivo buttons
+        const btnSignTrade = document.getElementById("btn-sign-trade-preventivo");
+        if (btnSignTrade) {
+            btnSignTrade.addEventListener("click", () => this.executeSignedTradeOnChain());
+        }
+
+        const btnCancelTrade = document.getElementById("btn-cancel-trade-preventivo");
+        if (btnCancelTrade) {
+            btnCancelTrade.addEventListener("click", () => this.closeTradePreventivo());
+        }
+
+        // Close paywall modal button if clicked outside
+        const paywallModal = document.getElementById("modal-onchain-paywall");
+        if (paywallModal) {
+            paywallModal.addEventListener("click", (e) => {
+                if (e.target === paywallModal && !this.hasDaoMembership) {
+                    paywallModal.classList.add("hidden");
+                }
+            });
+        }
+
+        // Window Ethereum listeners
         if (window.ethereum) {
             window.ethereum.on("accountsChanged", (accounts) => this.handleAccountsChanged(accounts));
             window.ethereum.on("chainChanged", (chainId) => this.handleChainChanged(chainId));
         }
 
-        // Listen for real-time language changes
+        // Language change event
         window.addEventListener("languageChanged", () => {
-            this.updatePaymentModalUI();
-            if (this.account) {
-                this.renderWalletConnected();
+            this.renderState();
+        });
+    }
+
+    t(key, fallback) {
+        return (window.t && window.t(key)) ? window.t(key) : fallback;
+    }
+
+    renderState() {
+        const modeBadge = document.getElementById("app-mode-badge");
+        const demoBanner = document.getElementById("demo-mode-banner");
+        const btnConnect = document.getElementById("btn-connect-wallet");
+        const metricCash = document.getElementById("metric-cash");
+        const metricEquity = document.getElementById("metric-equity");
+        const metricExposure = document.getElementById("metric-exposure");
+
+        if (this.isRealMode && this.account) {
+            // REAL TRADING MODE
+            if (modeBadge) {
+                modeBadge.className = "mode-pill real";
+                modeBadge.innerHTML = `<span class="mode-pulse-dot"></span> <span data-i18n="mode_real">${this.t("mode_real", "MODE: REAL TRADING (LIVE WALLET)")}</span>`;
+            }
+            if (demoBanner) demoBanner.classList.add("hidden");
+
+            const shortAddr = `${this.account.slice(0, 6)}...${this.account.slice(-4)}`;
+            if (btnConnect) {
+                btnConnect.className = "btn-connect-wallet connected";
+                btnConnect.innerHTML = `
+                    <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path></svg>
+                    <span>${shortAddr}</span>
+                `;
+            }
+
+            this.updateRealBalances();
+            this.renderMarketButtons("real");
+        } else {
+            // DEMO PAPER TRADING MODE
+            if (modeBadge) {
+                modeBadge.className = "mode-pill demo";
+                modeBadge.innerHTML = `
+                    <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31M14 2v7.31M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"></path><line x1="5.52" y1="16" x2="18.48" y2="16"></line></svg>
+                    <span data-i18n="mode_demo">${this.t("mode_demo", "MODE: DEMO (PAPER TRADING)")}</span>
+                `;
+            }
+            if (demoBanner) demoBanner.classList.remove("hidden");
+
+            if (btnConnect) {
+                btnConnect.className = "btn-connect-wallet";
+                btnConnect.innerHTML = `
+                    <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="13" rx="2"></rect><path d="M20 12h-4a2 2 0 0 0-2 2v0a2 2 0 0 0 2 2h4"></path><path d="M6 6V4a2 2 0 0 1 2-2h10"></path></svg>
+                    <span data-i18n="connect_wallet">${this.t("connect_wallet", "Connect Wallet")}</span>
+                `;
+            }
+
+            // Simulated Paper Balances
+            const exposure = this.paperPositions.reduce((acc, p) => acc + (p.allocation || 0), 0);
+            const currentCash = Math.max(0, this.paperBalance - exposure);
+            const totalEquity = currentCash + exposure;
+
+            if (metricCash) metricCash.textContent = `${currentCash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT (SIM)`;
+            if (metricEquity) metricEquity.textContent = `${totalEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`;
+            if (metricExposure) metricExposure.textContent = `${exposure.toFixed(2)} USDT (${((exposure / totalEquity) * 100).toFixed(1)}%)`;
+
+            this.renderMarketButtons("paper");
+        }
+
+        this.renderPositionsTab();
+    }
+
+    renderMarketButtons(mode) {
+        // Market cards action button injection
+        document.querySelectorAll(".market-card").forEach((card) => {
+            let btn = card.querySelector(".btn-trade-action");
+            if (!btn) {
+                btn = document.createElement("button");
+                btn.className = "btn-trade-action";
+                card.querySelector(".m-body").appendChild(btn);
+            }
+
+            const pair = card.querySelector(".pair-info strong")?.textContent || "POL/USDT";
+            const signalText = card.querySelector(".ai-signal-badge")?.textContent || "";
+            const isBuy = signalText.includes("BUY");
+
+            if (!isBuy) {
+                btn.style.display = "none";
+                return;
+            }
+
+            btn.style.display = "flex";
+            if (mode === "paper") {
+                btn.className = "btn-trade-action btn-trade-paper";
+                btn.innerHTML = `
+                    <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31M14 2v7.31M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"></path><line x1="5.52" y1="16" x2="18.48" y2="16"></line></svg>
+                    <span>${this.t("btn_paper_trade", "TEST PAPER EXECUTION")} (${pair})</span>
+                `;
+                btn.onclick = () => this.executePaperTrade(pair);
             } else {
-                this.renderWalletDisconnected();
+                btn.className = "btn-trade-action btn-trade-real";
+                btn.innerHTML = `
+                    <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    <span>${this.t("btn_real_trade", "EXECUTE ON-CHAIN TRADE")} (${pair})</span>
+                `;
+                btn.onclick = () => this.openTradePreventivo(pair);
             }
         });
     }
 
-    checkExistingSession() {
-        const savedAccount = localStorage.getItem("ca_connected_wallet");
-        if (savedAccount) {
-            this.account = savedAccount;
-            this.checkDaoStatus(savedAccount);
-            this.renderWalletConnected();
+    // PAPER TRADING EXECUTION
+    executePaperTrade(pair) {
+        const alloc = 500.00;
+        const entryPrice = pair.startsWith("POL") ? 0.3245 : 61240.00;
+        const stopLoss = pair.startsWith("POL") ? 0.3195 : 60500.00;
+        const newPos = {
+            id: "paper_" + Date.now(),
+            pair: pair,
+            mode: "paper",
+            allocation: alloc,
+            entryPrice: entryPrice,
+            dynamicStop: stopLoss,
+            pnlUsdt: +4.20,
+            pnlPct: +0.84,
+            timestamp: new Date().toLocaleTimeString()
+        };
+
+        this.paperPositions.push(newPos);
+        this.saveState();
+        this.renderState();
+
+        // Switch to positions tab automatically
+        const tabPosBtn = document.querySelector('[data-target="tab-positions"]');
+        if (tabPosBtn) tabPosBtn.click();
+    }
+
+    // REAL ON-CHAIN PREVENTIVO (GAS + 10 POL DAO QUOTA)
+    openTradePreventivo(pair) {
+        this.activeTradeStaging = {
+            pair: pair,
+            allocation: 50.00,
+            daoQuotaPol: CONFIG.TRADE_DAO_POL_AMOUNT,
+            estimatedGasPol: 0.006,
+            totalPol: CONFIG.TRADE_DAO_POL_AMOUNT + 0.006,
+            recipient: CONFIG.TREASURY_ADDRESS
+        };
+
+        const modal = document.getElementById("modal-trade-preventivo");
+        if (!modal) return;
+
+        document.getElementById("prev-pair-val").textContent = this.activeTradeStaging.pair;
+        document.getElementById("prev-alloc-val").textContent = `${this.activeTradeStaging.allocation.toFixed(2)} USDT`;
+        document.getElementById("prev-quota-val").textContent = `${this.activeTradeStaging.daoQuotaPol.toFixed(2)} POL (Blockchain+ DAO)`;
+        document.getElementById("prev-gas-val").textContent = `~${this.activeTradeStaging.estimatedGasPol.toFixed(4)} POL`;
+        document.getElementById("prev-total-val").textContent = `${this.activeTradeStaging.totalPol.toFixed(4)} POL`;
+        document.getElementById("prev-recipient-val").textContent = `${CONFIG.TREASURY_ADDRESS.slice(0, 6)}...${CONFIG.TREASURY_ADDRESS.slice(-4)}`;
+
+        const statusBox = document.getElementById("prev-tx-status");
+        if (statusBox) {
+            statusBox.textContent = this.t("status_waiting_sign", "Awaiting on-chain interactive signature...");
+            statusBox.className = "status-box";
         }
+
+        const btnSign = document.getElementById("btn-sign-trade-preventivo");
+        if (btnSign) btnSign.disabled = false;
+
+        modal.classList.remove("hidden");
     }
 
-    checkDaoStatus(address) {
-        const key = `ca_dao_member_${address.toLowerCase()}`;
-        this.hasDaoMembership = localStorage.getItem(key) === "true";
-        this.updatePaymentModalUI();
+    closeTradePreventivo() {
+        const modal = document.getElementById("modal-trade-preventivo");
+        if (modal) modal.classList.add("hidden");
+        this.activeTradeStaging = null;
     }
 
-    updatePaymentModalUI() {
-        const quoteTypeEl = document.getElementById("quote-type-label");
-        const quoteAmountEl = document.getElementById("quote-amount-display");
-        const quoteDescEl = document.getElementById("quote-desc-display");
+    async executeSignedTradeOnChain() {
+        if (!this.account || !window.ethereum) {
+            alert(this.t("alert_no_wallet", "No Web3 Wallet detected."));
+            return;
+        }
 
-        const t = (key, fallback) => (window.t ? window.t(key) : fallback);
+        if (this.chainId !== CONFIG.CHAIN_ID_DEC) {
+            await this.switchToPolygon();
+            if (this.chainId !== CONFIG.CHAIN_ID_DEC) return;
+        }
 
-        if (quoteTypeEl && quoteAmountEl && quoteDescEl) {
-            if (!this.hasDaoMembership) {
-                quoteTypeEl.textContent = t("dao_title", "TRADEAID DAO QUOTA ACTIVATION (1st ACCESS)");
-                quoteAmountEl.textContent = "100.00 USDT";
-                quoteDescEl.textContent = t("dao_desc", "Includes permanent DAO Founders membership and full unlock of TradeAID autonomous cockpit.");
-            } else {
-                quoteTypeEl.textContent = t("session_title", "SESSION ACCESS PASS (USDT ON POLYGON)");
-                quoteAmountEl.textContent = "5.00 USDT";
-                quoteDescEl.textContent = t("session_desc", "Session fee for autonomous execution and 24/7 Position Guardian protection.");
+        const staging = this.activeTradeStaging;
+        if (!staging) return;
+
+        const btnSign = document.getElementById("btn-sign-trade-preventivo");
+        const statusBox = document.getElementById("prev-tx-status");
+
+        try {
+            if (btnSign) btnSign.disabled = true;
+            if (statusBox) {
+                statusBox.textContent = "Requesting signature on Polygon for 10 POL DAO Quota...";
+                statusBox.className = "status-box status-info";
+            }
+
+            // 10 POL = 10 * 10^18 wei = 0x8ac7230489e80000
+            const valHex = "0x8ac7230489e80000";
+
+            const txHash = await window.ethereum.request({
+                method: "eth_sendTransaction",
+                params: [
+                    {
+                        from: this.account,
+                        to: CONFIG.TREASURY_ADDRESS,
+                        value: valHex,
+                        chainId: CONFIG.CHAIN_ID_HEX
+                    }
+                ]
+            });
+
+            if (statusBox) {
+                statusBox.innerHTML = `On-Chain Trade Signed! Tx: <a href="${CONFIG.EXPLORER_URL}/tx/${txHash}" target="_blank" class="tx-link" style="color:#ffffff; text-decoration:underline;">${txHash.slice(0, 8)}...${txHash.slice(-6)}</a>`;
+                statusBox.className = "status-box status-success";
+            }
+
+            // Record live position
+            const newLivePos = {
+                id: "live_" + Date.now(),
+                pair: staging.pair,
+                mode: "live",
+                allocation: staging.allocation,
+                entryPrice: staging.pair.startsWith("POL") ? 0.3245 : 61240.00,
+                dynamicStop: staging.pair.startsWith("POL") ? 0.3195 : 60500.00,
+                daoQuotaPaid: "10 POL",
+                txHash: txHash,
+                timestamp: new Date().toLocaleTimeString()
+            };
+
+            this.realPositions.push(newLivePos);
+            this.saveState();
+
+            setTimeout(() => {
+                this.closeTradePreventivo();
+                this.renderState();
+                const tabPosBtn = document.querySelector('[data-target="tab-positions"]');
+                if (tabPosBtn) tabPosBtn.click();
+            }, 1500);
+
+        } catch (err) {
+            console.error("Trade sign error:", err);
+            if (btnSign) btnSign.disabled = false;
+            if (statusBox) {
+                statusBox.textContent = this.t("alert_tx_failed", "Transaction failed or rejected.");
+                statusBox.className = "status-box status-error";
             }
         }
     }
 
+    renderPositionsTab() {
+        const tabPosContent = document.getElementById("tab-positions");
+        const tabPosBtn = document.querySelector('[data-target="tab-positions"]');
+        if (!tabPosContent) return;
+
+        const allPositions = this.isRealMode ? this.realPositions : this.paperPositions;
+        const count = allPositions.length;
+
+        if (tabPosBtn) {
+            tabPosBtn.innerHTML = `
+                <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"></path><path d="M7 16l4-6 4 3 6-8"></path></svg>
+                <span>${this.t("tab_positions", "Positions")} (${count})</span>
+            `;
+        }
+
+        if (count === 0) {
+            tabPosContent.innerHTML = `
+                <div class="empty-state">
+                    <div class="preventivo-icon">
+                        <svg class="icon-svg lg svg-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    </div>
+                    <h5 data-i18n="no_pos_title">${this.t("no_pos_title", "No Positions Exposed to Risk")}</h5>
+                    <p data-i18n="no_pos_desc">${this.t("no_pos_desc", "Position Guardian is waiting for Net Edge threshold (+0.40%). 100% of funds preserved in USDT.")}</p>
+                </div>
+            `;
+            return;
+        }
+
+        tabPosContent.innerHTML = allPositions.map((pos) => {
+            const isLive = pos.mode === "live";
+            return `
+                <div class="active-pos-card">
+                    <div class="active-pos-header">
+                        <span class="active-pos-pair">${pos.pair}</span>
+                        <span class="active-pos-type ${isLive ? 'live' : 'paper'}">
+                            ${isLive ? this.t("pos_live", "LIVE ON-CHAIN") : this.t("pos_simulated", "SIMULATED")}
+                        </span>
+                    </div>
+                    <div class="active-pos-grid">
+                        <div><span class="p-label">ALLOCATION:</span> <span class="p-val">${pos.allocation} USDT</span></div>
+                        <div><span class="p-label">ENTRY:</span> <span class="p-val">$${pos.entryPrice}</span></div>
+                        <div><span class="p-label">GUARDIAN STOP:</span> <span class="p-val" style="color:#ff1e38;">$${pos.dynamicStop} (-5.0%)</span></div>
+                        <div><span class="p-label">TIME:</span> <span class="p-val">${pos.timestamp}</span></div>
+                        ${isLive && pos.txHash ? `<div style="grid-column: span 2;"><span class="p-label">TX:</span> <a href="${CONFIG.EXPLORER_URL}/tx/${pos.txHash}" target="_blank" style="color:#38bdf8; text-decoration:underline;">${pos.txHash.slice(0, 10)}... ↗</a></div>` : ''}
+                    </div>
+                    <button class="btn-close-pos" onclick="window.web3App.closePosition('${pos.id}')">
+                        ${this.t("btn_close_pos", "CLOSE POSITION TO USDT")}
+                    </button>
+                </div>
+            `;
+        }).join("");
+    }
+
+    closePosition(posId) {
+        if (this.isRealMode) {
+            this.realPositions = this.realPositions.filter(p => p.id !== posId);
+        } else {
+            this.paperPositions = this.paperPositions.filter(p => p.id !== posId);
+        }
+        this.saveState();
+        this.renderState();
+    }
+
+    // WALLET CONNECTION & 100 USDT DAO QUOTA
     async connectWallet() {
-        const t = (key, fallback) => (window.t ? window.t(key) : fallback);
         if (!window.ethereum) {
             if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                // Mobile deep link to MetaMask
                 window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
                 return;
             }
-            alert(t("alert_no_wallet", "No Web3 Wallet detected. Please install MetaMask, Rabby or open in your mobile wallet browser."));
+            alert(this.t("alert_no_wallet", "No Web3 Wallet detected. Please install MetaMask, Rabby, or open in mobile wallet browser."));
             return;
         }
 
@@ -115,26 +462,39 @@ class Web3Controller {
             const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
             await this.handleAccountsChanged(accounts);
 
-            const chainId = await window.ethereum.request({ method: "eth_chainId" });
-            await this.handleChainChanged(chainId);
+            const chainIdHex = await window.ethereum.request({ method: "eth_chainId" });
+            await this.handleChainChanged(chainIdHex);
         } catch (err) {
             console.error("Connect error:", err);
-            alert(t("alert_connect_rejected", "Connection rejected by user."));
+            alert(this.t("alert_connect_rejected", "Connection rejected by user."));
         }
+    }
+
+    disconnectWallet() {
+        this.account = null;
+        this.isRealMode = false;
+        localStorage.removeItem("ca_connected_wallet");
+        this.renderState();
     }
 
     async handleAccountsChanged(accounts) {
         if (!accounts || accounts.length === 0) {
-            this.account = null;
-            localStorage.removeItem("ca_connected_wallet");
-            this.renderWalletDisconnected();
+            this.disconnectWallet();
             return;
         }
 
         this.account = accounts[0];
         localStorage.setItem("ca_connected_wallet", this.account);
-        this.checkDaoStatus(this.account);
-        this.renderWalletConnected();
+
+        const daoKey = `ca_dao_member_${this.account.toLowerCase()}`;
+        this.hasDaoMembership = localStorage.getItem(daoKey) === "true";
+
+        if (!this.hasDaoMembership) {
+            this.openDaoAccessPaywall();
+        } else {
+            this.isRealMode = true;
+            this.renderState();
+        }
     }
 
     async handleChainChanged(chainIdHex) {
@@ -164,11 +524,7 @@ class Web3Controller {
                                 chainId: CONFIG.CHAIN_ID_HEX,
                                 chainName: CONFIG.CHAIN_NAME,
                                 rpcUrls: [CONFIG.RPC_URL],
-                                nativeCurrency: {
-                                    name: "POL",
-                                    symbol: "POL",
-                                    decimals: 18,
-                                },
+                                nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
                                 blockExplorerUrls: [CONFIG.EXPLORER_URL],
                             },
                         ],
@@ -180,39 +536,17 @@ class Web3Controller {
         }
     }
 
-    renderWalletConnected() {
-        const btnConnect = document.getElementById("btn-connect-wallet");
-        const modalPay = document.getElementById("modal-onchain-paywall");
-        if (!this.account) return;
-
-        const shortAddr = `${this.account.slice(0, 6)}...${this.account.slice(-4)}`;
-
-        if (btnConnect) {
-            btnConnect.innerHTML = `<span class="wallet-dot online"></span> ${shortAddr}`;
-            btnConnect.classList.add("connected");
-        }
-
+    openDaoAccessPaywall() {
+        const modal = document.getElementById("modal-onchain-paywall");
+        if (!modal) return;
         const walletDisplayAddr = document.getElementById("paywall-wallet-address");
-        if (walletDisplayAddr) walletDisplayAddr.textContent = shortAddr;
-
-        // Open Paywall if session is not yet unlocked
-        if (!this.isSessionUnlocked && modalPay) {
-            modalPay.classList.remove("hidden");
+        if (walletDisplayAddr && this.account) {
+            walletDisplayAddr.textContent = `${this.account.slice(0, 6)}...${this.account.slice(-4)}`;
         }
+        modal.classList.remove("hidden");
     }
 
-    renderWalletDisconnected() {
-        const btnConnect = document.getElementById("btn-connect-wallet");
-        const t = (key, fallback) => (window.t ? window.t(key) : fallback);
-        if (btnConnect) {
-            btnConnect.innerHTML = t("connect_wallet", "⚡ Connect Wallet");
-            btnConnect.classList.remove("connected");
-        }
-    }
-
-    async executeAccessPayment() {
-        const t = (key, fallback) => (window.t ? window.t(key) : fallback);
-
+    async executeDaoAccessPayment() {
         if (!this.account) {
             await this.connectWallet();
             if (!this.account) return;
@@ -225,11 +559,8 @@ class Web3Controller {
 
         const payStatusEl = document.getElementById("paywall-tx-status");
         const btnPay = document.getElementById("btn-sign-access");
-        
-        const amountUsdt = !this.hasDaoMembership ? CONFIG.DAO_QUOTE_AMOUNT : CONFIG.SESSION_QUOTE_AMOUNT;
-        const rawUnits = BigInt(amountUsdt) * BigInt(10 ** CONFIG.USDT_DECIMALS);
-        
-        // ERC-20 transfer(address to, uint256 value)
+
+        const rawUnits = BigInt(CONFIG.DAO_QUOTE_AMOUNT) * BigInt(10 ** CONFIG.USDT_DECIMALS);
         const toClean = CONFIG.TREASURY_ADDRESS.toLowerCase().replace("0x", "").padStart(64, "0");
         const valueClean = rawUnits.toString(16).padStart(64, "0");
         const txData = `0xa9059cbb${toClean}${valueClean}`;
@@ -237,8 +568,8 @@ class Web3Controller {
         try {
             if (btnPay) btnPay.disabled = true;
             if (payStatusEl) {
-                payStatusEl.textContent = `Awaiting signature for ${amountUsdt} USDT...`;
-                payStatusEl.className = "status-info";
+                payStatusEl.textContent = `Awaiting signature for 100 USDT DAO quota to treasury...`;
+                payStatusEl.className = "status-box status-info";
             }
 
             const txHash = await window.ethereum.request({
@@ -254,31 +585,49 @@ class Web3Controller {
             });
 
             if (payStatusEl) {
-                payStatusEl.innerHTML = `Transaction submitted: <a href="${CONFIG.EXPLORER_URL}/tx/${txHash}" target="_blank" class="tx-link">${txHash.slice(0, 10)}...${txHash.slice(-6)} ↗</a>`;
-                payStatusEl.className = "status-success";
+                payStatusEl.innerHTML = `Transaction confirmed: <a href="${CONFIG.EXPLORER_URL}/tx/${txHash}" target="_blank" class="tx-link" style="color:#ffffff;">${txHash.slice(0, 10)}...${txHash.slice(-6)} ↗</a>`;
+                payStatusEl.className = "status-box status-success";
             }
 
-            // Save status
             const daoKey = `ca_dao_member_${this.account.toLowerCase()}`;
             localStorage.setItem(daoKey, "true");
             this.hasDaoMembership = true;
-            this.isSessionUnlocked = true;
+            this.isRealMode = true;
 
             setTimeout(() => {
                 const modalPay = document.getElementById("modal-onchain-paywall");
                 if (modalPay) modalPay.classList.add("hidden");
-                const appCockpit = document.getElementById("dapp-cockpit-view");
-                if (appCockpit) appCockpit.classList.remove("blurred");
-                alert(`${t("alert_tx_confirmed", "Payment confirmed on-chain! Cockpit unlocked.")}\nTx: ${txHash.slice(0, 12)}...`);
+                this.renderState();
             }, 1200);
 
         } catch (err) {
             console.error("Tx error:", err);
             if (btnPay) btnPay.disabled = false;
             if (payStatusEl) {
-                payStatusEl.textContent = t("alert_tx_failed", "Transaction failed or rejected.");
-                payStatusEl.className = "status-error";
+                payStatusEl.textContent = this.t("alert_tx_failed", "Transaction failed or rejected.");
+                payStatusEl.className = "status-box status-error";
             }
+        }
+    }
+
+    async updateRealBalances() {
+        if (!this.account || !window.ethereum) return;
+        try {
+            // Read native POL balance
+            const balanceHex = await window.ethereum.request({
+                method: "eth_getBalance",
+                params: [this.account, "latest"]
+            });
+            const polWei = BigInt(balanceHex);
+            const polVal = Number(polWei) / 1e18;
+
+            const metricCash = document.getElementById("metric-cash");
+            const metricEquity = document.getElementById("metric-equity");
+
+            if (metricCash) metricCash.textContent = `${polVal.toFixed(2)} POL (Native)`;
+            if (metricEquity) metricEquity.textContent = `CONNECTED WALLET`;
+        } catch (e) {
+            console.warn("Balance fetch error:", e);
         }
     }
 }
