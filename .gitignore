@@ -39,3 +39,7 @@ Thumbs.db
 apikeys.env
 .env.local
 secrets/
+
+# Marketing Raw Media Dumps
+marketing/images/
+marketing/videos/
