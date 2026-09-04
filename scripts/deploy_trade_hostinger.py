@@ -86,10 +86,27 @@ def upload_trade():
         ensure_remote_dir(ftp, target_remote)
         ftp.cwd(target_remote)
 
+        # Check existing remote files
+        try:
+            remote_existing = ftp.nlst()
+        except Exception:
+            remote_existing = []
+
         for filename in files:
             local_filepath = os.path.join(root, filename)
             file_size = os.path.getsize(local_filepath)
             size_mb = file_size / (1024 * 1024)
+
+            # Skip unchanged media files if already present on Hostinger
+            if filename in remote_existing and (filename.endswith(".mp4") or filename.endswith(".jpeg") or filename.endswith(".jpg")):
+                try:
+                    rem_size = ftp.size(filename)
+                    if rem_size == file_size:
+                        print(f"  --> Skipping unchanged media: {rel_dir}/{filename} ({size_mb:.2f} MB)... [CACHED]")
+                        continue
+                except Exception:
+                    pass
+
             print(f"  --> Uploading: {rel_dir}/{filename} ({size_mb:.2f} MB)...", end="", flush=True)
 
             with open(local_filepath, "rb") as f:
