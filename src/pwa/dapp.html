@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TradeAID Web3 dApp — Cockpit 9:16</title>
+    <meta name="description" content="dApp Web3 per il trading autonomo non-custodial su Polygon DEX con Position Guardian 24/7.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/dapp.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="static/logo.png">
+</head>
+<body class="dapp-body">
+    <!-- Main 9:16 Aspect Ratio Container -->
+    <div class="viewport-wrapper">
+        <main class="dapp-container-9-16">
+            
+            <!-- TOP BAR / WEB3 HEADER -->
+            <header class="dapp-top-bar">
+                <div class="brand-zone">
+                    <a href="index.html" class="back-link" title="Torna alla Landing Page">←</a>
+                    <img src="static/logo.png" alt="Logo" class="dapp-logo">
+                    <div class="brand-info">
+                        <span class="dapp-name">TRADEAID</span>
+                        <span class="chain-pill">POLYGON 137</span>
+                    </div>
+                </div>
+                <div class="wallet-zone">
+                    <button id="btn-connect-wallet" class="btn-connect-wallet">
+                        ⚡ Connetti Wallet
+                    </button>
+                </div>
+            </header>
+
+            <!-- CHAIN WARNING MODAL (Appears if not on Polygon 137) -->
+            <div id="chain-warning-modal" class="warning-banner hidden">
+                <span>⚠️ Rete Errata: Rilevata rete diversa da Polygon POS (137).</span>
+                <button id="btn-switch-polygon" class="btn-switch-chain">Passa a Polygon</button>
+            </div>
+
+            <!-- ON-CHAIN PAYWALL MODAL (100 USDT DAO / 5 USDT Session) -->
+            <div id="modal-onchain-paywall" class="paywall-overlay hidden">
+                <div class="paywall-modal glass-card">
+                    <div class="paywall-icon-shield">🛡️</div>
+                    <div class="paywall-tag">PREVENTIVO DI FIRMA ON-CHAIN</div>
+                    <h3 id="quote-type-label">ATTIVAZIONE QUOTA DAO TRADEAID</h3>
+                    <p id="quote-desc-display" class="paywall-desc">
+                        Include membership permanente DAO Founders e sblocco totale del Cockpit autonomo TradeAID.
+                    </p>
+
+                    <div class="quote-box">
+                        <div class="quote-row">
+                            <span>IMPORTO RICHIESTO:</span>
+                            <strong id="quote-amount-display" class="amount-val">100.00 USDT</strong>
+                        </div>
+                        <div class="quote-row">
+                            <span>DESTINATARIO (TREASURY):</span>
+                            <code class="addr-val">0x3C32...250C</code>
+                        </div>
+                        <div class="quote-row">
+                            <span>RETE BLOCKCHAIN:</span>
+                            <span class="network-val">Polygon POS (Chain 137)</span>
+                        </div>
+                        <div class="quote-row">
+                            <span>IL TUO WALLET:</span>
+                            <code id="paywall-wallet-address">Non Connesso</code>
+                        </div>
+                    </div>
+
+                    <div id="paywall-tx-status" class="status-box">In attesa di firma interattiva...</div>
+
+                    <div class="paywall-actions">
+                        <button id="btn-sign-access" class="btn-sign-onchain">
+                            ✍️ FIRMA ED ESEGUI SU POLYGON (USDT)
+                        </button>
+                        <small class="zero-custody-notice">
+                            🔒 Non-Custodial: Transazione diretta ERC-20 tramite il tuo wallet.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN COCKPIT VIEW (Sbloccato dopo la firma) -->
+            <div id="dapp-cockpit-view" class="cockpit-scroll-area">
+                
+                <!-- Status Card -->
+                <section class="card-cockpit live-status-card">
+                    <div class="status-row">
+                        <div class="status-indicator">
+                            <span class="pulse-beacon"></span>
+                            <span class="status-txt">POSITION GUARDIAN: <strong>ATTIVO 24/7</strong></span>
+                        </div>
+                        <span class="shield-badge">CEILING: -5.0%</span>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-item">
+                            <span class="m-label">SALDO LIQUIDO</span>
+                            <span class="m-val green" id="metric-cash">1,000.00 USDT</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="m-label">EQUITY TOTALE</span>
+                            <span class="m-val" id="metric-equity">1,000.00 USDT</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="m-label">NET EDGE MINIMO</span>
+                            <span class="m-val cyan">+0.40% NET</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="m-label">ESPOSIZIONE ATTIVA</span>
+                            <span class="m-val" id="metric-exposure">0.00 USDT (0%)</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Navigation Tabs (9:16 Friendly) -->
+                <nav class="cockpit-tab-bar">
+                    <button class="tab-btn active" data-target="tab-scanner">📡 Scanner</button>
+                    <button class="tab-btn" data-target="tab-positions">📈 Posizioni (0)</button>
+                    <button class="tab-btn" data-target="tab-strategies">🧠 Strategie</button>
+                    <button class="tab-btn" data-target="tab-security">🚨 Sicurezza</button>
+                </nav>
+
+                <!-- TAB 1: SCANNER LIVE -->
+                <section id="tab-scanner" class="tab-content active">
+                    <div class="section-title-row">
+                        <h4>MERCATI POLYGON SOTTO CONTROLLO</h4>
+                        <span class="refresh-pill">LIVE TICK: 10s</span>
+                    </div>
+                    
+                    <div class="market-cards-list">
+                        <!-- POL/USDT -->
+                        <div class="market-card">
+                            <div class="m-header">
+                                <div class="pair-info">
+                                    <strong>POL/USDT</strong>
+                                    <span class="regime-tag trending">TRENDING</span>
+                                </div>
+                                <div class="price-info">
+                                    <span class="price">$0.3245</span>
+                                    <span class="spread">Spread: 0.04%</span>
+                                </div>
+                            </div>
+                            <div class="m-body">
+                                <div class="ai-signal-badge buy">SEGNALE AI: BUY (Conf. 85%)</div>
+                                <div class="net-edge-calc">
+                                    <span>Net Edge Stimato: <strong class="green">+0.62%</strong></span>
+                                    <span>Stop Dinamico: $0.3195</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- WETH/USDT -->
+                        <div class="market-card">
+                            <div class="m-header">
+                                <div class="pair-info">
+                                    <strong>WETH/USDT</strong>
+                                    <span class="regime-tag ranging">RANGING</span>
+                                </div>
+                                <div class="price-info">
+                                    <span class="price">$2,485.50</span>
+                                    <span class="spread">Spread: 0.02%</span>
+                                </div>
+                            </div>
+                            <div class="m-body">
+                                <div class="ai-signal-badge hold">SEGNALE AI: NO_TRADE</div>
+                                <div class="net-edge-calc">
+                                    <span>Net Edge Stimato: <strong class="amber">+0.21% (Filtro Gating)</strong></span>
+                                    <span>Attesa rottura range</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- WBTC/USDT -->
+                        <div class="market-card">
+                            <div class="m-header">
+                                <div class="pair-info">
+                                    <strong>WBTC/USDT</strong>
+                                    <span class="regime-tag trending">TRENDING</span>
+                                </div>
+                                <div class="price-info">
+                                    <span class="price">$61,240.00</span>
+                                    <span class="spread">Spread: 0.01%</span>
+                                </div>
+                            </div>
+                            <div class="m-body">
+                                <div class="ai-signal-badge buy">SEGNALE AI: BUY (Conf. 78%)</div>
+                                <div class="net-edge-calc">
+                                    <span>Net Edge Stimato: <strong class="green">+0.48%</strong></span>
+                                    <span>Break-Even Lock: $61,970</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 2: POSIZIONI APERTE -->
+                <section id="tab-positions" class="tab-content">
+                    <div class="empty-state">
+                        <div class="empty-icon">🛡️</div>
+                        <h5>Nessuna Posizione Esposta al Rischio</h5>
+                        <p>Il Position Guardian è in attesa del superamento del threshold di Net Edge (+0.40%). 100% dei fondi preservati in USDT.</p>
+                    </div>
+                </section>
+
+                <!-- TAB 3: STRATEGIE ATTIVE -->
+                <section id="tab-strategies" class="tab-content">
+                    <div class="strategy-list">
+                        <div class="strat-item">
+                            <div class="strat-info">
+                                <strong>Scalping Strategy (1m/3m/5m)</strong>
+                                <small>Filtro spread massimo 0.15% | Micro-momentum</small>
+                            </div>
+                            <span class="strat-weight">PESO: 1.2x</span>
+                        </div>
+                        <div class="strat-item">
+                            <div class="strat-info">
+                                <strong>Trend Following (EMA 12/26 + MACD)</strong>
+                                <small>Identificazione breakout di trend macro</small>
+                            </div>
+                            <span class="strat-weight">PESO: 1.0x</span>
+                        </div>
+                        <div class="strat-item">
+                            <div class="strat-info">
+                                <strong>Breakout & Donchian Channels</strong>
+                                <small>Volatilità ad alta espansione</small>
+                            </div>
+                            <span class="strat-weight">PESO: 1.0x</span>
+                        </div>
+                        <div class="strat-item">
+                            <div class="strat-info">
+                                <strong>Mean Reversion (Z-Score + RSI Divergence)</strong>
+                                <small>Reversione rapida su ipercomprato/ipervenduto</small>
+                            </div>
+                            <span class="strat-weight">PESO: 0.8x</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 4: SICUREZZA & KILL SWITCH -->
+                <section id="tab-security" class="tab-content">
+                    <div class="security-card">
+                        <h5>KILL SWITCH DI EMERGENZA</h5>
+                        <p>In caso di emergenza, chiude all'istante tutte le posizioni a mercato e le liquida al 100% in USDT.</p>
+                        <button id="btn-dapp-kill-switch" class="btn-panic-kill">
+                            🛑 ATTIVA KILL SWITCH ISTANTANEO
+                        </button>
+                    </div>
+                    <div class="audit-card">
+                        <h5>AUDIT CONTRATTI & REGISTRO FAIL-CLOSED</h5>
+                        <p>Tutti i token non autorizzati o con codice honeypot vengono automaticamente scartati e notificati al canale di sicurezza.</p>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- BOTTOM DAPP CONTROLS -->
+            <footer class="dapp-bottom-bar">
+                <div class="guardian-ticker">
+                    <span class="pulse-icon">●</span>
+                    <span class="ticker-text">AUTONOMOUS ENGINE: ONLINE | BOR RPC CHAIN 137</span>
+                </div>
+            </footer>
+
+        </main>
+    </div>
+
+    <!-- Web3 Scripts -->
+    <script src="static/js/web3-dapp.js"></script>
+    <script>
+        // Simple tab switching for the 9:16 cockpit
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                const targetId = btn.getAttribute('data-target');
+                const targetEl = document.getElementById(targetId);
+                if (targetEl) targetEl.classList.add('active');
+            });
+        });
+
+        // Kill switch trigger demo
+        const btnKill = document.getElementById('btn-dapp-kill-switch');
+        if (btnKill) {
+            btnKill.addEventListener('click', () => {
+                if (confirm('Attenzione: Vuoi attivare il Kill Switch di emergenza e bloccare tutti i trade?')) {
+                    alert('Kill Switch ATTIVATO. Tutte le posizioni liquidate in USDT.');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,409 +1,279 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CryptoAID Trade AI — Polygon DEX Trading & Multi-Agent Intelligence</title>
-  <meta name="description" content="Autonomous 24/7 Polygon DEX Quantitative Trading, Risk Intelligence, and Multi-Agent Execution.">
-  <link rel="manifest" href="/static/manifest.json">
-  <meta name="theme-color" content="#00f0ff">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/app.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoAID Trade AI — Il Cockpit Autonomo Non-Custodial su Polygon DEX</title>
+    <meta name="description" content="La prima architettura autonoma 24/7 su Polygon DEX che protegge ed esegue sui tuoi USDT con Position Guardian al 5% ferreo, senza mai toccare le tue chiavi.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/landing.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="static/logo.png">
 </head>
 <body>
+    <!-- Background Ambient Glow -->
+    <div class="ambient-glow top-right"></div>
+    <div class="ambient-glow bottom-left"></div>
 
-  <!-- Top Header -->
-  <header class="top-header">
-    <div class="header-content">
-      <div class="brand-badge">
-        <div class="brand-logo">CA</div>
-        <div>
-          <div class="brand-title">CryptoAID Trade AI</div>
+    <!-- Navigation Bar -->
+    <header class="landing-nav">
+        <div class="nav-container">
+            <div class="brand">
+                <img src="static/logo.png" alt="CryptoAID Logo" class="brand-logo">
+                <div class="brand-text">
+                    <span class="brand-title">CRYPTOAID</span>
+                    <span class="brand-badge">TRADE AI</span>
+                </div>
+            </div>
+            <nav class="nav-links">
+                <a href="#come-funziona">Come Funziona</a>
+                <a href="#blue-ocean">Perché è Diverso</a>
+                <a href="#scudo-5">Scudo 5%</a>
+                <a href="#pricing">Offerta Founders</a>
+            </nav>
+            <div class="nav-actions">
+                <a href="dapp.html" class="btn-primary-nav pulse-glow">
+                    <span>⚡ APRI DAPP (9:16)</span>
+                </a>
+            </div>
         </div>
-        <div id="runtime-mode-badge" class="mode-badge">POLYGON DEX • PAPER</div>
-      </div>
-      <div class="system-status-indicator">
-        <div class="pulse-dot"></div>
-        <span id="header-ks-status">ONLINE</span>
-      </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- Desktop & Tablet Navigation Tabs -->
-  <nav class="app-nav">
-    <div class="nav-tabs">
-      <button class="nav-tab active" data-tab="home">🏠 DASHBOARD</button>
-      <button class="nav-tab" data-tab="markets">📊 MARKETS</button>
-      <button class="nav-tab" data-tab="scanner">📡 SCANNER</button>
-      <button class="nav-tab" data-tab="signals">🎯 SIGNALS</button>
-      <button class="nav-tab" data-tab="positions">⚡ POSITIONS</button>
-      <button class="nav-tab" data-tab="portfolio">💼 PORTFOLIO</button>
-      <button class="nav-tab" data-tab="strategies">🧠 STRATEGIES</button>
-      <button class="nav-tab" data-tab="performance">🏆 PERFORMANCE</button>
-      <button class="nav-tab" data-tab="risk">🛡 RISK</button>
-      <button class="nav-tab" data-tab="wallet">🔑 WALLET</button>
-      <button class="nav-tab" data-tab="status">🖥 STATUS</button>
-      <button class="nav-tab" data-tab="settings">⚙ SETTINGS</button>
-      <button class="nav-tab" data-tab="killswitch" style="color: var(--rose-red);">🚨 KILL SWITCH</button>
-    </div>
-  </nav>
+    <!-- HERO SECTION (NEURO-MARKETING HOOK) -->
+    <section class="hero-section">
+        <div class="hero-content">
+            <div class="pill-badge">
+                <span class="pulse-dot"></span> 100% NON-CUSTODIAL · SETTLEMENT IN USDT SU POLYGON
+            </div>
+            <h1 class="hero-title">
+                Mentre dormi alle 3:00 del mattino,<br>
+                <span class="gradient-text">il tuo capitale è protetto da un algoritmo spietato.</span>
+            </h1>
+            <p class="hero-subtitle">
+                Dimentica l'ansia dei grafici e i bot che ti chiedono le chiavi API. 
+                TradeAID calcola il <strong>Net Edge matematico</strong> al millimetro prima di entrare ed esegue 
+                sul tuo wallet dedicato con <strong>Position Guardian ferreo al 5%</strong>.
+            </p>
+            <div class="hero-cta-group">
+                <a href="dapp.html" class="btn-mega-cta">
+                    <span class="cta-inner">
+                        <span class="cta-icon">🛡️</span>
+                        <span class="cta-text">
+                            <strong>ENTRA NELLA DAPP WEB3</strong>
+                            <small>Formato Nativo 9:16 per tutti i Web3 Wallet</small>
+                        </span>
+                    </span>
+                    <span class="arrow-spark">→</span>
+                </a>
+                <div class="guarantee-micro">
+                    <span>🔒 Quota DAO 100 USDT | Zero Cessione Fondi | Rete Polygon POS</span>
+                </div>
+            </div>
+        </div>
 
-  <!-- Main Views Container -->
-  <main class="main-content">
-
-    <!-- VIEW 1: DASHBOARD (HOME) -->
-    <section id="view-home" class="view-section active">
-      <div class="section-header">
-        <div>
-          <h1 class="section-title">Trade AI Cockpit</h1>
-          <p class="section-subtitle">Real-time Polygon market regime, USDT accounting & Multi-Agent telemetry</p>
+        <!-- HERO VIDEO PREVIEW -->
+        <div class="hero-visual-card">
+            <div class="video-frame glass-panel">
+                <div class="video-header">
+                    <div class="window-dots">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                    </div>
+                    <span class="window-title">TRADEAID POSITION GUARDIAN — LIVE AUTONOMOUS FEED</span>
+                    <span class="live-tag">POLYGON POS 24/7</span>
+                </div>
+                <video autoplay muted loop playsinline class="hero-video">
+                    <source src="static/videos/shield.mp4" type="video/mp4">
+                    Your browser does not support video.
+                </video>
+                <div class="telemetry-bar">
+                    <div class="telemetry-item">
+                        <span class="label">NET EDGE</span>
+                        <span class="value green">+0.640%</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="label">GUARDIAN CEILING</span>
+                        <span class="value amber">MAX 5.0% STOP</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="label">SETTLEMENT</span>
+                        <span class="value cyan">100% USDT</span>
+                    </div>
+                </div>
+            </div>
         </div>
-        <button class="btn-cta" onclick="switchTab('scanner')">SCAN POLYGON</button>
-      </div>
-
-      <div class="card-grid">
-        <div class="metric-card">
-          <div class="metric-title">Portfolio Equity</div>
-          <div id="home-portfolio-val" class="metric-value val-cyan">$1,000.00</div>
-          <div class="metric-sub">Base Model Capital: 1,000 USDT</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Daily Realized P&L</div>
-          <div id="home-daily-pnl" class="metric-value val-green">+$0.00</div>
-          <div class="metric-sub">Circuit Breaker Limit: 3.0% ($30)</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Active Guardian Positions</div>
-          <div id="home-open-positions" class="metric-value">0 / 4</div>
-          <div class="metric-sub">Max Total Exposure: 50% ($500)</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">CryptoAID Risk Gate</div>
-          <div class="metric-value val-green">PASS</div>
-          <div class="metric-sub">Fail-Closed Verification Active</div>
-        </div>
-      </div>
-
-      <div class="metric-card" style="margin-top: 16px;">
-        <div class="section-title" style="font-size: 16px; margin-bottom: 8px;">Institutional Architecture</div>
-        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-          <code>DEDICATED TRADING WALLET → USDT → POLYGON SCANNER → REGIME DETECTOR → MULTI-STRATEGY ENGINE → META STRATEGY → CRYPTOAID RISK GATE → SMART ROUTER → TX SIMULATION → AUTOMATIC SIGNER → DEX EXECUTION → POSITION GUARDIAN → USDT SETTLEMENT</code>
-        </p>
-      </div>
     </section>
 
-    <!-- VIEW 2: MARKETS -->
-    <section id="view-markets" class="view-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Polygon Markets Universe</h2>
-          <p class="section-subtitle">USDT accounting pairs with live spread, volume and on-chain liquidity depth</p>
+    <!-- BLUE OCEAN: IL CONFRONTO SPIETATO -->
+    <section id="blue-ocean" class="comparison-section">
+        <div class="section-header">
+            <span class="sub-heading">LA FINE DELLE TRUFFE CRYPTO</span>
+            <h2>Perché nessun'altra offerta sul mercato regge il confronto</h2>
+            <p>Se hai più di 35 anni e hai già visto passare bot, canali segnali e corsi, conosci già la trappola.</p>
         </div>
-      </div>
-      <div class="table-container">
-        <table class="custom-table">
-          <thead>
-            <tr>
-              <th>Asset</th>
-              <th>Price (USDT)</th>
-              <th>Spread</th>
-              <th>24h Volume</th>
-              <th>24h Change</th>
-            </tr>
-          </thead>
-          <tbody id="markets-table-body">
-            <tr><td colspan="5" style="text-align:center;">Loading market telemetry...</td></tr>
-          </tbody>
-        </table>
-      </div>
+
+        <div class="comparison-grid">
+            <div class="comp-card red-ocean">
+                <div class="card-tag red">L'OCEANO ROSSO DEI BOT TRADIZIONALI</div>
+                <h3>La formula per perdere soldi e sonno</h3>
+                <ul class="comp-list red">
+                    <li>❌ <strong>Fondi su Exchange Centralizzati:</strong> Depositi su CEX o inserisci chiavi API che possono essere rubate o bloccate.</li>
+                    <li>❌ <strong>Nessun Calcolo di Net Edge:</strong> I bot comprano a caso pagando spread e slippage folli che azzerano il profitto.</li>
+                    <li>❌ <strong>Il Crollo Notturno:</strong> Quando il mercato crolla, i bot a griglia continuano a comprare finché non azzerano il conto.</li>
+                    <li>❌ <strong>Falsi Guru e Fuffa:</strong> Promesse di "1% al giorno garantito" create solo per vendere abbonamenti da 49€/mese.</li>
+                </ul>
+            </div>
+
+            <div class="comp-card blue-ocean">
+                <div class="card-tag green">L'OCEANO BLU DI TRADEAID</div>
+                <h3>L'architettura quantistica non-custodial</h3>
+                <ul class="comp-list green">
+                    <li>✓ <strong>100% Non-Custodial su Polygon DEX:</strong> I tuoi soldi restano sempre nel tuo wallet dedicato. Nessun intermediario può toccarli.</li>
+                    <li>✓ <strong>Algoritmo S.C.P.C.™ con Net Edge Gate:</strong> Se il rendimento atteso non copre matematicamente gas, fee e slippage, la macchina NON tocca 1 centesimo.</li>
+                    <li>✓ <strong>Position Guardian 24/7 con Ceiling al 5%:</strong> Se un'operazione va contro mercato, viene liquidata al 5% massimo e convertita istantaneamente in USDT.</li>
+                    <li>✓ <strong>Trasparenza On-Chain & Codice Blindato:</strong> Verifichi ogni transazione direttamente su Polygonscan senza segreti.</li>
+                </ul>
+            </div>
+        </div>
     </section>
 
-    <!-- VIEW 3: SCANNER -->
-    <section id="view-scanner" class="view-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Polygon DEX Scanner</h2>
-          <p class="section-subtitle">Micro-structure scan, liquidity depth analysis, and CryptoAID Risk verification</p>
+    <!-- COME FUNZIONA: PROTOCOLLO S.C.P.C. -->
+    <section id="come-funziona" class="how-section">
+        <div class="section-header">
+            <span class="sub-heading">IL METODO PROPRIETARIO</span>
+            <h2>Il Protocollo S.C.P.C.™ in 4 Mosse</h2>
         </div>
-        <button class="btn-cta" onclick="runScanner()">RUN SCAN NOW</button>
-      </div>
-      <div id="scanner-results-container" class="scanner-list">
-        <div style="color: var(--text-muted); text-align: center; padding: 30px;">Click 'Run Scan Now' to evaluate active pairs.</div>
-      </div>
+        <div class="steps-container">
+            <div class="step-card">
+                <div class="step-num">01</div>
+                <h4>SCANSIONA</h4>
+                <p>Scannerizza in tempo reale i pool Polygon escludendo all'istante token honeypot e contratti malevoli.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">02</div>
+                <h4>CALCOLA</h4>
+                <p>Simula la transazione (`eth_call`) e misura gas, commissione DEX e slippage. Se il Net Edge è sotto lo 0.40%, scatta il NO TRADE.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">03</div>
+                <h4>PROTEGGI</h4>
+                <p>Arma il Position Guardian con Break-Even Lock a +1.2% e Stop Loss ferreo al 5%.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">04</div>
+                <h4>CONSOLIDA</h4>
+                <p>Al target o al segnale di uscita, riconverte al 100% in USDT nel tuo wallet senza lasciare posizioni al vento.</p>
+            </div>
+        </div>
     </section>
 
-    <!-- VIEW 4: SIGNALS -->
-    <section id="view-signals" class="view-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Actionable AI Signals</h2>
-          <p class="section-subtitle">Strictly gated by Positive Net Edge (expected move > gas + fees + price impact + slippage)</p>
+    <!-- PRICING CARD DELL'OFFERTA IRRIFIUTABILE -->
+    <section id="pricing" class="pricing-section">
+        <div class="section-header">
+            <span class="sub-heading">ACCESSO FOUNDERS</span>
+            <h2>La tua Offerta Irrifiutabile</h2>
+            <p>Riservata alle prime 25 postazioni con setup 1-to-1 assistito.</p>
         </div>
-      </div>
-      <div id="signals-container" class="signals-list">
-        <div style="color: var(--text-muted); text-align: center; padding: 30px;">Evaluating signals against Net Edge threshold...</div>
-      </div>
+
+        <div class="pricing-card-wrapper">
+            <div class="pricing-card glass-panel">
+                <div class="card-badge">COORTE FOUNDERS LIMITATA</div>
+                <h3 class="card-title">TRADEAID™ COCKPIT INDIPENDENTE</h3>
+                <p class="card-subtitle">Per professionisti e investitori che pretendono il controllo assoluto del proprio capitale.</p>
+                
+                <div class="included-block">
+                    <div class="block-title">CHE COSA È INCLUSO:</div>
+                    <div class="item-row">
+                        <div>
+                            <strong>✓ Licenza Chiavi-in-Mano TradeAID Engine v1.0</strong>
+                            <p>Architettura autonoma a 6 strategie e regime detection 24/7</p>
+                        </div>
+                        <span class="item-val">€ 1.200</span>
+                    </div>
+                    <div class="item-row">
+                        <div>
+                            <strong>✓ Smart DEX Router & Pre-Flight Simulator</strong>
+                            <p>Routing diretto su Uniswap V3 e QuickSwap con simulazione bor RPC</p>
+                        </div>
+                        <span class="item-val">€ 600</span>
+                    </div>
+                    <div class="item-row">
+                        <div>
+                            <strong>✓ Protocollo Position Guardian™ Persistente</strong>
+                            <p>Sorveglianza h24 con Break-Even automatico e ceiling di stop al 5%</p>
+                        </div>
+                        <span class="item-val">€ 800</span>
+                    </div>
+                    <div class="item-row">
+                        <div>
+                            <strong>✓ Cockpit Web3 dApp Formato 9:16</strong>
+                            <p>Dashboard completa su mobile e desktop compatibile con tutti i wallet</p>
+                        </div>
+                        <span class="item-val">€ 500</span>
+                    </div>
+                </div>
+
+                <div class="bonus-block">
+                    <div class="block-title green">🎁 IN PIÙ, SE SALI A BORDO NEI FOUNDERS:</div>
+                    <div class="item-row">
+                        <div>
+                            <strong>🎁 BONUS 1: Setup Assistito "Zero-Leak" in 1-a-1</strong>
+                            <p>Configurazione guidata remota del tuo wallet dedicato</p>
+                        </div>
+                        <span class="item-val">€ 350</span>
+                    </div>
+                    <div class="item-row">
+                        <div>
+                            <strong>🎁 BONUS 2: Radar Anti-Scam CryptoAID (12 Mesi)</strong>
+                            <p>Database euristico che blocca honeypot e token malevoli</p>
+                        </div>
+                        <span class="item-val">€ 450</span>
+                    </div>
+                </div>
+
+                <div class="guarantee-box">
+                    <div class="g-header">🛡️ GARANZIA "NON TOCCARE I MIEI SOLDI" (30 Giorni)</div>
+                    <p>Metti alla prova il motore in Paper Trading reale. Se il sistema non rispetta rigorosamente le regole matematiche di protezione del capitale, rimborso integrale immediato.</p>
+                </div>
+
+                <div class="price-box">
+                    <div class="value-row">
+                        <span>VALORE TOTALE DEL PACCHETTO:</span>
+                        <span class="strike">€ 4.600</span>
+                    </div>
+                    <div class="access-tier">
+                        <div class="tier-option">
+                            <span class="tier-label">ATTIVAZIONE QUOTA DAO ON-CHAIN (1° Accesso):</span>
+                            <span class="tier-price">100 USDT <small>su Polygon</small></span>
+                        </div>
+                        <div class="tier-sub">Sessioni successive di mantenimento terminale: 5 USDT / sessione</div>
+                    </div>
+
+                    <a href="dapp.html" class="btn-dapp-final">
+                        <span>⚡ CONNETTI WALLET ED ENTRA NELLA DAPP</span>
+                    </a>
+                </div>
+            </div>
+        </div>
     </section>
 
-    <!-- VIEW 5: POSITIONS -->
-    <section id="view-positions" class="view-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Persistent Position Guardian</h2>
-          <p class="section-subtitle">24/7 monitoring of active holdings, dynamic ATR stops, break-even locks & 5% ceiling</p>
+    <!-- FOOTER & ATTRIBUZIONE -->
+    <footer class="landing-footer">
+        <div class="footer-container">
+            <p class="attribution">
+                Costruito con il Protocollo M.A.G.I.C. Offer — metodo ideato da Giorgian Putanu · Vendita Automatica® · Freedom Builder. 
+                Uso riservato al titolare della licenza. Riproduzione e divulgazione non autorizzate vietate.<br>
+                <small>Rif. protocollo: BETTERWAY-MP-2026-CA</small>
+            </p>
+            <div class="footer-links">
+                <a href="https://t.me/cryptoAIDsupporter" target="_blank">Telegram Community</a>
+                <a href="https://t.me/cryptoaidsup" target="_blank">Canale Ufficiale</a>
+                <a href="https://trade.cryptoaid.support">PWA Cockpit</a>
+            </div>
         </div>
-      </div>
-      <div class="table-container">
-        <table class="custom-table">
-          <thead>
-            <tr>
-              <th>Asset</th>
-              <th>Side</th>
-              <th>Size</th>
-              <th>Entry Price</th>
-              <th>Current Price</th>
-              <th>Unrealized P&L</th>
-              <th>SL / TP / Trailing</th>
-            </tr>
-          </thead>
-          <tbody id="guardian-positions-body">
-            <tr><td colspan="7" style="text-align:center;">No active positions. Capital 100% in USDT.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- VIEW 6: PORTFOLIO -->
-    <section id="view-portfolio" class="view-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Portfolio & Execution History</h2>
-          <p class="section-subtitle">USDT balances, margin allocation, and historical trade settlement log</p>
-        </div>
-      </div>
-      <div class="card-grid">
-        <div class="metric-card">
-          <div class="metric-title">Cash Balance</div>
-          <div id="port-cash-val" class="metric-value val-cyan">$1,000.00</div>
-          <div class="metric-sub">Liquid USDT on Polygon</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Allocated Margin</div>
-          <div id="port-margin-val" class="metric-value">$0.00</div>
-          <div class="metric-sub">Active Trade Notional</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Realized P&L</div>
-          <div id="port-realized-val" class="metric-value val-green">+$0.00</div>
-          <div class="metric-sub">Cumulative Session Return</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Current Drawdown</div>
-          <div id="port-dd-val" class="metric-value">0.0%</div>
-          <div class="metric-sub">Max Limit: 10.0%</div>
-        </div>
-      </div>
-      <div class="table-container" style="margin-top: 20px;">
-        <h3 style="font-size: 15px; margin-bottom: 12px; color: var(--text-secondary);">Execution Trade Fill Log</h3>
-        <table class="custom-table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Asset</th>
-              <th>Side</th>
-              <th>Fill Price</th>
-              <th>Size</th>
-              <th>DEX Fee & Gas</th>
-            </tr>
-          </thead>
-          <tbody id="trades-table-body">
-            <tr><td colspan="6" style="text-align:center;">No trade fills recorded yet.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- VIEW 7: STRATEGIES -->
-    <section id="view-strategies" class="view-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Multi-Strategy Quantitative Core</h2>
-          <p class="section-subtitle">Autonomous consensus combining 7 specialized agents adapted to detected regime</p>
-        </div>
-      </div>
-      <div id="strategies-list-container" class="strategy-grid">
-        <!-- Populated via API -->
-      </div>
-    </section>
-
-    <!-- VIEW 8: PERFORMANCE -->
-    <section id="view-performance" class="view-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Verifiable Performance Engine</h2>
-          <p class="section-subtitle">Institutional metrics calculated from filled and closed trades</p>
-        </div>
-      </div>
-      <div class="card-grid">
-        <div class="metric-card">
-          <div class="metric-title">Win Rate</div>
-          <div id="perf-winrate" class="metric-value val-cyan">0.0%</div>
-          <div id="perf-wl" class="metric-sub">0 Wins / 0 Losses</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Profit Factor</div>
-          <div id="perf-profit-factor" class="metric-value">0.00</div>
-          <div class="metric-sub">Gross Profit / Gross Loss</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Sharpe Ratio</div>
-          <div id="perf-sharpe" class="metric-value">0.00</div>
-          <div class="metric-sub">Risk-Adjusted Return</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Max Drawdown</div>
-          <div id="perf-maxdd" class="metric-value val-green">0.0%</div>
-          <div class="metric-sub">Peak-to-Trough Decline</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 9: RISK -->
-    <section id="view-risk" class="view-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">CryptoAID Risk Gates & Limits</h2>
-          <p class="section-subtitle">Deterministic capital protection rules and circuit breakers</p>
-        </div>
-      </div>
-      <div class="card-grid">
-        <div class="metric-card">
-          <div class="metric-title">Max Trade Size</div>
-          <div class="metric-value">10.0%</div>
-          <div class="metric-sub">$100.00 per position (on $1,000)</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Max Portfolio Exposure</div>
-          <div class="metric-value">50.0%</div>
-          <div class="metric-sub">$500.00 max active exposure</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Daily Loss Breaker</div>
-          <div class="metric-value val-red">3.0%</div>
-          <div class="metric-sub">$30.00 max daily loss before halt</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Emergency Stop Ceiling</div>
-          <div class="metric-value val-red">5.0%</div>
-          <div class="metric-sub">Absolute hard SL ceiling</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 10: WALLET -->
-    <section id="view-wallet" class="view-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Dedicated Trading Wallet</h2>
-          <p class="section-subtitle">Automated server-side signer security status (Keys never exposed to client or browser)</p>
-        </div>
-      </div>
-      <div class="metric-card">
-        <div style="font-size: 15px; font-weight: 700; margin-bottom: 12px;">Signer Architecture Guardrails</div>
-        <ul style="color: var(--text-secondary); font-size: 13px; line-height: 1.8; margin-left: 20px;">
-          <li>🔒 <b>Dedicated Wallet Only:</b> Isolated from user main treasury/vault.</li>
-          <li>🛡 <b>Chain ID Enforced:</b> Polygon Mainnet (137) verification prior to every signature.</li>
-          <li>⏱ <b>Pre-flight Simulation:</b> Required <code>eth_call</code> execution pass before signing.</li>
-          <li>⚖ <b>Limited ERC-20 Approvals:</b> Exact notional allowance per swap preferred over unlimited approvals.</li>
-          <li>🚫 <b>Zero Key Exposure:</b> Private keys are server-side environment variables only and never rendered in UI.</li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- VIEW 11: SYSTEM STATUS -->
-    <section id="view-status" class="view-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">System Status & Telemetry</h2>
-          <p class="section-subtitle">RPC connectivity, daemon health, database and background watchdog</p>
-        </div>
-      </div>
-      <div class="card-grid">
-        <div class="metric-card">
-          <div class="metric-title">Polygon Bor RPC</div>
-          <div class="metric-value val-green">CONNECTED</div>
-          <div class="metric-sub">Chain ID: 137</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Position Guardian</div>
-          <div class="metric-value val-green">ACTIVE</div>
-          <div class="metric-sub">24/7 Persistent Daemon</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">SQLite Database</div>
-          <div class="metric-value val-cyan">16 TABLES</div>
-          <div class="metric-sub">Migrations V1 & V2 Applied</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-title">Telegram Bot</div>
-          <div class="metric-value val-green">@CryptoAidTradeAIbot</div>
-          <div class="metric-sub">Official Topic Routing Active</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 12: SETTINGS -->
-    <section id="view-settings" class="view-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">System Settings & Controls</h2>
-          <p class="section-subtitle">Runtime toggles and operational thresholds</p>
-        </div>
-      </div>
-      <div class="metric-card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <div style="font-weight: 700; font-size: 15px;">Autonomous Trading Daemon</div>
-            <div style="font-size: 12px; color: var(--text-muted);">Enable or pause automatic signal execution</div>
-          </div>
-          <button id="btn-toggle-autotrade" class="btn-cta" onclick="toggleAutotrade()">AUTOTRADE: ON</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 13: KILL SWITCH -->
-    <section id="view-killswitch" class="view-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title" style="color: var(--rose-red);">Emergency Kill Switch</h2>
-          <p class="section-subtitle">Instantly halt all execution and liquidate open positions back to USDT</p>
-        </div>
-      </div>
-      <div class="metric-card" style="border-color: rgba(255, 51, 102, 0.4); background: rgba(255, 51, 102, 0.05);">
-        <div style="font-weight: 700; font-size: 16px; color: var(--rose-red); margin-bottom: 8px;">Emergency Control Center</div>
-        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
-          Activating the Kill Switch immediately suspends the Multi-Agent engine, blocks all new orders, and instructs the Position Guardian to execute market swaps back to USDT for any active positions.
-        </p>
-        <div style="display: flex; gap: 12px;">
-          <button class="btn-cta" style="background: var(--rose-red);" onclick="triggerEmergencyKillSwitch()">🚨 ARMED / TRIGGER KILL SWITCH</button>
-          <button class="btn-cta" style="background: var(--surface-3); border: 1px solid var(--border-color);" onclick="resetEmergencyKillSwitch()">RESET KILL SWITCH</button>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- Mobile Bottom Navigation Bar -->
-  <nav class="mobile-nav">
-    <button class="bottom-tab active" data-tab="home">🏠 Home</button>
-    <button class="bottom-tab" data-tab="markets">📊 Markets</button>
-    <button class="bottom-tab" data-tab="scanner">📡 Scan</button>
-    <button class="bottom-tab" data-tab="positions">⚡ Positions</button>
-    <button class="bottom-tab" data-tab="portfolio">💼 Portfolio</button>
-  </nav>
-
-  <script src="/static/js/app.js"></script>
+    </footer>
 </body>
 </html>
