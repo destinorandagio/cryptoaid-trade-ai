@@ -366,3 +366,173 @@ class ChallengeRiskAgent:
             risk_reward_ratio=round(tp_distance / sl_distance, 2) if sl_distance > 0 else 0.0,
             daily_dd_budget_remaining_usdt=round(daily_budget_remaining_usdt, 2),
         )
+
+    # -------------------------------------------------------------------------
+    # SPEC V1 MATHEMATICAL ENGINE (Dynamic Volatility Targeting & Survival)
+    # -------------------------------------------------------------------------
+
+    def calculate_spec_v1_sizing(
+        self,
+        equity_current: float,
+        equity_start_of_day: float,
+        atr_14: float,
+        mode: str = "scalping",
+        max_risk_per_trade_pct: float = 0.005,  # 0.5% Golden Rule
+        daily_dd_limit_pct: float = 0.05,        # 5.0% Daily Limit
+    ) -> dict[str, Any]:
+        """
+        Implements the exact Spec V1 Dynamic Volatility Targeting formula:
+        Step A: daily_headroom = (Equity_StartOfDay * Daily_DD_Limit) - (Equity_StartOfDay - Equity_Current)
+        Step B: stop_loss_distance = ATR_14 * Multiplier_SL (1.5 for Scalping, 2.5 for Swing)
+        Step C: effective_risk_cap = min(Equity_Current * max_risk_pct, daily_headroom * 0.5)
+        """
+        # Step A: Daily Headroom
+        max_daily_dd_dollars = equity_start_of_day * daily_dd_limit_pct
+        current_loss_today = max(0.0, equity_start_of_day - equity_current)
+        daily_headroom = max(0.0, max_daily_dd_dollars - current_loss_today)
+
+        if daily_headroom <= 0.0:
+            return {
+                "can_trade": False,
+                "reason": "DAILY_HEADROOM_EXHAUSTED",
+                "position_size_units": 0.0,
+                "effective_risk_cap": 0.0,
+                "daily_headroom": 0.0,
+                "stop_loss_distance": 0.0,
+            }
+
+        # Step B: Stop Loss Distance (ATR Based)
+        multiplier_sl = 1.5 if mode.lower() == "scalping" else 2.5
+        stop_loss_distance = atr_14 * multiplier_sl
+
+        if stop_loss_distance <= 0:
+            return {
+                "can_trade": False,
+                "reason": "INVALID_ATR_DISTANCE",
+                "position_size_units": 0.0,
+                "effective_risk_cap": 0.0,
+                "daily_headroom": daily_headroom,
+                "stop_loss_distance": 0.0,
+            }
+
+        # Step C: Size with Fixed Fractional Risk adjusted by Headroom
+        risk_amount_usdt = equity_current * max_risk_per_trade_pct
+        effective_risk_cap = min(risk_amount_usdt, daily_headroom * 0.5)
+        position_size_units = effective_risk_cap / stop_loss_distance
+
+        return {
+            "can_trade": True,
+            "reason": None,
+            "daily_headroom": round(daily_headroom, 2),
+            "multiplier_sl": multiplier_sl,
+            "stop_loss_distance": round(stop_loss_distance, 4),
+            "risk_amount_usdt": round(risk_amount_usdt, 2),
+            "effective_risk_cap": round(effective_risk_cap, 2),
+            "position_size_units": round(position_size_units, 6),
+            "risk_params_used": {
+                "atr_value": atr_14,
+                "sl_multiplier": multiplier_sl,
+                "risk_pct": max_risk_per_trade_pct * 100.0,
+                "daily_headroom": round(daily_headroom, 2),
+                "correlation_adjustment": 1.0,
+            },
+        }
+
+    def calculate_chandelier_exit(
+        self,
+        highest_high_since_entry: float,
+        lowest_low_since_entry: float,
+        atr_14: float,
+        direction: str = "LONG",
+        multiplier: float = 3.0,
+    ) -> float:
+        """
+        Chandelier Exit:
+        LONG:  Trailing_SL = Highest_High_since_Entry - (3 * ATR_14)
+        SHORT: Trailing_SL = Lowest_Low_since_Entry + (3 * ATR_14)
+        """
+        if direction.upper() == "LONG":
+            return max(0.00000001, highest_high_since_entry - (multiplier * atr_14))
+        else:
+            return lowest_low_since_entry + (multiplier * atr_14)
+
+    def evaluate_correlation_cap(
+        self,
+        target_asset: str,
+        target_nominal_value: float,
+        open_positions: list[dict[str, Any]],
+        correlation_threshold: float = 0.70,
+        max_exposure_cap_pct: float = 0.20,  # Hard Cap: max 20% correlated exposure
+    ) -> tuple[bool, str | None, float]:
+        """
+        Enforces Section 4 Correlation & Exposure Hard Cap:
+        If correlation > 0.7 with open positions, total correlated exposure must not exceed 20% nominal capital.
+        """
+        max_allowed_correlated_usdt = self.virtual_capital * max_exposure_cap_pct
+        correlated_exposure = target_nominal_value
+
+        # High correlation clusters (e.g. BTC, ETH, SOL, POL crypto beta)
+        crypto_majors = {"BTC", "ETH", "SOL", "POL", "WBTC", "WETH"}
+        target_base = target_asset.split("/")[0].upper()
+
+        for pos in open_positions:
+            pos_asset = pos.get("asset", "").split("/")[0].upper()
+            pos_nominal = float(pos.get("size", 0.0)) * float(pos.get("current_price", pos.get("entry_price", 1.0)))
+
+            # If both are in the major beta cluster, assume Pearson correlation > 0.70
+            if (target_base in crypto_majors and pos_asset in crypto_majors) or target_base == pos_asset:
+                correlated_exposure += pos_nominal
+
+        if correlated_exposure > max_allowed_correlated_usdt:
+            return (
+                False,
+                f"CORRELATED_EXPOSURE_CAP_EXCEEDED: ${correlated_exposure:,.2f} > Max 20% (${max_allowed_correlated_usdt:,.2f})",
+                correlated_exposure,
+            )
+
+        return True, None, correlated_exposure
+
+    def evaluate_circuit_breakers(
+        self,
+        daily_dd_pct: float,
+        total_dd_pct: float,
+        consecutive_losses: int,
+        signal_confidence: float = 0.80,
+        reward_risk_ratio: float = 2.0,
+        current_timestamp: float | None = None,
+    ) -> dict[str, Any]:
+        """
+        Enforces Section 5 Circuit Breakers:
+        - Daily DD > 3.5%: Reduce size by 50%
+        - Daily DD > 4.5%: Freeze new entries
+        - Total DD > 8%: Survival Mode (Only R:R > 3:1 and Confidence > 0.9)
+        - 3 Consecutive Losses: 4-hour pause
+        - News blackout: +/- 5 min
+        """
+        is_news, news_reason = self.is_news_window_active(current_timestamp)
+        if is_news:
+            return {"action": "FREEZE", "allowed": False, "reason": news_reason, "size_multiplier": 0.0}
+
+        if daily_dd_pct >= 4.5:
+            return {"action": "FREEZE", "allowed": False, "reason": f"DAILY_DD_CRITICAL ({daily_dd_pct:.2f}% >= 4.5%)", "size_multiplier": 0.0}
+
+        if consecutive_losses >= 3:
+            return {"action": "PAUSE_4H", "allowed": False, "reason": "3_CONSECUTIVE_LOSSES_PAUSE_4H", "size_multiplier": 0.0}
+
+        if total_dd_pct >= 8.0:
+            if signal_confidence < 0.90 or reward_risk_ratio < 3.0:
+                return {
+                    "action": "SURVIVAL_MODE_RESTRICTION",
+                    "allowed": False,
+                    "reason": f"SURVIVAL_MODE (Total DD {total_dd_pct:.2f}% >= 8.0% requires R:R > 3.0 & Confidence > 0.90)",
+                    "size_multiplier": 0.0,
+                }
+
+        size_multiplier = 0.50 if daily_dd_pct >= 3.5 else 1.0
+        return {
+            "action": "REDUCE_SIZE_50" if daily_dd_pct >= 3.5 else "NORMAL",
+            "allowed": True,
+            "reason": "DAILY_DD_YELLOW_ZONE (Size reduced 50%)" if daily_dd_pct >= 3.5 else None,
+            "size_multiplier": size_multiplier,
+        }
+

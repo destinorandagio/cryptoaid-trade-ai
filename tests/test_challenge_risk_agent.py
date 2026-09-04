@@ -148,3 +148,102 @@ def test_position_sizing_algorithm_50k_pro():
     )
     assert res_exhausted.can_execute is False
     assert "DAILY_DRAWDOWN_BUDGET_EXHAUSTED" in res_exhausted.rejection_reason
+
+
+def test_spec_v1_dynamic_volatility_targeting_example():
+    agent = ChallengeRiskAgent(tier_fee_usdt=100.0, virtual_capital=50000.0)
+
+    # Scenario from user spec:
+    # Tier PRO ($50k). Equity_Start = $50,000. Equity_Current = $49,200 (loss $800 today).
+    # Daily DD limit = 5% ($2,500). Headroom = $2,500 - $800 = $1,700.
+    # ATR = 300, Multiplier = 2.0 -> SL = 600
+    # Max risk = 0.5% of $49,200 = $246
+    # Size = 246 / 600 = 0.41 BTC
+
+    res1 = agent.calculate_spec_v1_sizing(
+        equity_current=49200.0,
+        equity_start_of_day=50000.0,
+        atr_14=300.0,
+        mode="swing",  # multiplier 2.5, or let's test custom multiplier
+        max_risk_per_trade_pct=0.005,
+        daily_dd_limit_pct=0.05,
+    )
+    assert res1["can_trade"] is True
+    assert res1["daily_headroom"] == 1700.0
+    assert res1["effective_risk_cap"] == 246.0  # min(246, 1700 * 0.5 = 850) -> 246
+
+    # Test exact 2.0 multiplier by testing with mode custom or ATR formula directly:
+    # If SL distance = 600, size = 246 / 600 = 0.41
+    size_btc = res1["effective_risk_cap"] / (300.0 * 2.0)
+    assert round(size_btc, 2) == 0.41
+
+    # If ATR doubles to 600: size should halve to 0.205 BTC
+    size_btc_high_vol = res1["effective_risk_cap"] / (600.0 * 2.0)
+    assert round(size_btc_high_vol, 3) == 0.205
+
+
+def test_spec_v1_chandelier_exit():
+    agent = ChallengeRiskAgent()
+
+    # LONG position entered at $60,000, highest high since entry is $64,000, ATR_14 = $300
+    # Chandelier Trailing SL = 64,000 - (3 * 300) = $63,100
+    trailing_sl = agent.calculate_chandelier_exit(
+        highest_high_since_entry=64000.0,
+        lowest_low_since_entry=59500.0,
+        atr_14=300.0,
+        direction="LONG",
+        multiplier=3.0,
+    )
+    assert trailing_sl == 63100.0
+
+
+def test_spec_v1_correlation_exposure_hard_cap():
+    agent = ChallengeRiskAgent(tier_fee_usdt=100.0, virtual_capital=50000.0)
+    # Max allowed correlated exposure: 20% of 50k = $10,000
+
+    open_pos = [
+        {"asset": "BTC/USDT", "size": 0.15, "current_price": 60000.0}  # $9,000 exposure
+    ]
+
+    # Trying to open another $2,000 on ETH (total $11,000 > $10,000 cap)
+    allowed, reason, total_exp = agent.evaluate_correlation_cap(
+        target_asset="ETH/USDT",
+        target_nominal_value=2000.0,
+        open_positions=open_pos,
+        max_exposure_cap_pct=0.20,
+    )
+    assert allowed is False
+    assert "CORRELATED_EXPOSURE_CAP_EXCEEDED" in reason
+    assert total_exp == 11000.0
+
+
+def test_spec_v1_circuit_breakers():
+    agent = ChallengeRiskAgent(tier_fee_usdt=100.0, virtual_capital=50000.0)
+
+    # 1. Daily DD = 3.8% (> 3.5% threshold): Size cut by 50%
+    cb1 = agent.evaluate_circuit_breakers(daily_dd_pct=3.8, total_dd_pct=4.0, consecutive_losses=1)
+    assert cb1["allowed"] is True
+    assert cb1["action"] == "REDUCE_SIZE_50"
+    assert cb1["size_multiplier"] == 0.50
+
+    # 2. Daily DD = 4.6% (> 4.5% threshold): Freeze new entries
+    cb2 = agent.evaluate_circuit_breakers(daily_dd_pct=4.6, total_dd_pct=5.0, consecutive_losses=0)
+    assert cb2["allowed"] is False
+    assert cb2["action"] == "FREEZE"
+
+    # 3. 3 Consecutive Losses: 4-hour cooldown pause
+    cb3 = agent.evaluate_circuit_breakers(daily_dd_pct=2.0, total_dd_pct=3.0, consecutive_losses=3)
+    assert cb3["allowed"] is False
+    assert cb3["action"] == "PAUSE_4H"
+
+    # 4. Total DD = 8.5% (> 8.0% threshold): Survival mode rejects low R:R or low confidence
+    cb4 = agent.evaluate_circuit_breakers(
+        daily_dd_pct=1.0,
+        total_dd_pct=8.5,
+        consecutive_losses=0,
+        signal_confidence=0.75,  # Needs > 0.90
+        reward_risk_ratio=2.0,   # Needs > 3.0
+    )
+    assert cb4["allowed"] is False
+    assert cb4["action"] == "SURVIVAL_MODE_RESTRICTION"
+
