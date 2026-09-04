@@ -1069,10 +1069,28 @@ class Web3Controller {
         if (cortexViol) cortexViol.textContent = "0 (CLEAN)";
 
         const scoreVal = document.getElementById("prop-score-val");
-        if (scoreVal) scoreVal.textContent = "87.4 / 100";
+        if (scoreVal) scoreVal.textContent = "88.6 / 100";
 
         const rankVal = document.getElementById("prop-rank-val");
         if (rankVal) rankVal.textContent = "#238";
+
+        // Update 8-factor chips
+        const fRet = document.getElementById("f-ret");
+        const fDd = document.getElementById("f-dd");
+        const fExp = document.getElementById("f-exp");
+        const fPf = document.getElementById("f-pf");
+        const fCtx = document.getElementById("f-ctx");
+        const fExc = document.getElementById("f-exc");
+        const fCal = document.getElementById("f-cal");
+        const fCon = document.getElementById("f-con");
+        if (fRet) fRet.textContent = "11.2";
+        if (fDd) fDd.textContent = "18.2";
+        if (fExp) fExp.textContent = "12.6";
+        if (fPf) fPf.textContent = "8.5";
+        if (fCtx) fCtx.textContent = "15.0";
+        if (fExc) fExc.textContent = "9.2";
+        if (fCal) fCal.textContent = "8.7";
+        if (fCon) fCon.textContent = "4.0";
     }
 
     sharePropChallenge() {
@@ -1080,14 +1098,15 @@ class Web3Controller {
         const tier = this.propTiers[tierKey] || this.propTiers["100K"];
         const profitUsdt = (tier.size * 2.83) / 100.0;
 
-        const text = `🏆 TRADEAID PROP CHALLENGE (${tier.name})\n` +
+        const text = `🏆 TRADEAID PROP DEMO / REWARD PROGRAM (${tier.name})\n` +
             `• Account: $${tier.size.toLocaleString()} USDT (Fee: $${tier.fee.toLocaleString()} USDT)\n` +
             `• Target: +8.00% (+$${tier.targetProfit.toLocaleString()}) | Now: +2.83% (+$${profitUsdt.toFixed(2)})\n` +
             `• Max Drawdown: 0.91% / 8.00% MAX (SAFE BUFFER 7.09%)\n` +
-            `• CORTEX Violations: 0 (DISCIPLINE PASS)\n` +
-            `• Prop Score: 87.4/100 | Global Rank #238\n` +
-            `🛡 100% Fee-Back Credit Guarantee (Option A): if failed, fee converts to Internal Trading Credit with 100% withdrawable profits!\n` +
-            `👉 Test the AI Autotrade: https://trade.cryptoaid.support/dapp.html`;
+            `• CORTEX Violations: 0 (ZERO TOLERANCE PASS)\n` +
+            `• 8-Factor Prop Score: 88.6/100 | Global Rank #238\n` +
+            `• Mode: Pure Expectancy (No artificial time rush)\n` +
+            `🛡 100% Fee-Back Credit Guarantee (Option A): fee converts to Internal Trading Credit with 100% withdrawable profits!\n` +
+            `👉 Test TradeAID Autotrade: https://trade.cryptoaid.support/dapp.html`;
 
         const btn = document.getElementById("btn-share-prop-challenge");
         if (navigator.clipboard) {

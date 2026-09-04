@@ -610,6 +610,44 @@ def get_prop_leaderboard(limit: int = 10) -> list[dict[str, Any]]:
         raise HTTPException(status_code=500, detail=f"Failed to get prop leaderboard: {str(e)}")
 
 
+@router.get("/prop/benchmarks")
+def get_prop_benchmarks() -> dict[str, Any]:
+    """Get simultaneous comparison of SAFE vs BALANCED vs TURBO facing the same challenge on Polygon."""
+    return {
+        "status": "SUCCESS",
+        "market": "Polygon POS Mainnet",
+        "philosophy": "StrategyEngine operates for pure mathematical expectancy; PropChallengeEngine is a passive auditor.",
+        "benchmarks": prop_engine.get_parallel_benchmarks(),
+    }
+
+
+@router.get("/prop/score-factors")
+def get_prop_score_factors() -> dict[str, Any]:
+    """Get official 8-factor composition of TRADEAID PROP SCORE / 100."""
+    from src.agents.prop_challenge import PROP_SCORE_WEIGHTS
+    return {
+        "title": "TRADEAID PROP SCORE / 100",
+        "description": "Composite score rewarding discipline, capital preservation, and calibration over reckless over-leveraging.",
+        "weights": PROP_SCORE_WEIGHTS,
+        "axiom": "+6% with 0.8% drawdown achieves a higher Prop Score than +9% achieved through reckless risk.",
+    }
+
+
+@router.get("/prop/reward-pool")
+def get_prop_reward_pool() -> dict[str, Any]:
+    """Get public transparency rules for Paper Simulation vs Reward Pool."""
+    return {
+        "status": "ACTIVE",
+        "paper_policy": "PAPER PROFITS != Money owed to user. 10,000 USDT virtual funds are strictly simulated.",
+        "reward_program": {
+            "name": "PROP DEMO / REWARD PROGRAM",
+            "state_progression": "NEW -> DEMO -> ACTIVE -> QUALIFIED -> VERIFICATION -> PASSED -> PROP_ELIGIBLE",
+            "eligibility": "Traders who reach QUALIFIED / PASSED become PROP_ELIGIBLE for the real capital vault allocation.",
+            "real_vault_stage": "REAL VAULT -> ALLOCATION -> VERIFIED NET PROFIT -> PROFIT SHARE",
+        },
+    }
+
+
 
 
 
