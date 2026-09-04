@@ -36,19 +36,39 @@ class TelegramTopicRouter:
 
     def resolve_destination(self, event_type: str) -> tuple[str, int | None]:
         """Determine target chat and message_thread_id based on event type."""
-        # Clean AI Signals route to Channel or designated AI SIGNALS topic
-        if event_type == "VERIFIED_AI_SIGNAL":
+        # Official Channel Broadcasts (@cryptoaidsup)
+        if event_type.startswith("CHANNEL_"):
+            return self.channel, None
+
+        # Clean AI Signals & Predictive Heart route to designated AI SIGNALS topic
+        if event_type in ("VERIFIED_AI_SIGNAL", "PREDICTIVE_HEART_FORECAST", "SIGNAL_ALERT"):
             return self.group, self.topic_map.get(TopicDestination.AI_SIGNALS)
-        elif event_type in ("PAPER_TRADE_OPENED", "PAPER_TRADE_CLOSED", "TRADE_DISCUSSION"):
+        elif event_type in (
+            "PAPER_TRADE_OPENED",
+            "PAPER_TRADE_CLOSED",
+            "TRADE_DISCUSSION",
+            "AUTOTRADE_RUN_STARTED",
+            "AUTOTRADE_RUN_WON",
+            "AUTOTRADE_RUN_LOST",
+            "PROP_CHALLENGE_CREATED",
+            "PROP_CHALLENGE_PROGRESS",
+            "PROP_CHALLENGE_PASSED",
+        ):
             return self.group, self.topic_map.get(TopicDestination.TRADE_AI)
-        elif event_type in ("SECURITY_REJECTION", "SCAM_ALERT"):
+        elif event_type in ("SECURITY_REJECTION", "SCAM_ALERT", "HONEYPOT_DETECTED"):
             return self.group, self.topic_map.get(TopicDestination.SECURITY_SCAM)
-        elif event_type in ("SYSTEM_TEST", "HEALTHCHECK", "DEV_LOG"):
+        elif event_type in ("SYSTEM_TEST", "HEALTHCHECK", "DEV_LOG", "CORTEX_DECISION", "CORTEX_AUDIT"):
             return self.group, self.topic_map.get(TopicDestination.CRYPTOAID_LAB)
         return self.group, None
 
-    def publish(self, event_type: str, text: str, dry_run: bool = False) -> dict[str, Any]:
-        """Publish a message to the appropriate topic or simulate in dry-run mode."""
+    def publish(
+        self,
+        event_type: str,
+        text: str,
+        reply_markup: dict[str, Any] | None = None,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        """Publish a message to the appropriate topic or channel, or simulate in dry-run mode."""
         chat_id, thread_id = self.resolve_destination(event_type)
 
         if dry_run or not self.bot_token:
@@ -58,6 +78,7 @@ class TelegramTopicRouter:
                 "chat_id": chat_id,
                 "message_thread_id": thread_id,
                 "text_length": len(text),
+                "has_markup": reply_markup is not None,
             }
 
         url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
@@ -69,6 +90,8 @@ class TelegramTopicRouter:
         }
         if thread_id is not None:
             payload["message_thread_id"] = thread_id
+        if reply_markup is not None:
+            payload["reply_markup"] = reply_markup
 
         try:
             resp = requests.post(url, json=payload, timeout=5.0)
@@ -80,3 +103,4 @@ class TelegramTopicRouter:
         except Exception as exc:
             logger.error("Telegram publish exception: %s", exc)
             return {"status": "FAILED", "error": str(exc)}
+

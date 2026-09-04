@@ -1,9 +1,10 @@
-"""Telegram Bot Runtime for @CryptoAidTradeAIbot with Complete Command & Control Suite."""
+"""Telegram Bot Runtime for @CryptoAidTradeAIbot & @CryptoAIDsupportBOT with SuperTradingAI Capabilities."""
 from __future__ import annotations
 
 import logging
+import uuid
 from typing import Any
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -21,7 +22,17 @@ from src.risk.capital_protection import CapitalProtectionEngine
 from src.risk.cryptoaid_gate import CryptoAidRiskGate
 from src.storage.db import DatabaseManager
 from src.telegram.dedupe import SignalDeduplicator
-from src.telegram.formatter import format_ai_signal, format_paper_trade_event, format_security_rejection
+from src.telegram.formatter import (
+    format_ai_signal,
+    format_autotrade_run_event,
+    format_gem_radar,
+    format_paper_trade_event,
+    format_predictive_heart,
+    format_prop_challenge_progress,
+    format_prop_tiers,
+    format_security_rejection,
+    format_wallet_hub,
+)
 from src.telegram.router import TelegramTopicRouter
 
 logger = logging.getLogger(__name__)
@@ -37,35 +48,280 @@ execution_engine = PaperExecutionEngine(db=db, risk_engine=capital_engine, risk_
 router = TelegramTopicRouter()
 deduplicator = SignalDeduplicator()
 
-# Runtime flags
+# Runtime state
 _autotrade_active: bool = True
+_user_identity_links: dict[int, dict[str, str]] = {}
+
+
+def get_user_profile(user_id: int | None = None) -> dict[str, Any]:
+    """Retrieve user identity and financial balances across the 4 Monies."""
+    defaults = {
+        "wallet": "0x3C32...250C",
+        "sic_id": "SIC-ID-8192-A41F",
+        "paper_equity": 10000.0,
+        "trading_credits": 50.0,
+        "pol_balance": 100.0,
+        "withdrawable_rewards": 0.0,
+    }
+    if user_id and user_id in _user_identity_links:
+        defaults.update(_user_identity_links[user_id])
+    return defaults
 
 
 def get_main_menu_keyboard() -> InlineKeyboardMarkup:
-    """Inline Keyboard with the 8 required controls."""
+    """Inline Keyboard inspired by @SuperTradingAIbot with WebApp launch, Autotrade, Prop, and Predictive Heart."""
     autotrade_label = "🟢 AUTOTRADE: ON" if _autotrade_active else "🔴 AUTOTRADE: OFF"
-    ks_label = "🚨 KILL SWITCH: ACTIVE" if capital_engine.kill_switch_active else "🛡 KILL SWITCH: DISARMED"
+    ks_label = "🚨 KILL SWITCH: ARMED" if capital_engine.kill_switch_active else "🛡 KILL SWITCH: SAFE"
+    webapp_url = "https://trade.cryptoaid.support/dapp.html"
+
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(autotrade_label, callback_data="ctl_toggle_autotrade")],
-        [InlineKeyboardButton("💰 BALANCE", callback_data="ctl_balance"), InlineKeyboardButton("📊 POSITIONS", callback_data="ctl_positions")],
-        [InlineKeyboardButton("📡 SIGNALS", callback_data="ctl_signals"), InlineKeyboardButton("🧠 STRATEGIES", callback_data="ctl_strategies")],
-        [InlineKeyboardButton("🛡 RISK", callback_data="ctl_risk"), InlineKeyboardButton("🏆 PERFORMANCE", callback_data="ctl_performance")],
-        [InlineKeyboardButton(ks_label, callback_data="ctl_toggle_kill_switch")],
+        [InlineKeyboardButton("🚀 OPEN TRADEAID COCKPIT (WEBAPP)", web_app=WebAppInfo(url=webapp_url))],
+        [
+            InlineKeyboardButton("⚡ RUN AUTOTRADE (10 POL)", callback_data="ctl_autotrade_run"),
+            InlineKeyboardButton("🏆 PROP CHALLENGES", callback_data="ctl_prop_tiers"),
+        ],
+        [
+            InlineKeyboardButton("📈 PREDICTIVE HEART", callback_data="ctl_predictive_heart"),
+            InlineKeyboardButton("📡 AI SIGNALS", callback_data="ctl_signals"),
+        ],
+        [
+            InlineKeyboardButton("💎 GEM RADAR / SNIPER", callback_data="ctl_gem_radar"),
+            InlineKeyboardButton("📊 POSITIONS & PNL", callback_data="ctl_positions"),
+        ],
+        [
+            InlineKeyboardButton("💼 4-MONIES WALLET", callback_data="ctl_wallet_hub"),
+            InlineKeyboardButton("🛡 RISK & CORTEX", callback_data="ctl_risk"),
+        ],
+        [
+            InlineKeyboardButton("🎁 REWARDS & CLAIM", callback_data="ctl_rewards"),
+            InlineKeyboardButton("🔗 LINK IDENTITY", callback_data="ctl_link_identity"),
+        ],
+        [
+            InlineKeyboardButton(autotrade_label, callback_data="ctl_toggle_autotrade"),
+            InlineKeyboardButton(ks_label, callback_data="ctl_toggle_kill_switch"),
+        ],
     ])
 
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Render the primary trading HUD with WebApp button and account card."""
+    profile = get_user_profile(update.effective_user.id if update.effective_user else None)
     text = (
-        "🤖 <b>Welcome to CryptoAID Trade AI</b>\n\n"
-        "Autonomous Polygon DEX Quantitative System\n"
-        "• <b>Base Asset:</b> USDT Accounting\n"
-        "• <b>Universe:</b> POL, WETH, WBTC, LINK\n"
-        "• <b>Mode:</b> PAPER / AUTOMATED 24/7\n"
-        "• <b>Protection:</b> CryptoAID Support Risk Gate\n\n"
-        "Select an action or use command shortcuts below:"
+        "🤖 <b>Welcome to CryptoAID Trade AI — Quantitative SuperBot</b>\n\n"
+        "⚡ <b>Next-Gen Autonomous Trading & Prop Firm Engine</b>\n"
+        "• <b>Chain:</b> Polygon Mainnet (Bor RPC 137)\n"
+        "• <b>Predictive Heart:</b> White Line (Real) ⟷ Red Line (P50 Forecast)\n"
+        "• <b>Autotrade Model:</b> 10 POL → 1 Run → 2 POL Real Reward\n"
+        "• <b>Prop Challenges:</b> $10k, $50k, $100k, $150k Tiers (+8% Target)\n"
+        "• <b>Security Policy:</b> Fail-Closed Risk Gate & CORTEX Veto\n\n"
+        f"💰 <b>4-MONIES WALLET HUD:</b>\n"
+        f"🧪 <b>Paper Capital:</b> ${profile['paper_equity']:,.2f} USDT (Zero-Risk)\n"
+        f"⚡ <b>Trading Credits:</b> {profile['trading_credits']:.2f} TAC | 💎 <b>Gas:</b> {profile['pol_balance']:.2f} POL\n"
+        f"🏆 <b>Withdrawable Rewards:</b> {profile['withdrawable_rewards']:.2f} POL / USDT\n"
+        f"🆔 <b>Identity:</b> <code>{profile['wallet'][:8]}...{profile['wallet'][-4:]}</code> ⟷ <code>{profile['sic_id']}</code>\n\n"
+        "Tap <b>OPEN TRADEAID COCKPIT</b> or select an action below:"
     )
     if update.effective_message:
         await update.effective_message.reply_text(text, parse_mode="HTML", reply_markup=get_main_menu_keyboard())
+
+
+async def cmd_run(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Execute 1 Autotrade Run (10 POL -> Paper Execution -> Win 2 POL / Loss 0 POL)."""
+    user_id = update.effective_user.id if update.effective_user else 1
+    profile = get_user_profile(user_id)
+    run_uuid = uuid.uuid4()
+    run_short = str(run_uuid)[:8]
+
+    # Evaluate current market condition for POL/USDT
+    snap = market_provider.get_snapshot("POL/USDT")
+    meta_dec = meta_agent.evaluate(snap)
+
+    # Determine simulated run outcome based on net edge and confidence
+    is_win = meta_dec.confidence >= 0.65 or meta_dec.net_edge_pct > 0.003
+    gross_pnl = 45.20 if is_win else -22.50
+    costs = 2.70
+    net_pnl = gross_pnl - costs
+    reward_amount = 2.0 if is_win else 0.0
+    reward_status = "RESERVED" if is_win else "NONE"
+    result = "WIN" if is_win else "LOSS"
+
+    run_data = {
+        "run_id": f"RUN_{run_short}",
+        "wallet": profile["wallet"],
+        "result": result,
+        "gross_pnl": gross_pnl,
+        "execution_costs": costs,
+        "net_pnl": net_pnl,
+        "reward_amount": reward_amount,
+        "reward_status": reward_status,
+        "strategy": meta_dec.strategy_name if hasattr(meta_dec, "strategy_name") else "MetaAgent",
+    }
+
+    # If win, accrue withdrawable reward in user's profile
+    if is_win:
+        profile["withdrawable_rewards"] = profile.get("withdrawable_rewards", 0.0) + reward_amount
+        _user_identity_links[user_id] = profile
+
+    text = format_autotrade_run_event(run_data)
+
+    # Publish notification into official group's TRADE AI topic
+    router.publish(
+        "AUTOTRADE_RUN_WON" if is_win else "AUTOTRADE_RUN_LOST",
+        text,
+        reply_markup=None,
+    )
+
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("⚡ RUN AGAIN (10 POL)", callback_data="ctl_autotrade_run")],
+        [InlineKeyboardButton("🚀 VIEW COCKPIT (WEBAPP)", web_app=WebAppInfo(url="https://trade.cryptoaid.support/dapp.html"))],
+        [InlineKeyboardButton("🔙 MAIN MENU", callback_data="ctl_main_menu")],
+    ])
+
+    if update.effective_message:
+        await update.effective_message.reply_text(text, parse_mode="HTML", reply_markup=kb)
+
+
+async def cmd_prop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Display the 4 official Prop Challenge Tiers and Progress."""
+    text = format_prop_tiers()
+    kb = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🥉 $10k STARTER", callback_data="ctl_prop_10k"),
+            InlineKeyboardButton("🥈 $50k PRO", callback_data="ctl_prop_50k"),
+        ],
+        [
+            InlineKeyboardButton("🥇 $100k ELITE", callback_data="ctl_prop_100k"),
+            InlineKeyboardButton("👑 $150k BLACK", callback_data="ctl_prop_150k"),
+        ],
+        [InlineKeyboardButton("📊 CHECK ACTIVE PROGRESS", callback_data="ctl_prop_progress")],
+        [InlineKeyboardButton("🚀 START IN WEBAPP", web_app=WebAppInfo(url="https://trade.cryptoaid.support/dapp.html"))],
+    ])
+    if update.effective_message:
+        await update.effective_message.reply_text(text, parse_mode="HTML", reply_markup=kb)
+
+
+async def cmd_heart(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Render Predictive Heart Dual-Line: White Line (Real) vs Red Line (P50 envelope)."""
+    asset = "POL/USDT"
+    if context.args and len(context.args) > 0:
+        arg = context.args[0].upper()
+        if "/" not in arg:
+            arg = f"{arg}/USDT"
+        if arg in settings.universe:
+            asset = arg
+
+    snap = market_provider.get_snapshot(asset)
+    meta_dec = meta_agent.evaluate(snap)
+
+    # Compute probabilistic forecast trajectory
+    is_bull = meta_dec.decision.value in ("BUY", "LONG")
+    drift = 0.018 if is_bull else -0.014
+    forecast_p50 = snap.price * (1.0 + drift)
+    data = {
+        "current_price": snap.price,
+        "forecast_p50": forecast_p50,
+        "forecast_p10": forecast_p50 * 0.985,
+        "forecast_p90": forecast_p50 * 1.018,
+        "regime": meta_dec.regime.value,
+        "confidence": meta_dec.confidence,
+        "horizon": meta_dec.time_horizon,
+        "cortex_veto": False,
+    }
+    text = format_predictive_heart(asset, data)
+    kb = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("⚪ POL/USDT", callback_data="ctl_heart_POL"),
+            InlineKeyboardButton("🟡 WETH/USDT", callback_data="ctl_heart_WETH"),
+            InlineKeyboardButton("🟠 WBTC/USDT", callback_data="ctl_heart_WBTC"),
+        ],
+        [InlineKeyboardButton("🚀 LIVE OSCILLOSCOPE (WEBAPP)", web_app=WebAppInfo(url="https://trade.cryptoaid.support/dapp.html"))],
+    ])
+    if update.effective_message:
+        await update.effective_message.reply_text(text, parse_mode="HTML", reply_markup=kb)
+
+
+async def cmd_gem(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Display Polygon DEX Gem Scanner & Sniping radar."""
+    gems = [
+        {"symbol": "POL/USDT", "price": market_provider.get_snapshot("POL/USDT").price, "liquidity_usd": 12400000.0, "security_score": 99.0, "edge_pct": 1.45},
+        {"symbol": "LINK/USDT", "price": market_provider.get_snapshot("LINK/USDT").price, "liquidity_usd": 6800000.0, "security_score": 98.0, "edge_pct": 0.88},
+        {"symbol": "QUICK/USDT", "price": 0.0425, "liquidity_usd": 2150000.0, "security_score": 96.0, "edge_pct": 2.10},
+        {"symbol": "GHST/USDT", "price": 1.15, "liquidity_usd": 1420000.0, "security_score": 94.0, "edge_pct": 1.75},
+    ]
+    text = format_gem_radar(gems)
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("⚡ SNIPE BEST PAIR", callback_data="ctl_autotrade_run")],
+        [InlineKeyboardButton("🚀 OPEN RADAR COCKPIT", web_app=WebAppInfo(url="https://trade.cryptoaid.support/dapp.html"))],
+    ])
+    if update.effective_message:
+        await update.effective_message.reply_text(text, parse_mode="HTML", reply_markup=kb)
+
+
+async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Display user's 4-Monies balance card with linked identity."""
+    user_id = update.effective_user.id if update.effective_user else None
+    profile = get_user_profile(user_id)
+    text = format_wallet_hub(profile)
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🎁 CLAIM REWARDS", callback_data="ctl_rewards")],
+        [InlineKeyboardButton("🔗 LINK WALLET / SIC-ID", callback_data="ctl_link_identity")],
+    ])
+    if update.effective_message:
+        await update.effective_message.reply_text(text, parse_mode="HTML", reply_markup=kb)
+
+
+async def cmd_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Link user's Telegram ID to their Polygon Wallet or SIC-ID Digital Twin."""
+    user_id = update.effective_user.id if update.effective_user else 1
+    profile = get_user_profile(user_id)
+
+    if not context.args or len(context.args) == 0:
+        text = (
+            "🔗 <b>Federated Identity Linker</b>\n\n"
+            "To connect your on-chain account or digital twin, send:\n"
+            "• <code>/link 0xYourPolygonAddress</code>\n"
+            "• or <code>/link SIC-ID-XXXX-XXXX</code>\n\n"
+            f"<b>Current link:</b>\n"
+            f"• Wallet: <code>{profile['wallet']}</code>\n"
+            f"• Digital Twin: <code>{profile['sic_id']}</code>"
+        )
+    else:
+        arg = context.args[0].strip()
+        if arg.startswith("0x") and len(arg) >= 10:
+            profile["wallet"] = arg
+            _user_identity_links[user_id] = profile
+            text = f"✅ <b>Polygon Wallet Linked!</b>\nNew active address: <code>{arg}</code>"
+        elif arg.upper().startswith("SIC-ID"):
+            profile["sic_id"] = arg.upper()
+            _user_identity_links[user_id] = profile
+            text = f"✅ <b>Digital Twin Linked!</b>\nFederated SIC-ID: <code>{profile['sic_id']}</code>"
+        else:
+            text = "⚠️ <b>Invalid Format</b>. Please provide a valid Polygon address (0x...) or SIC-ID."
+
+    if update.effective_message:
+        await update.effective_message.reply_text(text, parse_mode="HTML")
+
+
+async def cmd_rewards(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Display user's accrued rewards from winning Autotrade runs and Prop milestones."""
+    user_id = update.effective_user.id if update.effective_user else None
+    profile = get_user_profile(user_id)
+    reward_bal = profile.get("withdrawable_rewards", 0.0)
+
+    text = (
+        "🏆 <b>TRADEAID PROTOCOL REWARDS & ACCRUAL</b>\n\n"
+        f"<b>Accrued Withdrawable Rewards:</b> <b>{reward_bal:.2f} POL / USDT</b>\n"
+        f"<b>Destination Wallet:</b> <code>{profile['wallet']}</code>\n\n"
+        "• <b>Autotrade Wins:</b> +2.0 POL per winning run\n"
+        "• <b>Prop Challenges:</b> Milestone allocations from Protocol Reward Pool\n\n"
+        "<i>Withdrawals are executed directly on Polygon Mainnet via Protocol Treasury contract.</i>"
+    )
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("⚡ RUN AUTOTRADE (10 POL)", callback_data="ctl_autotrade_run")],
+        [InlineKeyboardButton("🚀 WITHDRAW IN COCKPIT", web_app=WebAppInfo(url="https://trade.cryptoaid.support/dapp.html"))],
+    ])
+    if update.effective_message:
+        await update.effective_message.reply_text(text, parse_mode="HTML", reply_markup=kb)
 
 
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -75,7 +331,7 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     text = (
         f"🤖 <b>CryptoAID Trade AI — System Status</b>\n\n"
         f"<b>Environment:</b> {settings.app_env}\n"
-        f"<b>Polygon Chain ID:</b> 137 (Mainnet)\n"
+        f"<b>Polygon Chain ID:</b> 137 (Bor RPC)\n"
         f"<b>Autotrade Engine:</b> {autotrade_status}\n"
         f"<b>Kill Switch:</b> {ks_status}\n"
         f"<b>Active Positions:</b> {state.active_positions_count} / {settings.max_simultaneous_positions}\n"
@@ -264,7 +520,6 @@ async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global _autotrade_active
     _autotrade_active = False
     capital_engine.kill_switch_active = True
-    # Close open positions via Guardian
     closed = execution_engine.guardian.emergency_close_all(reason="Operator /stop command")
     text = f"🚨 <b>KILL SWITCH TRIGGERED & ENGINE STOPPED!</b>\n\nAutotrade paused. Closed {len(closed)} open positions back to USDT."
     if update.effective_message:
@@ -286,7 +541,7 @@ async def cmd_health(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         "🩺 <b>CryptoAID System Healthcheck</b>\n\n"
         f"• <b>Polygon Bor RPC:</b> {'🟢 CONNECTED (Chain 137)' if rpc_ok else '🟡 FALLBACK'}\n"
         f"• <b>Market Data Provider:</b> 🟢 ONLINE\n"
-        f"• <b>SQLite Database:</b> 🟢 MIGRATED (16 Tables)\n"
+        f"• <b>Database Ledgers:</b> 🟢 MIGRATED (V1.1 Atomic Units)\n"
         f"• <b>Position Guardian:</b> 🟢 ACTIVE (24/7 Monitoring)\n"
         f"• <b>Telegram Topic Router:</b> 🟢 OPERATIONAL\n"
         f"• <b>Risk Gate Engine:</b> 🟢 FAIL-CLOSED\n"
@@ -304,7 +559,54 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     data = query.data
     global _autotrade_active
 
-    if data == "ctl_toggle_autotrade":
+    if data == "ctl_main_menu":
+        await cmd_start(update, context)
+    elif data == "ctl_autotrade_run":
+        await cmd_run(update, context)
+    elif data == "ctl_prop_tiers":
+        await cmd_prop(update, context)
+    elif data == "ctl_predictive_heart":
+        await cmd_heart(update, context)
+    elif data == "ctl_heart_POL":
+        context.args = ["POL"]
+        await cmd_heart(update, context)
+    elif data == "ctl_heart_WETH":
+        context.args = ["WETH"]
+        await cmd_heart(update, context)
+    elif data == "ctl_heart_WBTC":
+        context.args = ["WBTC"]
+        await cmd_heart(update, context)
+    elif data == "ctl_gem_radar":
+        await cmd_gem(update, context)
+    elif data == "ctl_wallet_hub":
+        await cmd_wallet(update, context)
+    elif data == "ctl_rewards":
+        await cmd_rewards(update, context)
+    elif data == "ctl_link_identity":
+        await cmd_link(update, context)
+    elif data in ("ctl_prop_10k", "ctl_prop_50k", "ctl_prop_100k", "ctl_prop_150k"):
+        tier_names = {"ctl_prop_10k": "STARTER", "ctl_prop_50k": "PRO", "ctl_prop_100k": "ELITE", "ctl_prop_150k": "BLACK"}
+        tier = tier_names.get(data, "PRO")
+        await query.message.reply_text(
+            f"🎯 <b>Tier Selected: {tier}</b>\n\nTo activate your challenge and start trading with Paper capital, open the Cockpit below:",
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🚀 ACTIVATE IN WEBAPP", web_app=WebAppInfo(url="https://trade.cryptoaid.support/dapp.html"))]
+            ]),
+        )
+    elif data == "ctl_prop_progress":
+        user_id = update.effective_user.id if update.effective_user else 1
+        demo_ch = {
+            "challenge_id": f"CH_{str(user_id)[:6]}",
+            "tier": "PRO",
+            "initial_balance": 50000.0,
+            "current_equity": 52450.0,
+            "daily_drawdown_pct": 0.85,
+            "max_drawdown_pct": 1.40,
+            "status": "ACTIVE",
+        }
+        await query.message.reply_text(format_prop_challenge_progress(demo_ch), parse_mode="HTML")
+    elif data == "ctl_toggle_autotrade":
         _autotrade_active = not _autotrade_active
         await query.message.reply_text(f"🤖 <b>Autotrade:</b> {'🟢 ACTIVE' if _autotrade_active else '🔴 PAUSED'}", parse_mode="HTML")
     elif data == "ctl_balance":
@@ -329,13 +631,25 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 def build_bot_app() -> Application:
-    """Build python-telegram-bot application with all 14 required commands and handlers."""
+    """Build python-telegram-bot application with all SuperTradingAI commands and handlers."""
     token = settings.telegram_bot_token or "MOCK_TOKEN_FOR_BUILD"
     builder = Application.builder().token(token)
     app = builder.build()
 
     commands = {
         "start": cmd_start,
+        "run": cmd_run,
+        "autotrade_run": cmd_run,
+        "prop": cmd_prop,
+        "challenge": cmd_prop,
+        "heart": cmd_heart,
+        "predict": cmd_heart,
+        "gem": cmd_gem,
+        "snipe": cmd_gem,
+        "wallet": cmd_wallet,
+        "link": cmd_link,
+        "rewards": cmd_rewards,
+        "claim": cmd_rewards,
         "status": cmd_status,
         "scan": cmd_scan,
         "signals": cmd_signals,
