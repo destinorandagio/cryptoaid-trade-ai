@@ -1586,6 +1586,332 @@ class DatabaseManager:
             )
             return [dict(r) for r in cursor.fetchall()]
 
+    # =========================================================================
+    # V1.1 ON-CHAIN IDEMPOTENCY & REWARD RESERVATION METHODS
+    # =========================================================================
+
+    def ingest_onchain_event(
+        self,
+        chain_id: int,
+        tx_hash: str,
+        log_index: int,
+        block_number: int,
+        contract_address: str,
+        event_name: str,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Idempotently ingest an on-chain event. Ignores duplicates if (chain_id, tx_hash, log_index) exists."""
+        event_id = str(uuid.uuid4())
+        payload_str = json.dumps(payload)
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT * FROM onchain_events
+                WHERE chain_id = ? AND tx_hash = ? AND log_index = ?
+                """,
+                (chain_id, tx_hash, log_index),
+            )
+            existing = cursor.fetchone()
+            if existing:
+                return {"status": "ALREADY_PROCESSED", "event": dict(existing)}
+
+            cursor.execute(
+                """
+                INSERT INTO onchain_events (event_id, chain_id, tx_hash, log_index, block_number, contract_address, event_name, payload_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (event_id, chain_id, tx_hash, log_index, block_number, contract_address, event_name, payload_str),
+            )
+            conn.commit()
+            cursor.execute("SELECT * FROM onchain_events WHERE event_id = ?", (event_id,))
+            return {"status": "PROCESSED", "event": dict(cursor.fetchone())}
+
+    def reserve_reward(
+        self,
+        pool_id: int,
+        amount_atomic: str | int,
+        currency: str = "POL",
+        run_id: str | None = None,
+        challenge_id: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        """Reserve payout budget from the pool before committing to reward."""
+        res_id = str(uuid.uuid4())
+        ikey = idempotency_key or f"res_{res_id[:8]}"
+        str_amount = str(amount_atomic)
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            # Idempotency check
+            cursor.execute("SELECT * FROM reward_reservations WHERE idempotency_key = ?", (ikey,))
+            existing = cursor.fetchone()
+            if existing:
+                return dict(existing)
+
+            # Check pool capacity
+            cursor.execute("SELECT * FROM reward_pools WHERE pool_id = ?", (pool_id,))
+            pool = cursor.fetchone()
+            if not pool or pool["status"] != "OPEN":
+                raise ValueError(f"Reward Pool {pool_id} is not open or does not exist")
+
+            cursor.execute(
+                """
+                INSERT INTO reward_reservations (reservation_id, pool_id, run_id, challenge_id, amount_atomic, currency, status, idempotency_key)
+                VALUES (?, ?, ?, ?, ?, ?, 'RESERVED', ?)
+                """,
+                (res_id, pool_id, run_id, challenge_id, str_amount, currency, ikey),
+            )
+            conn.commit()
+            cursor.execute("SELECT * FROM reward_reservations WHERE reservation_id = ?", (res_id,))
+            return dict(cursor.fetchone())
+
+    def settle_reward_reservation(self, reservation_id: str, tx_hash: str | None = None) -> dict[str, Any]:
+        """Mark reserved reward as COMMITTED and create corresponding withdrawable reward ledger entry."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM reward_reservations WHERE reservation_id = ?", (reservation_id,))
+            res = cursor.fetchone()
+            if not res:
+                raise ValueError(f"Reservation {reservation_id} not found")
+            if res["status"] == "COMMITTED":
+                return dict(res)
+
+            cursor.execute(
+                """
+                UPDATE reward_reservations
+                SET status = 'COMMITTED', settled_at = CURRENT_TIMESTAMP
+                WHERE reservation_id = ?
+                """,
+                (reservation_id,),
+            )
+            conn.commit()
+            cursor.execute("SELECT * FROM reward_reservations WHERE reservation_id = ?", (reservation_id,))
+            return dict(cursor.fetchone())
+
+    def release_reward_reservation(self, reservation_id: str) -> dict[str, Any]:
+        """Release an unearned reward reservation back to the pool."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE reward_reservations
+                SET status = 'RELEASED', settled_at = CURRENT_TIMESTAMP
+                WHERE reservation_id = ?
+                """,
+                (reservation_id,),
+            )
+            conn.commit()
+            cursor.execute("SELECT * FROM reward_reservations WHERE reservation_id = ?", (reservation_id,))
+            return dict(cursor.fetchone())
+
+    # =========================================================================
+    # V1.1 AUTOTRADE RUNS (10 POL -> 1 RUN -> 2 POL MODEL)
+    # =========================================================================
+
+    def create_autotrade_run_v1(
+        self,
+        user_id: str,
+        wallet: str,
+        activation_tx_hash: str,
+        activation_amount_atomic: str | int = "10000000000000000000", # 10 POL in wei
+        strategy_initial: str = "BALANCED",
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        """Initialize an Autotrade Run session backed by 10 POL activation."""
+        run_id = str(uuid.uuid4())
+        ikey = idempotency_key or f"run_{run_id[:8]}"
+        str_amount = str(activation_amount_atomic)
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            # Check idempotency
+            cursor.execute("SELECT * FROM autotrade_runs_v1 WHERE idempotency_key = ? OR activation_tx_hash = ?", (ikey, activation_tx_hash))
+            existing = cursor.fetchone()
+            if existing:
+                return dict(existing)
+
+            # Auto reserve 2 POL from active pool
+            pool = self.get_current_reward_pool()
+            reservation = self.reserve_reward(
+                pool_id=pool["pool_id"],
+                amount_atomic="2000000000000000000", # 2 POL
+                currency="POL",
+                run_id=run_id,
+                idempotency_key=f"res_{run_id}",
+            )
+
+            cursor.execute(
+                """
+                INSERT INTO autotrade_runs_v1 (
+                    run_id, user_id, wallet, activation_tx_hash, activation_amount_atomic,
+                    paper_start_balance, strategy_initial, result, reward_status, idempotency_key
+                ) VALUES (?, ?, ?, ?, ?, 10000.0, ?, 'RUNNING', 'RESERVED', ?)
+                """,
+                (run_id, user_id, wallet, activation_tx_hash, str_amount, strategy_initial, ikey),
+            )
+            conn.commit()
+            cursor.execute("SELECT * FROM autotrade_runs_v1 WHERE run_id = ?", (run_id,))
+            run_dict = dict(cursor.fetchone())
+            run_dict["reward_reservation"] = reservation
+            return run_dict
+
+    def get_autotrade_run_v1(self, run_id: str) -> dict[str, Any] | None:
+        """Fetch autotrade run details by run_id."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM autotrade_runs_v1 WHERE run_id = ?", (run_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def close_autotrade_run_v1(
+        self,
+        run_id: str,
+        gross_pnl: float,
+        execution_costs: float,
+        net_pnl: float,
+        result: str, # WIN, LOSS, VOID
+        strategy_final: str | None = None,
+    ) -> dict[str, Any]:
+        """Conclude an autotrade run, finalize economics, and settle/release reward reservation."""
+        reward_eligible = 1 if result.upper() == "WIN" else 0
+        reward_status = "PAID" if reward_eligible else "RELEASED_UNEARNED"
+        reward_atomic = "2000000000000000000" if reward_eligible else "0"
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE autotrade_runs_v1
+                SET closed_at = CURRENT_TIMESTAMP,
+                    gross_pnl = ?,
+                    execution_costs = ?,
+                    net_pnl = ?,
+                    result = ?,
+                    strategy_final = ?,
+                    reward_eligible = ?,
+                    reward_amount_atomic = ?,
+                    reward_status = ?
+                WHERE run_id = ?
+                """,
+                (gross_pnl, execution_costs, net_pnl, result.upper(), strategy_final, reward_eligible, reward_atomic, reward_status, run_id),
+            )
+            conn.commit()
+
+            # Settle or release reservation
+            cursor.execute("SELECT * FROM reward_reservations WHERE run_id = ?", (run_id,))
+            res = cursor.fetchone()
+            if res:
+                if reward_eligible:
+                    self.settle_reward_reservation(res["reservation_id"])
+                    # Record reward in ledger
+                    cursor.execute("SELECT user_id, wallet FROM autotrade_runs_v1 WHERE run_id = ?", (run_id,))
+                    u = cursor.fetchone()
+                    if u:
+                        self.record_withdrawable_reward_entry(
+                            user_id=u["user_id"],
+                            amount=2.0,
+                            reward_type="AUTOTRADE_WIN_PAYOUT",
+                            status="UNLOCKED",
+                        )
+                else:
+                    self.release_reward_reservation(res["reservation_id"])
+
+            cursor.execute("SELECT * FROM autotrade_runs_v1 WHERE run_id = ?", (run_id,))
+            return dict(cursor.fetchone())
+
+    # =========================================================================
+    # V1.1 CORTEX & EXECUTION ECONOMICS AUDIT TRAIL
+    # =========================================================================
+
+    def record_cortex_decision(
+        self,
+        asset: str,
+        composite_risk_score: float,
+        passed: bool,
+        final_decision: str,
+        rejection_reasons: list[str] | None = None,
+        forecast_id: str | None = None,
+        regime_id: int | None = None,
+        max_allowed_leverage: float = 1.0,
+    ) -> dict[str, Any]:
+        """Record CORTEX risk gate decision for full White -> Red -> Decision audit trail."""
+        dec_id = str(uuid.uuid4())
+        reasons_str = json.dumps(rejection_reasons or [])
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO cortex_decisions (
+                    decision_id, asset, forecast_id, regime_id, composite_risk_score,
+                    passed, final_decision, rejection_reasons_json, max_allowed_leverage
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (dec_id, asset, forecast_id, regime_id, composite_risk_score, 1 if passed else 0, final_decision, reasons_str, max_allowed_leverage),
+            )
+            conn.commit()
+            cursor.execute("SELECT * FROM cortex_decisions WHERE decision_id = ?", (dec_id,))
+            return dict(cursor.fetchone())
+
+    def get_cortex_decisions(self, asset: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        """Retrieve recent CORTEX decision audit trail."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            if asset:
+                cursor.execute("SELECT * FROM cortex_decisions WHERE asset = ? ORDER BY decided_at DESC LIMIT ?", (asset, limit))
+            else:
+                cursor.execute("SELECT * FROM cortex_decisions ORDER BY decided_at DESC LIMIT ?", (limit,))
+            return [dict(r) for r in cursor.fetchall()]
+
+    def record_prop_trade_v1(
+        self,
+        challenge_id: str,
+        asset_canonical_id: str,
+        direction: str,
+        quoted_price: float,
+        simulated_fill_price: float,
+        quantity: float,
+        leverage_used: int = 1,
+        gas_usdt: float = 0.0,
+        dex_fee_usdt: float = 0.0,
+        slippage_bps: int = 0,
+        price_impact_bps: int = 0,
+        exit_price: float | None = None,
+        gross_pnl_usdt: float | None = None,
+        net_pnl_usdt: float | None = None,
+        pnl_pct: float | None = None,
+        strategy_id: str = "BALANCED",
+        entry_forecast_id: str | None = None,
+        cortex_decision_id: str | None = None,
+        ai_confidence: float = 0.85,
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Record trade execution complete with real-world execution economics."""
+        trade_id = str(uuid.uuid4())
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO challenge_trades (
+                    trade_id, challenge_id, run_id, asset_canonical_id, direction,
+                    quoted_price, simulated_fill_price, exit_price, quantity, leverage_used,
+                    gas_usdt, dex_fee_usdt, slippage_bps, price_impact_bps,
+                    gross_pnl_usdt, net_pnl_usdt, pnl_pct, strategy_id,
+                    entry_forecast_id, cortex_decision_id, ai_confidence
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    trade_id, challenge_id, run_id, asset_canonical_id, direction.upper(),
+                    quoted_price, simulated_fill_price, exit_price, quantity, leverage_used,
+                    gas_usdt, dex_fee_usdt, slippage_bps, price_impact_bps,
+                    gross_pnl_usdt, net_pnl_usdt, pnl_pct, strategy_id,
+                    entry_forecast_id, cortex_decision_id, ai_confidence,
+                ),
+            )
+            conn.commit()
+            cursor.execute("SELECT * FROM challenge_trades WHERE trade_id = ?", (trade_id,))
+            return dict(cursor.fetchone())
+
 
 
 

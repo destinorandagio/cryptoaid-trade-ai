@@ -750,6 +750,125 @@ VALUES (1, 9, 2026, 10000.00, 0.00, 'OPEN');
 """
 
 
+MIGRATION_V11 = """
+-- =============================================================================
+-- MIGRATION V11: TRADEAID PROP & AUTOTRADE V1.1 (ONCHAIN IDEMPOTENCY & AUDIT)
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS onchain_events (
+    event_id TEXT PRIMARY KEY,
+    chain_id INTEGER NOT NULL DEFAULT 137,
+    tx_hash TEXT NOT NULL,
+    log_index INTEGER NOT NULL DEFAULT 0,
+    block_number INTEGER NOT NULL,
+    contract_address TEXT NOT NULL,
+    event_name TEXT NOT NULL,
+    payload_json TEXT NOT NULL,
+    processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status TEXT NOT NULL DEFAULT 'PROCESSED',
+    UNIQUE(chain_id, tx_hash, log_index)
+);
+
+CREATE INDEX IF NOT EXISTS idx_onchain_events_tx ON onchain_events(tx_hash);
+
+CREATE TABLE IF NOT EXISTS autotrade_runs_v1 (
+    run_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    wallet TEXT NOT NULL,
+    activation_tx_hash TEXT UNIQUE NOT NULL,
+    activation_amount_atomic TEXT NOT NULL,
+    decimals INTEGER NOT NULL DEFAULT 18,
+    paper_start_balance REAL NOT NULL DEFAULT 10000.0,
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    closed_at TIMESTAMP,
+    strategy_initial TEXT NOT NULL DEFAULT 'BALANCED',
+    strategy_final TEXT,
+    gross_pnl REAL DEFAULT 0.0,
+    execution_costs REAL DEFAULT 0.0,
+    net_pnl REAL DEFAULT 0.0,
+    result TEXT NOT NULL DEFAULT 'RUNNING',
+    reward_eligible INTEGER NOT NULL DEFAULT 0,
+    reward_amount_atomic TEXT NOT NULL DEFAULT '0',
+    reward_status TEXT NOT NULL DEFAULT 'NONE',
+    idempotency_key TEXT UNIQUE NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES prop_users(user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_autotrade_v1_user ON autotrade_runs_v1(user_id);
+
+CREATE TABLE IF NOT EXISTS reward_reservations (
+    reservation_id TEXT PRIMARY KEY,
+    pool_id INTEGER NOT NULL,
+    run_id TEXT,
+    challenge_id TEXT,
+    amount_atomic TEXT NOT NULL,
+    decimals INTEGER NOT NULL DEFAULT 18,
+    currency TEXT NOT NULL DEFAULT 'POL',
+    status TEXT NOT NULL DEFAULT 'RESERVED',
+    reserved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    settled_at TIMESTAMP,
+    idempotency_key TEXT UNIQUE NOT NULL,
+    FOREIGN KEY(pool_id) REFERENCES reward_pools(pool_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_reward_reservations_pool ON reward_reservations(pool_id);
+
+CREATE TABLE IF NOT EXISTS cortex_decisions (
+    decision_id TEXT PRIMARY KEY,
+    asset TEXT NOT NULL,
+    forecast_id TEXT,
+    regime_id INTEGER,
+    composite_risk_score REAL NOT NULL,
+    passed INTEGER NOT NULL,
+    final_decision TEXT NOT NULL,
+    rejection_reasons_json TEXT,
+    max_allowed_leverage REAL DEFAULT 1.0,
+    decided_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS strategy_transitions (
+    transition_id TEXT PRIMARY KEY,
+    context_id TEXT NOT NULL,
+    asset TEXT NOT NULL,
+    from_strategy TEXT NOT NULL,
+    to_strategy TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    pnl_pct_at_switch REAL NOT NULL,
+    entry_price REAL NOT NULL,
+    current_price REAL NOT NULL,
+    switched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Safely add Execution Economics columns to challenge_trades if not existing
+ALTER TABLE challenge_trades ADD COLUMN quoted_price REAL;
+ALTER TABLE challenge_trades ADD COLUMN simulated_fill_price REAL;
+ALTER TABLE challenge_trades ADD COLUMN gas_usdt REAL DEFAULT 0.0;
+ALTER TABLE challenge_trades ADD COLUMN dex_fee_usdt REAL DEFAULT 0.0;
+ALTER TABLE challenge_trades ADD COLUMN slippage_bps INTEGER DEFAULT 0;
+ALTER TABLE challenge_trades ADD COLUMN price_impact_bps INTEGER DEFAULT 0;
+ALTER TABLE challenge_trades ADD COLUMN gross_pnl_usdt REAL;
+ALTER TABLE challenge_trades ADD COLUMN net_pnl_usdt REAL;
+ALTER TABLE challenge_trades ADD COLUMN entry_forecast_id TEXT;
+ALTER TABLE challenge_trades ADD COLUMN cortex_decision_id TEXT;
+ALTER TABLE challenge_trades ADD COLUMN strategy_transition_count INTEGER DEFAULT 0;
+
+-- Safely add Idempotency and Currency columns to Ledgers
+ALTER TABLE ledger_trading_credits ADD COLUMN currency TEXT DEFAULT 'TAC';
+ALTER TABLE ledger_trading_credits ADD COLUMN chain_id INTEGER DEFAULT 137;
+ALTER TABLE ledger_trading_credits ADD COLUMN token_address TEXT;
+ALTER TABLE ledger_trading_credits ADD COLUMN source_event_id TEXT;
+ALTER TABLE ledger_trading_credits ADD COLUMN idempotency_key TEXT;
+
+ALTER TABLE ledger_withdrawable_rewards ADD COLUMN amount_atomic TEXT DEFAULT '0';
+ALTER TABLE ledger_withdrawable_rewards ADD COLUMN decimals INTEGER DEFAULT 18;
+ALTER TABLE ledger_withdrawable_rewards ADD COLUMN currency TEXT DEFAULT 'POL';
+ALTER TABLE ledger_withdrawable_rewards ADD COLUMN chain_id INTEGER DEFAULT 137;
+ALTER TABLE ledger_withdrawable_rewards ADD COLUMN token_address TEXT;
+ALTER TABLE ledger_withdrawable_rewards ADD COLUMN source_event_id TEXT;
+ALTER TABLE ledger_withdrawable_rewards ADD COLUMN idempotency_key TEXT;
+"""
+
+
 def apply_migrations(db_path: Path | str) -> None:
     """Run migrations to ensure all database tables are up to date."""
     conn = sqlite3.connect(str(db_path))
@@ -829,6 +948,22 @@ def apply_migrations(db_path: Path | str) -> None:
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (10)")
             conn.commit()
             logger.info("Database migration V10 applied successfully.")
+
+        if current_version < 11:
+            logger.info("Applying database migration V11 (TradeAID Prop & Autotrade Schema V1.1)...")
+            # Run schema scripts safely line-by-line or statement-by-statement to handle ALTER TABLE if already modified
+            for stmt in MIGRATION_V11.strip().split(";"):
+                stmt = stmt.strip()
+                if stmt:
+                    try:
+                        cursor.execute(stmt)
+                    except sqlite3.OperationalError as e:
+                        # Ignore "duplicate column name" if already exists from fresh re-run
+                        if "duplicate column name" not in str(e).lower():
+                            logger.warning("Migration V11 note on stmt: %s -> %s", stmt[:40], e)
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (11)")
+            conn.commit()
+            logger.info("Database migration V11 applied successfully.")
     finally:
         conn.close()
 

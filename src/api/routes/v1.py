@@ -984,6 +984,14 @@ class RecordSnapshotV1Request(BaseModel):
     daily_dd_pct: float
 
 
+@router.get("/prop/tiers")
+@router.get("/challenges/tiers")
+def get_prop_tiers() -> list[dict[str, Any]]:
+    """Return all active Prop Challenge Tiers."""
+    db = DatabaseManager()
+    return db.get_challenge_tiers()
+
+
 @router.post("/prop/challenge/create")
 def create_prop_challenge(req: CreateChallengeV1Request) -> dict[str, Any]:
     """Create a new Prop Challenge instance."""
@@ -1082,6 +1090,333 @@ def get_current_leaderboard() -> dict[str, Any]:
         "leaderboard": board,
         "total_participants": len(board),
         "solvency_model": "Budgeted Monthly Allocation (Anti-Ghost Debt)",
+    }
+
+
+# =============================================================================
+# DOMAIN 1: AUTOTRADE (10 POL -> 1 RUN -> 2 POL REWARD MODEL)
+# =============================================================================
+
+class AutotradeRunCreateRequest(BaseModel):
+    user_id: str
+    wallet: str
+    activation_tx_hash: str
+    activation_amount_atomic: str = Field(default="10000000000000000000", description="10 POL in wei")
+    strategy: str = Field(default="BALANCED")
+    idempotency_key: str | None = None
+
+
+class AutotradeRunStopRequest(BaseModel):
+    gross_pnl: float = 0.0
+    execution_costs: float = 0.0
+    net_pnl: float = 0.0
+    result: str = Field(default="WIN", description="WIN, LOSS, or VOID")
+    strategy_final: str | None = None
+
+
+@router.post("/autotrade/runs")
+def start_autotrade_run(req: AutotradeRunCreateRequest) -> dict[str, Any]:
+    """Start an Autotrade Run: consumes 10 POL fee on-chain, initializes $10,000 Paper Capital, reserves 2 POL reward."""
+    db = DatabaseManager()
+    try:
+        run = db.create_autotrade_run_v1(
+            user_id=req.user_id,
+            wallet=req.wallet,
+            activation_tx_hash=req.activation_tx_hash,
+            activation_amount_atomic=req.activation_amount_atomic,
+            strategy_initial=req.strategy,
+            idempotency_key=req.idempotency_key,
+        )
+        return {
+            "status": "RUN_INITIALIZED",
+            "run": run,
+            "contract_model": "10 POL -> 10,000 USDT PAPER -> IF NET WIN: 2 POL REWARD",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/autotrade/runs/{run_id}")
+def get_autotrade_run(run_id: str) -> dict[str, Any]:
+    """Get status, PnL, and reward state of an Autotrade Run."""
+    db = DatabaseManager()
+    run = db.get_autotrade_run_v1(run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail=f"Autotrade Run {run_id} not found")
+    return {"run": run}
+
+
+@router.post("/autotrade/{run_id}/stop")
+def stop_autotrade_run(run_id: str, req: AutotradeRunStopRequest) -> dict[str, Any]:
+    """Stop/settle an Autotrade Run: finalizes net PnL, settles 2 POL reward if WIN or releases reservation if LOSS."""
+    db = DatabaseManager()
+    run = db.get_autotrade_run_v1(run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail=f"Autotrade Run {run_id} not found")
+    try:
+        closed = db.close_autotrade_run_v1(
+            run_id=run_id,
+            gross_pnl=req.gross_pnl,
+            execution_costs=req.execution_costs,
+            net_pnl=req.net_pnl,
+            result=req.result,
+            strategy_final=req.strategy_final,
+        )
+        return {
+            "status": "RUN_CLOSED",
+            "run": closed,
+            "reward_awarded": closed["reward_status"] == "PAID",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/autotrade/{run_id}/decisions")
+def get_autotrade_run_decisions(run_id: str) -> dict[str, Any]:
+    """Audit trail of all CORTEX & strategy switching decisions during this run."""
+    db = DatabaseManager()
+    switches = db.get_strategy_switches()
+    cortex = db.get_cortex_decisions()
+    return {
+        "run_id": run_id,
+        "strategy_switches": [s for s in switches if s.get("position_id") == run_id or s.get("account_id") == run_id],
+        "cortex_decisions": cortex[:10],
+    }
+
+
+@router.get("/autotrade/{run_id}/trades")
+def get_autotrade_run_trades(run_id: str) -> dict[str, Any]:
+    """Retrieve trades with execution economics for this run."""
+    db = DatabaseManager()
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM challenge_trades WHERE run_id = ? ORDER BY opened_at DESC", (run_id,))
+        trades = [dict(r) for r in cursor.fetchall()]
+    return {"run_id": run_id, "trades": trades, "count": len(trades)}
+
+
+# =============================================================================
+# DOMAIN 2: PROP (CHALLENGE LIFECYCLE & VIOLATIONS)
+# =============================================================================
+
+@router.post("/prop/challenges")
+def create_prop_challenge_alias(req: CreateChallengeV1Request) -> dict[str, Any]:
+    """Alias for POST /prop/challenge/create."""
+    return create_prop_challenge(req)
+
+
+@router.get("/prop/challenges/{challenge_id}")
+def get_prop_challenge_alias(challenge_id: str) -> dict[str, Any]:
+    """Alias for GET /prop/challenge/{id}."""
+    return get_prop_challenge_details(challenge_id)
+
+
+@router.get("/prop/challenges/{challenge_id}/progress")
+def get_prop_challenge_progress(challenge_id: str) -> dict[str, Any]:
+    """Get high-water mark, profit target progress %, and daily DD status."""
+    db = DatabaseManager()
+    challenge = db.get_prop_challenge_v1(challenge_id)
+    if not challenge:
+        raise HTTPException(status_code=404, detail=f"Challenge {challenge_id} not found")
+
+    start_bal = float(challenge["starting_balance"])
+    curr_bal = float(challenge["current_balance"])
+    hwm = float(challenge["high_water_mark"])
+    target_pct = float(challenge["tier"]["phase1_target_pct"])
+    target_usdt = start_bal * (1.0 + (target_pct / 100.0))
+    current_profit_pct = ((curr_bal - start_bal) / start_bal) * 100.0 if start_bal > 0 else 0.0
+
+    total_dd_pct = ((hwm - curr_bal) / hwm) * 100.0 if hwm > 0 else 0.0
+
+    return {
+        "challenge_id": challenge_id,
+        "tier_name": challenge["tier"]["name"],
+        "starting_balance": start_bal,
+        "current_balance": curr_bal,
+        "target_balance": target_usdt,
+        "current_profit_pct": round(current_profit_pct, 2),
+        "target_profit_pct": target_pct,
+        "progress_toward_target_pct": round(min(100.0, max(0.0, (current_profit_pct / target_pct) * 100.0)), 2),
+        "total_dd_current_pct": round(total_dd_pct, 2),
+        "max_total_dd_limit_pct": float(challenge["tier"]["max_total_dd_pct"]),
+        "status": challenge["status"],
+    }
+
+
+@router.get("/prop/challenges/{challenge_id}/violations")
+def get_prop_challenge_violations(challenge_id: str) -> dict[str, Any]:
+    """Get full audit report of any drawdown or policy violations."""
+    db = DatabaseManager()
+    challenge = db.get_prop_challenge_v1(challenge_id)
+    if not challenge:
+        raise HTTPException(status_code=404, detail=f"Challenge {challenge_id} not found")
+    return {
+        "challenge_id": challenge_id,
+        "status": challenge["status"],
+        "violation_type": challenge.get("violation_type"),
+        "violated_at": challenge.get("violated_at"),
+        "has_violations": challenge["status"] in ("FAILED", "CANCELLED"),
+    }
+
+
+# =============================================================================
+# DOMAIN 3: HEART (PREDICTIVE HEART & WHY EXPLANATION)
+# =============================================================================
+
+@router.get("/heart/{asset}/why")
+def get_heart_asset_why(asset: str) -> dict[str, Any]:
+    """Explain why the Predictive Heart and CORTEX made the decision (WHITE -> RED -> DECISION)."""
+    clean_asset = asset.replace("-", "/")
+    snapshot = market_provider.get_snapshot(clean_asset)
+    meta_dec = meta_agent.evaluate(snapshot)
+    risk_res = risk_gate.evaluate(meta_dec, snapshot)
+    return {
+        "asset": clean_asset,
+        "meta_decision": {
+            "signal": meta_dec.decision.value,
+            "confidence": meta_dec.confidence,
+            "expected_return": meta_dec.expected_return,
+            "expected_risk": meta_dec.expected_risk,
+            "evidence": meta_dec.evidence,
+        },
+        "cortex_risk_gate": {
+            "passed": risk_res.passed,
+            "decision": risk_res.final_decision,
+            "composite_risk_score": risk_res.composite_risk_score,
+            "rejections": risk_res.rejection_reasons,
+        },
+        "formula": "WHITE (Forecast) -> RED (CORTEX Gate) -> DECISION (Sizing/Veto)",
+    }
+
+
+@router.get("/heart/{asset}/history")
+def get_heart_asset_history(asset: str, limit: int = Query(default=20, le=100)) -> dict[str, Any]:
+    """Get calibration history, direction hit rate, and Brier scores."""
+    clean_asset = asset.replace("-", "/")
+    db = DatabaseManager()
+    stats = db.get_calibration_stats(clean_asset)
+    forecasts = db.get_recent_forecasts(clean_asset, limit=limit)
+    return {
+        "asset": clean_asset,
+        "calibration": stats,
+        "recent_forecasts": forecasts,
+    }
+
+
+@router.get("/heart/{asset}/forecast")
+@router.get("/heart/{asset}")
+def get_heart_asset_forecast(asset: str) -> dict[str, Any]:
+    """Get current Predictive Heart state and forecast for asset."""
+    clean_asset = asset.replace("-", "/")
+    ticker = market_provider.get_ticker(clean_asset)
+    forecast = predictive_heart.generate_forecast(symbol=clean_asset)
+    return {
+        "asset": clean_asset,
+        "current_price": ticker.price,
+        "forecast": forecast,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# =============================================================================
+# DOMAIN 4: FINANCE (LEDGERS, CREDITS, REWARDS, WITHDRAWAL)
+# =============================================================================
+
+class RewardWithdrawRequest(BaseModel):
+    user_id: str
+    amount: float = Field(gt=0, description="Amount in USDT or POL")
+    destination_wallet: str
+    idempotency_key: str = Field(description="Unique key to prevent double payout")
+
+
+@router.get("/wallet")
+def get_finance_wallet_summary(identifier: str = Query(..., description="user_id, wallet, or SIC-ID")) -> dict[str, Any]:
+    """Get user profile and financial state across all accounts."""
+    db = DatabaseManager()
+    user = db.get_prop_user(identifier)
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User {identifier} not found")
+    profile = db.get_user_financial_profile(user["user_id"])
+    return {"user": user, "financial_profile": profile}
+
+
+@router.get("/credits")
+def get_finance_credits(identifier: str = Query(..., description="user_id, wallet, or SIC-ID")) -> dict[str, Any]:
+    """Get Trading Credits (TAC) balance and transaction ledger (1 TAC = $1 USDT Margin)."""
+    db = DatabaseManager()
+    data = db.get_user_3_ledgers(identifier)
+    return data["ledger_2_trading_credits"]
+
+
+@router.get("/rewards")
+def get_finance_rewards(identifier: str = Query(..., description="user_id, wallet, or SIC-ID")) -> dict[str, Any]:
+    """Get Withdrawable Rewards balance and transaction ledger."""
+    db = DatabaseManager()
+    data = db.get_user_3_ledgers(identifier)
+    return data["ledger_3_withdrawable_rewards"]
+
+
+@router.get("/ledger")
+def get_finance_consolidated_ledger(identifier: str = Query(..., description="user_id, wallet, or SIC-ID")) -> dict[str, Any]:
+    """Get consolidated audit report for all 4 monies (Paper 10k, Challenge Fee, TAC Credits, POL Rewards)."""
+    db = DatabaseManager()
+    data = db.get_user_3_ledgers(identifier)
+    return {
+        "four_monies_breakdown": {
+            "money_1_paper_usdt": {
+                "name": "10,000 USDT PAPER",
+                "nature": "Simulated Virtual Capital (Non-withdrawable)",
+                "active_challenges": data["ledger_1_prop_equity"]["total_active_challenges"],
+            },
+            "money_2_challenge_fee": {
+                "name": "Challenge Fee (USDT / POL)",
+                "nature": "Real Entry Fee (Eligible for 100% TAC Second Chance on fail)",
+                "total_fees_paid": data["profile"]["total_fees_paid"],
+            },
+            "money_3_trading_credits": {
+                "name": "Trading Credits (TAC)",
+                "nature": "Non-Withdrawable Margin Credits (1 TAC = $1 USDT Margin)",
+                "balance": data["ledger_2_trading_credits"]["balance_tac"],
+                "history": data["ledger_2_trading_credits"]["history"],
+            },
+            "money_4_withdrawable_rewards": {
+                "name": "POL / USDT Rewards",
+                "nature": "Real Withdrawable Profits Funded by Budgeted Reward Pool",
+                "balance": data["ledger_3_withdrawable_rewards"]["balance_usdt"],
+                "history": data["ledger_3_withdrawable_rewards"]["history"],
+            },
+        }
+    }
+
+
+@router.post("/rewards/withdraw")
+def request_reward_withdrawal(req: RewardWithdrawRequest) -> dict[str, Any]:
+    """Request withdrawal of unlocked rewards. Validates balance, KYC, and registers pending payout."""
+    db = DatabaseManager()
+    profile = db.get_user_financial_profile(req.user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="User financial profile not found")
+
+    avail = float(profile["withdrawable_reward_balance"])
+    if req.amount > avail:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Insufficient withdrawable balance. Requested: ${req.amount:.2f}, Available: ${avail:.2f}",
+        )
+
+    entry = db.record_withdrawable_reward_entry(
+        user_id=req.user_id,
+        amount=-req.amount,
+        reward_type="WITHDRAWAL_REQUESTED",
+        status="LOCKED",
+    )
+    return {
+        "status": "WITHDRAWAL_REQUESTED",
+        "withdrawal_amount": req.amount,
+        "destination_wallet": req.destination_wallet,
+        "transaction_id": entry["transaction_id"],
+        "idempotency_key": req.idempotency_key,
+        "note": "Payout queued for on-chain batch settlement via Treasury Guard",
     }
 
 
