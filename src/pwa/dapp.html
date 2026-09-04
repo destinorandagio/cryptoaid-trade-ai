@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TradeAID Web3 dApp — Cockpit 9:16</title>
+    <title>TradeAID Web3 dApp — Cockpit Autonomo</title>
     <meta name="description" content="dApp Web3 per il trading autonomo non-custodial su Polygon DEX con Position Guardian 24/7.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,7 +16,7 @@
     <!-- Matrix Red 01010101 Rain Effect Canvas -->
     <canvas id="matrix-canvas"></canvas>
 
-    <!-- Main 9:16 Aspect Ratio Container -->
+    <!-- Mobile-First Web3 Viewport Container -->
     <div class="viewport-wrapper">
         <main class="dapp-container-9-16">
             
@@ -129,7 +129,7 @@
                     </div>
                 </section>
 
-                <!-- Navigation Tabs (9:16 Friendly) -->
+                <!-- Navigation Tabs -->
                 <nav class="cockpit-tab-bar">
                     <button class="tab-btn active" data-target="tab-scanner">📡 Scanner</button>
                     <button class="tab-btn" data-target="tab-positions">📈 Posizioni (0)</button>
@@ -295,7 +295,7 @@
     <script src="static/js/matrix.js"></script>
     <script src="static/js/web3-dapp.js"></script>
     <script>
-        // Simple tab switching for the 9:16 cockpit
+        // Simple tab switching for the cockpit
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
