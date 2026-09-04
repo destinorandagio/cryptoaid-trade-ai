@@ -306,11 +306,33 @@
                     <!-- PANEL 1: WEB3 -->
                     <div id="auth-panel-wallet" class="auth-panel">
                         <p style="font-size:0.75rem; color:#a1a1aa; margin-bottom:12px;">
-                            Connect your Polygon Web3 wallet (MetaMask, WalletConnect, Coinbase Wallet) to manage on-chain challenge activations and payouts.
+                            Connect your Polygon Web3 wallet (MetaMask, Rabby, Coinbase Wallet) to manage on-chain challenge activations, paper trade federation, and rewards.
                         </p>
-                        <button id="btn-modal-walletconnect" class="btn-hero-autotrade" style="width:100%; padding:10px 14px; font-size:0.85rem;" onclick="connectWeb3Wallet()">
-                            CONNECT WALLET (POLYGON)
-                        </button>
+                        
+                        <!-- Connected state view -->
+                        <div id="wallet-connected-box" style="display:none; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:8px; padding:12px; margin-bottom:12px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                <span style="font-size:0.68rem; color:#10b981; font-weight:700;">WALLET CONNECTED</span>
+                                <span style="font-size:0.62rem; background:rgba(16,185,129,0.2); color:#34d399; padding:2px 6px; border-radius:4px; font-family:'JetBrains Mono',monospace;">POLYGON (137)</span>
+                            </div>
+                            <div id="modal-wallet-address" style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:#ffffff; word-break:break-all; margin-bottom:10px; padding:6px 8px; background:rgba(0,0,0,0.4); border-radius:4px;">0x...</div>
+                            <div style="display:flex; gap:6px;">
+                                <button class="ph-ctrl-btn" style="flex:1; padding:6px; font-size:0.68rem; justify-content:center;" onclick="copyConnectedWallet()">COPY ADDRESS</button>
+                                <button class="btn-cancel-preventivo" style="flex:1; padding:6px; font-size:0.68rem; margin:0; border-color:rgba(239,68,68,0.4); color:#ef4444; justify-content:center;" onclick="disconnectActiveWallet()">DISCONNECT</button>
+                            </div>
+                        </div>
+
+                        <!-- Disconnected action buttons -->
+                        <div id="wallet-connect-actions">
+                            <button id="btn-modal-walletconnect" class="btn-hero-autotrade" style="width:100%; padding:10px 14px; font-size:0.85rem; margin-bottom:8px;" onclick="connectWeb3Wallet('injected')">
+                                🦊 CONNECT BROWSER WALLET (METAMASK / RABBY)
+                            </button>
+                            <button class="ph-ctrl-btn" style="width:100%; padding:8px 12px; font-size:0.72rem; justify-content:center; margin-bottom:6px; background:rgba(255,255,255,0.04);" onclick="connectWeb3Wallet('simulated')">
+                                🧪 USE SIMULATED WALLET (TEST & CHALLENGE)
+                            </button>
+                        </div>
+
+                        <div id="wallet-auth-error" style="display:none; color:#ef4444; font-size:0.72rem; margin-top:8px; line-height:1.4; padding:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:6px; font-family:'JetBrains Mono',monospace;"></div>
                     </div>
 
                     <!-- PANEL 2: SIC-ID -->
@@ -1920,11 +1942,51 @@
             closeDualAuthModal();
         };
 
-        window.connectWeb3Wallet = async function() {
-            if (window.dapp && window.dapp.connectWallet) {
-                await window.dapp.connectWallet();
-                const wallet = window.dapp.account;
-                if (wallet) {
+        window.openDualAuthModal = function() {
+            const m = document.getElementById('modal-dual-auth');
+            if (m) m.classList.remove('hidden');
+
+            const app = window.web3App || window.dapp;
+            const connectedBox = document.getElementById('wallet-connected-box');
+            const connectActions = document.getElementById('wallet-connect-actions');
+            const addrEl = document.getElementById('modal-wallet-address');
+            const errEl = document.getElementById('wallet-auth-error');
+            if (errEl) errEl.style.display = 'none';
+
+            const activeWallet = (app && app.account) || localStorage.getItem("tradeaid_wallet");
+            if (activeWallet) {
+                if (connectedBox) connectedBox.style.display = 'block';
+                if (connectActions) connectActions.style.display = 'none';
+                if (addrEl) addrEl.textContent = activeWallet;
+            } else {
+                if (connectedBox) connectedBox.style.display = 'none';
+                if (connectActions) connectActions.style.display = 'block';
+            }
+        };
+
+        window.connectWeb3Wallet = async function(preferredMode = 'auto') {
+            const app = window.web3App || window.dapp;
+            const errEl = document.getElementById('wallet-auth-error');
+            const btnConnect = document.getElementById('btn-modal-walletconnect');
+            if (errEl) errEl.style.display = 'none';
+
+            if (!app) {
+                if (errEl) {
+                    errEl.textContent = "Web3 Engine in caricamento, riprova tra un secondo...";
+                    errEl.style.display = "block";
+                }
+                return;
+            }
+
+            if (btnConnect) {
+                btnConnect.disabled = true;
+                btnConnect.textContent = "CONNESSIONE IN CORSO...";
+            }
+
+            try {
+                const res = await app.connectWallet(preferredMode);
+                if (res && res.success) {
+                    const wallet = app.account;
                     let sicId = localStorage.getItem("tradeaid_sic_id");
                     if (!sicId) {
                         const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
@@ -1933,10 +1995,62 @@
                         sicId = `SIC-ID-${token}`;
                         localStorage.setItem("tradeaid_sic_id", sicId);
                     }
+                    localStorage.setItem("tradeaid_wallet", wallet);
                     updateAuthIdentityDisplay(sicId, wallet);
+                    closeDualAuthModal();
+                } else if (res && res.error === "NO_WALLET") {
+                    if (errEl) {
+                        errEl.innerHTML = `
+                            Nessun wallet Web3 rilevato nel browser.<br>
+                            Usa <a href="https://metamask.io" target="_blank" style="color:#fbbf24; text-decoration:underline;">MetaMask</a> / <a href="https://rabby.io" target="_blank" style="color:#fbbf24; text-decoration:underline;">Rabby</a>, oppure clicca sul <strong>Wallet Simulato</strong> qui sopra per testare senza estensione.
+                        `;
+                        errEl.style.display = "block";
+                    }
+                } else if (res && res.error === "USER_REJECTED") {
+                    if (errEl) {
+                        errEl.textContent = "Richiesta di connessione annullata dall'utente nel wallet.";
+                        errEl.style.display = "block";
+                    }
+                } else if (res && res.message) {
+                    if (errEl) {
+                        errEl.textContent = res.message;
+                        errEl.style.display = "block";
+                    }
+                }
+            } catch (err) {
+                console.error("Connect error:", err);
+                if (errEl) {
+                    errEl.textContent = "Errore durante la connessione: " + (err.message || err);
+                    errEl.style.display = "block";
+                }
+            } finally {
+                if (btnConnect) {
+                    btnConnect.disabled = false;
+                    btnConnect.textContent = "🦊 CONNECT BROWSER WALLET (METAMASK / RABBY)";
                 }
             }
+        };
+
+        window.disconnectActiveWallet = function() {
+            const app = window.web3App || window.dapp;
+            if (app && app.disconnectWallet) {
+                app.disconnectWallet();
+            } else {
+                localStorage.removeItem("ca_connected_wallet");
+                localStorage.removeItem("tradeaid_wallet");
+                const sicId = localStorage.getItem("tradeaid_sic_id");
+                updateAuthIdentityDisplay(sicId, null);
+            }
             closeDualAuthModal();
+        };
+
+        window.copyConnectedWallet = function() {
+            const app = window.web3App || window.dapp;
+            const w = (app && app.account) || localStorage.getItem("tradeaid_wallet");
+            if (w && navigator.clipboard) {
+                navigator.clipboard.writeText(w);
+                alert("Indirizzo copiato negli appunti: " + w);
+            }
         };
 
         function updateAuthIdentityDisplay(sicId, wallet) {
@@ -1945,15 +2059,20 @@
             const walletTxt = document.getElementById('auth-wallet-txt');
             const sicBadge = document.getElementById('auth-sic-badge');
 
-            if (pill) pill.style.display = 'flex';
-            if (btnConnect) btnConnect.style.display = 'none';
+            if (wallet || sicId) {
+                if (pill) pill.style.display = 'flex';
+                if (btnConnect) btnConnect.style.display = 'none';
 
-            if (walletTxt) {
-                walletTxt.textContent = wallet ? `${wallet.slice(0, 6)}...${wallet.slice(-4)}` : 'WALLET PENDING';
-            }
-            if (sicBadge) {
-                sicBadge.textContent = sicId ? `${sicId.slice(0, 10)}...` : 'SIC-ID';
-                sicBadge.title = sicId || 'Canonical SIC-ID';
+                if (walletTxt) {
+                    walletTxt.textContent = wallet ? `${wallet.slice(0, 6)}...${wallet.slice(-4)}` : 'WALLET PENDING';
+                }
+                if (sicBadge) {
+                    sicBadge.textContent = sicId ? `${sicId.slice(0, 10)}...` : 'SIC-ID';
+                    sicBadge.title = sicId || 'Canonical SIC-ID';
+                }
+            } else {
+                if (pill) pill.style.display = 'none';
+                if (btnConnect) btnConnect.style.display = 'flex';
             }
         }
 

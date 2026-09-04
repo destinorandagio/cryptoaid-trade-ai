@@ -30,6 +30,20 @@ class Web3Controller {
         this.chainId = null;
         this.isRealMode = false;
         this.hasDaoMembership = false;
+        this.provider = null;
+        this.announcedProviders = [];
+
+        // EIP-6963: Listen for wallet providers announcing themselves
+        if (typeof window !== "undefined") {
+            window.addEventListener("eip6963:announceProvider", (e) => {
+                if (e.detail && !this.announcedProviders.find(p => p.info.uuid === e.detail.info.uuid)) {
+                    this.announcedProviders.push(e.detail);
+                }
+            });
+            window.dispatchEvent(new Event("eip6963:requestProvider"));
+            window.web3App = this;
+            window.dapp = this;
+        }
         
         // Paper Simulation State (1,000 USDT Virtual)
         this.paperBalance = 1000.00;
@@ -277,7 +291,9 @@ class Web3Controller {
         const btnConnect = document.getElementById("btn-connect-wallet");
         if (btnConnect) {
             btnConnect.addEventListener("click", () => {
-                if (this.account) {
+                if (typeof window.openDualAuthModal === "function") {
+                    window.openDualAuthModal();
+                } else if (this.account) {
                     this.disconnectWallet();
                 } else {
                     this.connectWallet();
@@ -787,25 +803,65 @@ class Web3Controller {
     }
 
     // WALLET CONNECTION & 100 USDT DAO QUOTA
-    async connectWallet() {
-        if (!window.ethereum) {
-            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
-                return;
-            }
-            alert(this.t("alert_no_wallet", "No Web3 Wallet detected. Please install MetaMask, Rabby, or open in mobile wallet browser."));
-            return;
+    async connectWallet(preferredMode = 'auto') {
+        // 1. Test / Simulated Web3 Wallet (Paper & Challenge testing without extensions)
+        if (preferredMode === 'simulated') {
+            const simulatedAccount = "0x71C94911E3922d99c4F681Eb99c68EbEc41B53a9";
+            await this.handleAccountsChanged([simulatedAccount]);
+            this.chainId = CONFIG.CHAIN_ID_DEC;
+            return { success: true, account: simulatedAccount, isSimulated: true };
         }
 
+        // 2. Discover available Web3 provider (EIP-6963 or window.ethereum)
+        let provider = null;
+        if (this.announcedProviders && this.announcedProviders.length > 0) {
+            provider = this.announcedProviders[0].provider;
+        } else if (typeof window !== "undefined" && window.ethereum) {
+            if (window.ethereum.providers && window.ethereum.providers.length > 0) {
+                provider = window.ethereum.providers.find(p => p.isMetaMask) || window.ethereum.providers[0];
+            } else {
+                provider = window.ethereum;
+            }
+        }
+
+        // 3. If no provider found
+        if (!provider) {
+            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                const currentUrl = `${window.location.host}${window.location.pathname}`;
+                window.location.href = `https://metamask.app.link/dapp/${currentUrl}`;
+                return { success: false, error: "REDIRECT_MOBILE" };
+            }
+            return {
+                success: false,
+                error: "NO_WALLET",
+                message: "Nessun wallet Web3 rilevato nel browser. Installa MetaMask o Rabby, oppure usa il Wallet Simulato per testare la dApp."
+            };
+        }
+
+        this.provider = provider;
         try {
-            const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+            const accounts = await provider.request({ method: "eth_requestAccounts" });
+            if (!accounts || accounts.length === 0) {
+                return { success: false, error: "NO_ACCOUNTS", message: "Nessun account condiviso dal wallet." };
+            }
             await this.handleAccountsChanged(accounts);
 
-            const chainIdHex = await window.ethereum.request({ method: "eth_chainId" });
+            const chainIdHex = await provider.request({ method: "eth_chainId" });
             await this.handleChainChanged(chainIdHex);
+
+            if (this.chainId !== CONFIG.CHAIN_ID_DEC) {
+                await this.switchToPolygon();
+            }
+
+            return { success: true, account: accounts[0] };
         } catch (err) {
             console.error("Connect error:", err);
-            alert(this.t("alert_connect_rejected", "Connection rejected by user."));
+            const isRejected = err.code === 4001 || (err.message && err.message.includes("rejected"));
+            return {
+                success: false,
+                error: isRejected ? "USER_REJECTED" : "CONNECT_ERROR",
+                message: isRejected ? "Connessione rifiutata dall'utente nel wallet." : (err.message || "Errore durante la connessione al wallet.")
+            };
         }
     }
 
@@ -813,7 +869,12 @@ class Web3Controller {
         this.account = null;
         this.isRealMode = false;
         localStorage.removeItem("ca_connected_wallet");
+        localStorage.removeItem("tradeaid_wallet");
         this.renderState();
+        if (typeof updateAuthIdentityDisplay === "function") {
+            const sicId = localStorage.getItem("tradeaid_sic_id");
+            updateAuthIdentityDisplay(sicId, null);
+        }
     }
 
     async handleAccountsChanged(accounts) {
@@ -824,15 +885,19 @@ class Web3Controller {
 
         this.account = accounts[0];
         localStorage.setItem("ca_connected_wallet", this.account);
+        localStorage.setItem("tradeaid_wallet", this.account);
 
         const daoKey = `ca_dao_member_${this.account.toLowerCase()}`;
         this.hasDaoMembership = localStorage.getItem(daoKey) === "true";
 
-        if (!this.hasDaoMembership) {
-            this.openDaoAccessPaywall();
-        } else {
+        if (this.hasDaoMembership) {
             this.isRealMode = true;
-            this.renderState();
+        }
+        this.renderState();
+
+        if (typeof updateAuthIdentityDisplay === "function") {
+            const sicId = localStorage.getItem("tradeaid_sic_id");
+            updateAuthIdentityDisplay(sicId, this.account);
         }
     }
 
@@ -1391,5 +1456,6 @@ class Web3Controller {
 
 document.addEventListener("DOMContentLoaded", () => {
     window.web3App = new Web3Controller();
+    window.dapp = window.web3App;
 });
 
