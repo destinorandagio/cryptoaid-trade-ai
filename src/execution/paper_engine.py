@@ -73,19 +73,24 @@ class PaperExecutionEngine:
         confidence: float | None = None,
         risk_score: float | None = None,
         account_id: str = "default_paper",
+        bypass_retail_limits: bool = False,
     ) -> PaperOrder:
         """Process and fill a paper market order with realistic slippage and fees."""
         order_id = f"ord_{uuid.uuid4().hex[:12]}"
         state = self.get_portfolio_state(account_id)
 
-        # Validate with Capital Protection Engine
-        allowed, reason, adj_size = self.risk_engine.validate_order(
-            symbol=asset,
-            side=side.value,
-            size=size,
-            price=market_price,
-            state=state,
-        )
+        # Validate with Capital Protection Engine (skipped when strictly authorized by CORTEX Challenge Risk Agent)
+        if not bypass_retail_limits:
+            allowed, reason, adj_size = self.risk_engine.validate_order(
+                symbol=asset,
+                side=side.value,
+                size=size,
+                price=market_price,
+                state=state,
+            )
+        else:
+            allowed, reason, adj_size = True, None, size
+
 
         if not allowed:
             rejected_order = PaperOrder(
@@ -362,4 +367,58 @@ class PaperExecutionEngine:
                 "is_paper": True,
             }
         return summaries
+
+    def execute_authorized_intent(
+        self,
+        intent: Any,  # TradeIntent
+        auth: Any,    # TradeAuthorization
+        market_price: float,
+        account_id: str = "default_paper",
+    ) -> PaperOrder:
+        """
+        Executes an authorized Trade Intent where sizing, leverage, and stop loss
+        are strictly determined and constrained by CORTEX Challenge Risk Agent.
+        """
+        if not getattr(auth, "authorized", False) or getattr(auth, "position_size_units", 0.0) <= 0:
+            order_id = f"ord_rej_{uuid.uuid4().hex[:10]}"
+            dir_str = str(getattr(intent, "direction", "BUY")).upper()
+            side = OrderSide.BUY if dir_str in ("LONG", "BUY") else OrderSide.SELL
+            rejected_order = PaperOrder(
+                order_id=order_id,
+                account_id=account_id,
+                asset=getattr(intent, "target_asset", "BTC/USDC"),
+                side=side,
+                type=OrderType.MARKET,
+                entry=market_price,
+                size=0.0,
+                status=OrderStatus.REJECTED,
+                strategy=getattr(intent, "strategy_name", "AI_STRATEGY"),
+                confidence=getattr(intent, "prediction_confidence", 0.0),
+                reason=getattr(auth, "rejection_reason", "Intent rejected by CORTEX Challenge Risk Agent"),
+            )
+            self.db.insert_order(rejected_order.to_dict())
+            return rejected_order
+
+        dir_str = str(getattr(intent, "direction", "BUY")).upper()
+        side = OrderSide.BUY if dir_str in ("LONG", "BUY") else OrderSide.SELL
+        trailing_dist = None
+        trailing_stop = getattr(auth, "trailing_stop_price", 0.0)
+        if trailing_stop and trailing_stop > 0:
+            trailing_dist = abs(market_price - trailing_stop)
+
+        return self.execute_market_order(
+            asset=getattr(intent, "target_asset", "BTC/USDC"),
+            side=side,
+            size=auth.position_size_units,
+            market_price=market_price,
+            sl=auth.stop_loss_price,
+            tp=auth.take_profit_price,
+            trailing_distance=trailing_dist,
+            strategy=getattr(intent, "strategy_name", "CORTEX_AUTHORIZED"),
+            confidence=getattr(intent, "prediction_confidence", 0.85),
+            risk_score=getattr(auth, "risk_budget_usd", 0.0),
+            account_id=account_id,
+            bypass_retail_limits=True,
+        )
+
 

@@ -21,9 +21,64 @@ logger = logging.getLogger("trade_ai.challenge_risk_agent")
 # CONFIGURAZIONE E COSTANTI TIERS
 # ============================================================
 
-class TradeDirection(Enum):
+class TradeDirection(str, Enum):
     LONG = "LONG"
     SHORT = "SHORT"
+    BUY = "BUY"
+    SELL = "SELL"
+
+
+class CortexHealth(str, Enum):
+    GREEN = "GREEN"      # Normale (DD basso, operatività piena)
+    YELLOW = "YELLOW"    # DD crescente (Modalità difensiva, size ridotta)
+    ORANGE = "ORANGE"    # Vicino al limite (Capital preservation, solo trade ad alto RR)
+    RED = "RED"          # Niente nuove posizioni (Freeze totale entrate)
+    BREACH = "BREACH"    # Challenge fallita per violazione Daily DD o Total DD
+
+
+class RiskDecision(str, Enum):
+    PASS = "PASS"        # Approvato a size piena
+    REDUCE = "REDUCE"    # Approvato ma con size ridotta dai vincoli di rischio
+    REJECT = "REJECT"    # Rifiutato (Headroom esaurito, violazione, o CORTEX RED)
+    EXIT = "EXIT"        # Richiesta di chiusura posizione immediata
+
+
+@dataclass
+class TradeIntent:
+    intent_id: str
+    target_asset: str
+    direction: TradeDirection | str
+    target_price: float
+    timeframe: str = "15m"
+    strategy_name: str = "PredictiveHeart"
+    prediction_confidence: float = 0.80
+    strategy_confidence: float = 0.85
+    market_regime: str = "TRENDING_BULL"
+    volatility_14d: float = 0.02
+    atr_14: float | None = None
+    estimated_slippage_pct: float = 0.0005
+    estimated_price_impact_pct: float = 0.0005
+    estimated_gas_usd: float = 0.05
+    current_portfolio_exposure: dict[str, float] = field(default_factory=dict)
+    challenge_id: str | None = None
+
+
+@dataclass
+class TradeAuthorization:
+    intent_id: str
+    decision: RiskDecision
+    authorized: bool
+    position_size_units: float
+    nominal_value_usdt: float
+    authorized_leverage: int
+    stop_loss_price: float
+    take_profit_price: float
+    trailing_stop_price: float
+    max_hold_hours: int
+    risk_budget_usd: float
+    cortex_health: CortexHealth
+    rejection_reason: str | None = None
+    audit_trail: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -74,16 +129,20 @@ TIER_BLACK = TierConfig(
 
 
 # ============================================================
-# 1. CHALLENGE STATE MANAGER
+# 1. CHALLENGE STATE MANAGER (CON MARK-TO-MARKET CONTINUO)
 # ============================================================
 
 class ChallengeState:
     """
     Mantiene lo stato finanziario in tempo reale della challenge.
+    Monitora continuamente l'equity intraday (incluso unrealized P&L),
+    la Distance to Ruin e la CORTEX Challenge Health.
     """
     def __init__(self, tier_config: TierConfig):
         self.config = tier_config
         self.starting_balance = tier_config.nominal_capital
+        self.cash_balance = tier_config.nominal_capital
+        self.unrealized_pnl = 0.0
         self.current_equity = tier_config.nominal_capital
 
         # Tracking Drawdown
@@ -94,9 +153,24 @@ class ChallengeState:
         self.daily_snapshots: list[float] = []
 
     def update_equity(self, new_equity: float):
+        """Aggiorna l'equity totale (chiusura trade o snapshot)."""
         self.current_equity = new_equity
+        self.cash_balance = new_equity
+        self.unrealized_pnl = 0.0
         if new_equity > self.high_water_mark:
             self.high_water_mark = new_equity
+
+    def update_mark_to_market(self, unrealized_pnl: float, cash_balance: float | None = None):
+        """
+        Aggiornamento continuo intraday con Mark-to-Market delle posizioni aperte.
+        Non aspetta mezzanotte per rilevare breach di Daily DD o Total DD!
+        """
+        if cash_balance is not None:
+            self.cash_balance = cash_balance
+        self.unrealized_pnl = unrealized_pnl
+        self.current_equity = self.cash_balance + self.unrealized_pnl
+        if self.current_equity > self.high_water_mark:
+            self.high_water_mark = self.current_equity
 
     def reset_daily_tracking(self):
         """Da chiamare ogni giorno a 00:00 UTC"""
@@ -105,7 +179,7 @@ class ChallengeState:
 
     @property
     def total_dd_usd(self) -> float:
-        return self.high_water_mark - self.current_equity
+        return max(0.0, self.high_water_mark - self.current_equity)
 
     @property
     def total_dd_pct(self) -> float:
@@ -120,12 +194,80 @@ class ChallengeState:
     def daily_dd_pct(self) -> float:
         return self.daily_dd_usd / self.daily_start_equity if self.daily_start_equity > 0 else 0.0
 
+    @property
+    def target_equity_usd(self) -> float:
+        return self.starting_balance * (1.0 + self.config.phase1_target_pct)
+
+    @property
+    def distance_to_target_usd(self) -> float:
+        return max(0.0, self.target_equity_usd - self.current_equity)
+
+    @property
+    def distance_to_target_pct(self) -> float:
+        return self.distance_to_target_usd / self.starting_balance if self.starting_balance > 0 else 0.0
+
+    @property
+    def daily_dd_limit_usd(self) -> float:
+        return self.daily_start_equity * self.config.max_daily_dd_pct
+
+    @property
+    def total_dd_limit_usd(self) -> float:
+        return self.starting_balance * self.config.max_total_dd_pct
+
+    @property
+    def daily_headroom_usd(self) -> float:
+        return max(0.0, self.daily_dd_limit_usd - self.daily_dd_usd)
+
+    @property
+    def total_headroom_usd(self) -> float:
+        return max(0.0, self.total_dd_limit_usd - self.total_dd_usd)
+
+    @property
+    def distance_to_ruin_usd(self) -> float:
+        """La capacità residua prima del fallimento (minimo tra daily e total headroom)."""
+        return min(self.daily_headroom_usd, self.total_headroom_usd)
+
+    @property
+    def cortex_health(self) -> CortexHealth:
+        """
+        State Machine CORTEX Health:
+        GREEN -> YELLOW -> ORANGE -> RED -> BREACH
+        """
+        if self.check_violations() is not None:
+            return CortexHealth.BREACH
+        if self.daily_dd_pct >= 0.045 or self.total_dd_pct >= 0.090:
+            return CortexHealth.RED
+        if self.daily_dd_pct >= 0.035 or self.total_dd_pct >= 0.070:
+            return CortexHealth.ORANGE
+        if self.daily_dd_pct >= 0.020 or self.total_dd_pct >= 0.040:
+            return CortexHealth.YELLOW
+        return CortexHealth.GREEN
+
+    @property
+    def available_risk_budget_usd(self) -> float:
+        """
+        Available Risk Budget = remaining DD capacity × safety factor.
+        In DEFENSIVE / CAPITAL PRESERVATION, il budget viene tagliato drasticamente.
+        """
+        health = self.cortex_health
+        if health == CortexHealth.GREEN:
+            safety_factor = 0.40  # Max 40% del headroom
+        elif health == CortexHealth.YELLOW:
+            safety_factor = 0.25  # Max 25% del headroom
+        elif health == CortexHealth.ORANGE:
+            safety_factor = 0.10  # Max 10% del headroom
+        else:
+            safety_factor = 0.0   # RED o BREACH: nessun nuovo trade!
+
+        return round(self.distance_to_ruin_usd * safety_factor, 2)
+
     def check_violations(self) -> str | None:
         if self.total_dd_pct >= self.config.max_total_dd_pct:
             return "TOTAL_DD_EXCEEDED"
         if self.daily_dd_pct >= self.config.max_daily_dd_pct:
             return "DAILY_DD_EXCEEDED"
         return None
+
 
 
 # ============================================================
@@ -319,6 +461,274 @@ class ChallengeRiskAgent:
             "risk_usd": round(effective_risk_cap, 2),
             "atr_used": round(atr, 2),
         }
+
+    def authorize_trade_intent(
+        self,
+        intent: TradeIntent,
+        asset_historical_data: pd.DataFrame | None = None,
+    ) -> TradeAuthorization:
+        """
+        TRADEAID Challenge Risk Agent V1 — Full Institutional Risk Evaluation
+        Input: Equity · Daily P&L · Total DD · Distance to Target · Distance to Breach · Volatility ·
+               ATR · Liquidity · Prediction Confidence · Strategy Confidence · Regime · Correlation ·
+               Slippage · Price Impact · Gas
+        Output: PASS · REDUCE · REJECT · EXIT
+                + POSITION SIZE · STOP · TP · TRAILING · MAX HOLD · RISK BUDGET · LEVERAGE
+        """
+        health = self.state.cortex_health
+        audit_trail: dict[str, Any] = {
+            "intent_id": intent.intent_id,
+            "target_asset": intent.target_asset,
+            "cortex_health": health.value,
+            "current_equity": self.state.current_equity,
+            "daily_dd_pct": round(self.state.daily_dd_pct * 100, 2),
+            "total_dd_pct": round(self.state.total_dd_pct * 100, 2),
+            "distance_to_ruin_usd": self.state.distance_to_ruin_usd,
+            "distance_to_target_usd": self.state.distance_to_target_usd,
+        }
+
+        # 1. HARD STOPS / BREACH & CAPITAL PRESERVATION CHECKS
+        if health == CortexHealth.BREACH:
+            reason = f"Challenge Violation: {self.state.check_violations()}"
+            return TradeAuthorization(
+                intent_id=intent.intent_id,
+                decision=RiskDecision.REJECT,
+                authorized=False,
+                position_size_units=0.0,
+                nominal_value_usdt=0.0,
+                authorized_leverage=1,
+                stop_loss_price=0.0,
+                take_profit_price=0.0,
+                trailing_stop_price=0.0,
+                max_hold_hours=0,
+                risk_budget_usd=0.0,
+                cortex_health=health,
+                rejection_reason=reason,
+                audit_trail=audit_trail,
+            )
+
+        if health == CortexHealth.RED:
+            reason = "CORTEX RED: Capital preservation lock active (Daily DD >= 4.5% or Total DD >= 9.0%). No new trades."
+            return TradeAuthorization(
+                intent_id=intent.intent_id,
+                decision=RiskDecision.REJECT,
+                authorized=False,
+                position_size_units=0.0,
+                nominal_value_usdt=0.0,
+                authorized_leverage=1,
+                stop_loss_price=0.0,
+                take_profit_price=0.0,
+                trailing_stop_price=0.0,
+                max_hold_hours=0,
+                risk_budget_usd=0.0,
+                cortex_health=health,
+                rejection_reason=reason,
+                audit_trail=audit_trail,
+            )
+
+        # 2. NEWS BLACKOUT WINDOW
+        is_news, news_reason = self.is_news_window_active()
+        if is_news:
+            return TradeAuthorization(
+                intent_id=intent.intent_id,
+                decision=RiskDecision.REJECT,
+                authorized=False,
+                position_size_units=0.0,
+                nominal_value_usdt=0.0,
+                authorized_leverage=1,
+                stop_loss_price=0.0,
+                take_profit_price=0.0,
+                trailing_stop_price=0.0,
+                max_hold_hours=0,
+                risk_budget_usd=0.0,
+                cortex_health=health,
+                rejection_reason=news_reason,
+                audit_trail=audit_trail,
+            )
+
+        # 3. DYNAMIC RISK BUDGET (Distance to Ruin × Safety Factor)
+        available_risk_budget = self.state.available_risk_budget_usd
+        if available_risk_budget <= 0.0:
+            return TradeAuthorization(
+                intent_id=intent.intent_id,
+                decision=RiskDecision.REJECT,
+                authorized=False,
+                position_size_units=0.0,
+                nominal_value_usdt=0.0,
+                authorized_leverage=1,
+                stop_loss_price=0.0,
+                take_profit_price=0.0,
+                trailing_stop_price=0.0,
+                max_hold_hours=0,
+                risk_budget_usd=0.0,
+                cortex_health=health,
+                rejection_reason="Available Risk Budget is $0.00 (Distance to Ruin exhausted)",
+                audit_trail=audit_trail,
+            )
+
+        # 4. EFFECTIVE STOP LOSS DISTANCE (Determines Position Size, NOT vice-versa!)
+        if asset_historical_data is not None and len(asset_historical_data) >= 14:
+            atr = self.metrics.calculate_atr(
+                asset_historical_data["high"],
+                asset_historical_data["low"],
+                asset_historical_data["close"],
+            )
+        elif intent.atr_14 and intent.atr_14 > 0:
+            atr = intent.atr_14
+        else:
+            atr = intent.target_price * max(0.01, intent.volatility_14d)
+
+        # Timeframe & Strategy Stop adjustment
+        tf_mult = 1.2 if intent.timeframe in ("1m", "5m") else (1.8 if intent.timeframe in ("15m", "30m") else 2.5)
+        stop_distance_price = max(atr * tf_mult, intent.target_price * 0.004)
+
+        # Hard emergency ceiling: stop loss cannot exceed 5% of entry price
+        emergency_ceiling = intent.target_price * 0.05
+        stop_distance_price = min(stop_distance_price, emergency_ceiling)
+
+        # 5. BASE SIZING FROM RISK BUDGET & STOP DISTANCE
+        max_risk_for_trade = min(self.state.current_equity * self.risk_per_trade_pct, available_risk_budget)
+        base_units = max_risk_for_trade / stop_distance_price
+
+        # 6. MULTIPLIER REDUCTION HIERARCHY
+        volatility_factor = 1.0 / (1.0 + max(0.0, (intent.volatility_14d - 0.02) * 10.0))
+        liquidity_factor = max(0.40, 1.0 - (intent.estimated_slippage_pct + intent.estimated_price_impact_pct) * 15.0)
+
+        # Confidence cannot override Drawdown (normalized composite capped between 0.60 and 1.0)
+        composite_conf = (intent.prediction_confidence * 0.5) + (intent.strategy_confidence * 0.5)
+        confidence_factor = max(0.60, min(1.0, composite_conf))
+
+        # Drawdown Factor by CORTEX Health
+        if health == CortexHealth.GREEN:
+            drawdown_factor = 1.0
+        elif health == CortexHealth.YELLOW:
+            drawdown_factor = 0.70  # Defensive
+        elif health == CortexHealth.ORANGE:
+            drawdown_factor = 0.35  # Capital preservation
+        else:
+            drawdown_factor = 0.0
+
+        # Execution Quality Factor (Gas impact relative to trade risk budget)
+        execution_quality_factor = max(0.30, 1.0 - (intent.estimated_gas_usd / (max_risk_for_trade + 1e-6)))
+
+        # Correlation Factor (Cap at 20% total correlated exposure)
+        total_correlated_exposure = 0.0
+        target_base = intent.target_asset.split("/")[0].upper()
+        for asset_id, exposure in intent.current_portfolio_exposure.items():
+            corr_factor = 0.8 if asset_id.split("/")[0].upper() != target_base else 1.0
+            total_correlated_exposure += (exposure * corr_factor)
+
+        nominal_trial = base_units * intent.target_price
+        max_allowed_correlated = self.state.current_equity * 0.20
+        if (total_correlated_exposure + nominal_trial) > max_allowed_correlated:
+            remaining_corr_capacity = max(0.0, max_allowed_correlated - total_correlated_exposure)
+            if remaining_corr_capacity < 100.0:
+                correlation_factor = 0.0
+            else:
+                correlation_factor = min(1.0, remaining_corr_capacity / nominal_trial)
+        else:
+            correlation_factor = 1.0
+
+        if correlation_factor <= 0.0:
+            return TradeAuthorization(
+                intent_id=intent.intent_id,
+                decision=RiskDecision.REJECT,
+                authorized=False,
+                position_size_units=0.0,
+                nominal_value_usdt=0.0,
+                authorized_leverage=1,
+                stop_loss_price=0.0,
+                take_profit_price=0.0,
+                trailing_stop_price=0.0,
+                max_hold_hours=0,
+                risk_budget_usd=0.0,
+                cortex_health=health,
+                rejection_reason="Max Correlated Exposure Exceeded (20% Hard Cap)",
+                audit_trail=audit_trail,
+            )
+
+        # Combine all multipliers
+        total_scaling_factor = (
+            volatility_factor
+            * liquidity_factor
+            * confidence_factor
+            * correlation_factor
+            * drawdown_factor
+            * execution_quality_factor
+        )
+
+        final_units = base_units * total_scaling_factor
+        final_nominal_usd = final_units * intent.target_price
+
+        # 7. MINIMUM NOTIONAL CHECK
+        if final_nominal_usd < 100.0:
+            return TradeAuthorization(
+                intent_id=intent.intent_id,
+                decision=RiskDecision.REJECT,
+                authorized=False,
+                position_size_units=0.0,
+                nominal_value_usdt=0.0,
+                authorized_leverage=1,
+                stop_loss_price=0.0,
+                take_profit_price=0.0,
+                trailing_stop_price=0.0,
+                max_hold_hours=0,
+                risk_budget_usd=0.0,
+                cortex_health=health,
+                rejection_reason=f"Position size too small (${final_nominal_usd:.2f} < Min $100.00)",
+                audit_trail=audit_trail,
+            )
+
+        # 8. AUTHORIZED LEVERAGE (Capped at 3x max institutional, caller cannot pass arbitrary 10x!)
+        raw_leverage = max(1, int(round(final_nominal_usd / self.state.current_equity)))
+        authorized_leverage = min(raw_leverage, 3)
+
+        # 9. STOP LOSS, TAKE PROFIT, TRAILING & MAX HOLD
+        dir_str = str(intent.direction.value if isinstance(intent.direction, TradeDirection) else intent.direction).upper()
+        is_long = dir_str in ("LONG", "BUY")
+
+        if is_long:
+            stop_loss_price = intent.target_price - stop_distance_price
+            take_profit_price = intent.target_price + (stop_distance_price * 2.0)
+            trailing_stop_price = intent.target_price - (stop_distance_price * 0.8)
+        else:
+            stop_loss_price = intent.target_price + stop_distance_price
+            take_profit_price = intent.target_price - (stop_distance_price * 2.0)
+            trailing_stop_price = intent.target_price + (stop_distance_price * 0.8)
+
+        tf_hours_map = {"1m": 2, "5m": 4, "15m": 12, "1h": 24, "4h": 72, "1d": 168}
+        max_hold_hours = tf_hours_map.get(intent.timeframe.lower(), 24)
+
+        decision = RiskDecision.REDUCE if total_scaling_factor < 0.85 else RiskDecision.PASS
+
+        audit_trail.update({
+            "volatility_factor": round(volatility_factor, 3),
+            "liquidity_factor": round(liquidity_factor, 3),
+            "confidence_factor": round(confidence_factor, 3),
+            "correlation_factor": round(correlation_factor, 3),
+            "drawdown_factor": round(drawdown_factor, 3),
+            "execution_quality_factor": round(execution_quality_factor, 3),
+            "total_scaling_factor": round(total_scaling_factor, 3),
+            "effective_risk_budget_usd": round(max_risk_for_trade, 2),
+        })
+
+        return TradeAuthorization(
+            intent_id=intent.intent_id,
+            decision=decision,
+            authorized=True,
+            position_size_units=round(final_units, 4),
+            nominal_value_usdt=round(final_nominal_usd, 2),
+            authorized_leverage=authorized_leverage,
+            stop_loss_price=round(stop_loss_price, 2),
+            take_profit_price=round(take_profit_price, 2),
+            trailing_stop_price=round(trailing_stop_price, 2),
+            max_hold_hours=max_hold_hours,
+            risk_budget_usd=round(max_risk_for_trade * total_scaling_factor, 2),
+            cortex_health=health,
+            rejection_reason=None,
+            audit_trail=audit_trail,
+        )
+
 
 
     def is_news_window_active(self, current_timestamp: float | None = None) -> tuple[bool, str | None]:

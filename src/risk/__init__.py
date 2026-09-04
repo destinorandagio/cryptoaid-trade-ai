@@ -12,6 +12,10 @@ from src.risk.challenge_risk_agent import (
     TIER_PRO,
     TIER_ELITE,
     TIER_BLACK,
+    CortexHealth,
+    RiskDecision,
+    TradeIntent,
+    TradeAuthorization,
 )
 
 __all__ = [
@@ -28,4 +32,9 @@ __all__ = [
     "TIER_PRO",
     "TIER_ELITE",
     "TIER_BLACK",
+    "CortexHealth",
+    "RiskDecision",
+    "TradeIntent",
+    "TradeAuthorization",
 ]
+

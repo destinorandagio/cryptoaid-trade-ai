@@ -1434,6 +1434,10 @@ from src.risk.challenge_risk_agent import (
     TIER_PRO,
     TIER_ELITE,
     TIER_BLACK,
+    CortexHealth,
+    RiskDecision,
+    TradeIntent,
+    TradeAuthorization,
 )
 import pandas as pd
 import numpy as np
@@ -1602,6 +1606,291 @@ def reset_prop_daily_tracking(req: DailyResetRequest) -> dict[str, Any]:
         "date_utc": now_utc,
         "challenges_reset": reset_count,
     }
+
+
+# ============================================================
+# CORTEX CHALLENGE RISK AGENT: TRADE INTENTS & HEALTH ENDPOINTS
+# ============================================================
+
+import uuid
+
+
+class TradeIntentApiRequest(BaseModel):
+    challenge_id: str | None = Field(default=None, description="Optional challenge UUID")
+    tier_name: str = Field(default="PRO", description="STARTER, PRO, ELITE, BLACK")
+    target_asset: str = Field(default="BTC/USDC", example="BTC/USDC")
+    direction: str = Field(default="LONG", example="LONG")
+    target_price: float | None = Field(default=None, gt=0, example=65000.0)
+    timeframe: str = Field(default="15m", example="15m")
+    strategy_name: str = Field(default="PredictiveHeart", example="PredictiveHeart")
+    prediction_confidence: float = Field(default=0.85, ge=0.0, le=1.0)
+    strategy_confidence: float = Field(default=0.80, ge=0.0, le=1.0)
+    market_regime: str = Field(default="TRENDING_BULL")
+    volatility_14d: float = Field(default=0.02)
+    atr_14: float | None = None
+    estimated_slippage_pct: float = Field(default=0.0005)
+    estimated_price_impact_pct: float = Field(default=0.0005)
+    estimated_gas_usd: float = Field(default=0.05)
+    current_portfolio_exposure: dict[str, float] = Field(default_factory=dict)
+    account_id: str = Field(default="default_paper")
+
+
+class MarkToMarketRequest(BaseModel):
+    challenge_id: str | None = Field(default=None)
+    account_id: str = Field(default="default_paper")
+    live_prices: dict[str, float] = Field(default_factory=dict)
+
+
+@router.post("/engine/trade-intents")
+def submit_trade_intent(req: TradeIntentApiRequest) -> dict[str, Any]:
+    """
+    Submits a trade intent from any Strategy Agent to CORTEX Challenge Risk Agent.
+    Strategy agents cannot execute directly; sizing and leverage belong strictly to the Risk Agent.
+    Pipeline: Intent -> CORTEX Authorization (PASS/REDUCE/REJECT) -> Execution Engine -> Immutable Event.
+    """
+    tier = PROP_TIER_CONFIGS.get(req.tier_name.upper(), TIER_PRO)
+    state = ChallengeState(tier)
+
+    # 1. Hydrate state from DB if challenge_id given
+    if req.challenge_id:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM prop_challenges_v1 WHERE challenge_id = ?", (req.challenge_id,))
+            row = cursor.fetchone()
+            if row:
+                row_dict = dict(row)
+                state.starting_balance = float(row_dict["starting_balance"])
+                state.cash_balance = float(row_dict["current_balance"])
+                state.current_equity = float(row_dict["current_balance"])
+                state.high_water_mark = float(row_dict["high_water_mark"])
+                state.daily_start_equity = float(row_dict.get("daily_start_equity", row_dict["starting_balance"]))
+
+    # 2. Continual intraday mark-to-market check
+    portfolio_state = execution_engine.get_portfolio_state(req.account_id)
+    if req.challenge_id:
+        state.update_mark_to_market(portfolio_state.unrealized_pnl, cash_balance=state.cash_balance)
+    else:
+        state.update_mark_to_market(portfolio_state.unrealized_pnl, cash_balance=tier.nominal_capital)
+
+    # 3. Determine market price
+    market_p = req.target_price
+    if market_p is None or market_p <= 0:
+        try:
+            ticker = market_provider.get_ticker(req.target_asset)
+            market_p = ticker.price
+        except Exception:
+            market_p = 65000.0 if "BTC" in req.target_asset else 3500.0
+
+    # 4. Build TradeIntent object
+    intent = TradeIntent(
+        intent_id=f"intent_{uuid.uuid4().hex[:10]}",
+        target_asset=req.target_asset,
+        direction=req.direction,
+        target_price=market_p,
+        timeframe=req.timeframe,
+        strategy_name=req.strategy_name,
+        prediction_confidence=req.prediction_confidence,
+        strategy_confidence=req.strategy_confidence,
+        market_regime=req.market_regime,
+        volatility_14d=req.volatility_14d,
+        atr_14=req.atr_14,
+        estimated_slippage_pct=req.estimated_slippage_pct,
+        estimated_price_impact_pct=req.estimated_price_impact_pct,
+        estimated_gas_usd=req.estimated_gas_usd,
+        current_portfolio_exposure=req.current_portfolio_exposure,
+        challenge_id=req.challenge_id,
+    )
+
+    # 5. Evaluate through CORTEX Challenge Risk Agent
+    risk_agent = ChallengeRiskAgent(state)
+    auth = risk_agent.authorize_trade_intent(intent)
+
+    # 6. If Authorized (PASS or REDUCE), execute through PaperExecutionEngine
+    order_result = None
+    if auth.authorized:
+        order = execution_engine.execute_authorized_intent(
+            intent=intent,
+            auth=auth,
+            market_price=market_p,
+            account_id=req.account_id,
+        )
+        order_result = order.to_dict()
+
+        # Record immutable audit event
+        db.record_audit_event(
+            "CORTEX_INTENT_EXECUTED",
+            "INFO",
+            {
+                "intent_id": intent.intent_id,
+                "decision": auth.decision.value,
+                "order_id": order.order_id,
+                "size": auth.position_size_units,
+                "leverage": auth.authorized_leverage,
+                "stop_loss": auth.stop_loss_price,
+            },
+        )
+
+        # Update challenge in DB if challenge_id exists
+        if req.challenge_id:
+            with db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    INSERT INTO challenge_trades (
+                        trade_id, challenge_id, asset_canonical_id, direction, entry_price,
+                        quantity, leverage_used, strategy_id, ai_confidence
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        order.order_id,
+                        req.challenge_id,
+                        req.target_asset,
+                        req.direction,
+                        market_p,
+                        auth.position_size_units,
+                        auth.authorized_leverage,
+                        req.strategy_name,
+                        req.prediction_confidence,
+                    ),
+                )
+                conn.commit()
+    else:
+        db.record_audit_event(
+            "CORTEX_INTENT_REJECTED",
+            "WARNING",
+            {
+                "intent_id": intent.intent_id,
+                "reason": auth.rejection_reason,
+                "cortex_health": auth.cortex_health.value,
+            },
+        )
+
+    return {
+        "status": "AUTHORIZED_AND_EXECUTED" if auth.authorized else "REJECTED",
+        "intent_id": intent.intent_id,
+        "decision": auth.decision.value,
+        "authorized": auth.authorized,
+        "position_size_units": auth.position_size_units,
+        "nominal_value_usdt": auth.nominal_value_usdt,
+        "authorized_leverage": auth.authorized_leverage,
+        "stop_loss_price": auth.stop_loss_price,
+        "take_profit_price": auth.take_profit_price,
+        "trailing_stop_price": auth.trailing_stop_price,
+        "max_hold_hours": auth.max_hold_hours,
+        "risk_budget_usd": auth.risk_budget_usd,
+        "cortex_health": auth.cortex_health.value,
+        "rejection_reason": auth.rejection_reason,
+        "order": order_result,
+        "audit_trail": auth.audit_trail,
+    }
+
+
+@router.get("/engine/cortex-health/{challenge_id}")
+def get_cortex_health(challenge_id: str) -> dict[str, Any]:
+    """
+    Returns real-time CORTEX Challenge Health, Distance to Ruin, Distance to Target,
+    and Available Risk Budget for a Challenge.
+    """
+    tier = TIER_PRO
+    state = ChallengeState(tier)
+
+    if challenge_id and challenge_id != "default":
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM prop_challenges_v1 WHERE challenge_id = ?", (challenge_id,))
+            row = cursor.fetchone()
+            if row:
+                row_dict = dict(row)
+                state.starting_balance = float(row_dict["starting_balance"])
+                state.cash_balance = float(row_dict["current_balance"])
+                state.current_equity = float(row_dict["current_balance"])
+                state.high_water_mark = float(row_dict["high_water_mark"])
+                state.daily_start_equity = float(row_dict.get("daily_start_equity", row_dict["starting_balance"]))
+        portfolio = execution_engine.get_portfolio_state("default_paper")
+        state.update_mark_to_market(portfolio.unrealized_pnl, cash_balance=state.cash_balance)
+    else:
+        portfolio = execution_engine.get_portfolio_state("default_paper")
+        state.update_mark_to_market(portfolio.unrealized_pnl, cash_balance=tier.nominal_capital)
+
+    return {
+        "challenge_id": challenge_id,
+        "cortex_health": state.cortex_health.value,
+        "tier": state.config.name,
+        "starting_balance": state.starting_balance,
+        "current_equity": round(state.current_equity, 2),
+        "cash_balance": round(state.cash_balance, 2),
+        "unrealized_pnl": round(state.unrealized_pnl, 2),
+        "daily_start_equity": round(state.daily_start_equity, 2),
+        "daily_dd_pct": round(state.daily_dd_pct * 100, 2),
+        "daily_dd_usd": round(state.daily_dd_usd, 2),
+        "daily_headroom_usd": round(state.daily_headroom_usd, 2),
+        "total_dd_pct": round(state.total_dd_pct * 100, 2),
+        "total_dd_usd": round(state.total_dd_usd, 2),
+        "total_headroom_usd": round(state.total_headroom_usd, 2),
+        "distance_to_ruin_usd": round(state.distance_to_ruin_usd, 2),
+        "available_risk_budget_usd": state.available_risk_budget_usd,
+        "distance_to_target_usd": round(state.distance_to_target_usd, 2),
+        "distance_to_target_pct": round(state.distance_to_target_pct * 100, 2),
+        "violations": state.check_violations(),
+    }
+
+
+@router.post("/engine/mark-to-market")
+def execute_mark_to_market(req: MarkToMarketRequest) -> dict[str, Any]:
+    """
+    Continuous intraday mark-to-market engine.
+    Updates live prices, recalculates unrealized P&L, Daily DD and Total DD.
+    Instantly triggers circuit breakers / defensive lock if breach occurs intraday.
+    """
+    if req.live_prices:
+        execution_engine.update_market_prices(req.live_prices)
+
+    portfolio = execution_engine.get_portfolio_state(req.account_id)
+    tier = TIER_PRO
+    state = ChallengeState(tier)
+
+    if req.challenge_id:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM prop_challenges_v1 WHERE challenge_id = ?", (req.challenge_id,))
+            row = cursor.fetchone()
+            if row:
+                row_dict = dict(row)
+                state.starting_balance = float(row_dict["starting_balance"])
+                state.daily_start_equity = float(row_dict.get("daily_start_equity", row_dict["starting_balance"]))
+                state.high_water_mark = float(row_dict["high_water_mark"])
+                state.cash_balance = float(row_dict["current_balance"])
+        state.update_mark_to_market(portfolio.unrealized_pnl, cash_balance=state.cash_balance)
+    else:
+        state.update_mark_to_market(portfolio.unrealized_pnl, cash_balance=tier.nominal_capital)
+
+    violation = state.check_violations()
+
+    if violation and req.challenge_id:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE prop_challenges_v1
+                SET status = 'FAILED', violation_type = ?, violated_at = CURRENT_TIMESTAMP
+                WHERE challenge_id = ?
+                """,
+                (violation, req.challenge_id),
+            )
+            conn.commit()
+
+    return {
+        "status": "PROCESSED",
+        "account_id": req.account_id,
+        "challenge_id": req.challenge_id,
+        "current_equity": round(state.current_equity, 2),
+        "unrealized_pnl": round(state.unrealized_pnl, 2),
+        "daily_dd_pct": round(state.daily_dd_pct * 100, 2),
+        "total_dd_pct": round(state.total_dd_pct * 100, 2),
+        "cortex_health": state.cortex_health.value,
+        "violation": violation,
+    }
+
 
 
 
