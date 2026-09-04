@@ -8,11 +8,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="static/css/dapp.css?v=9">
+    <link rel="stylesheet" href="static/css/dapp.css?v=gm11">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="static/logo.png">
     <!-- Multi-Language i18n Manager -->
-    <script src="static/js/i18n.js?v=clean3"></script>
+    <script src="static/js/i18n.js?v=gm11"></script>
 </head>
 <body class="dapp-body">
     <!-- Matrix Red 01010101 Rain Effect Canvas (Upward & Slow) -->
@@ -58,17 +58,35 @@
                 </div>
             </header>
 
+            <!-- LIVE USERS COUNTER STRIP (RED BEACON + WHITE PULSE) -->
+            <div class="live-users-strip" id="live-users-strip">
+                <div class="live-users-inner">
+                    <span class="red-beacon-white-pulse" aria-hidden="true">
+                        <span class="pulse-ring"></span>
+                        <span class="dot-core"></span>
+                    </span>
+                    <span class="live-users-label" data-i18n="users_live">USERS LIVE:</span>
+                    <strong id="live-users-count" class="live-users-num">248.195</strong>
+                    <span class="live-users-tag">ONLINE</span>
+                </div>
+            </div>
+
             <!-- DAPP INSTITUTIONAL STRIP -->
             <div class="dapp-credential-strip">
                 <div class="dapp-cred-text">
                     <div class="cred-line">
                         <span class="cred-tag-pulse"></span>
-                        <span data-i18n="powered_by">Powered by</span> <strong>Blockchain+</strong> · 
-                        <span data-i18n="audited_by">Audited & Certified by</span> <strong>Cortex</strong>
+                        <strong>TRADEAID</strong> · 
+                        <span data-i18n="powered_by">Powered by</span> <strong>BLOCKCHAIN+ (B+)</strong> · 
+                        <span data-i18n="engineered_by">Engineered by</span> <strong>NEURALOG</strong>
                     </div>
                     <div class="cred-line">
-                        <span data-i18n="engineered_by">Engineered by</span> <strong>Neuralog</strong> · 
+                        <strong style="color:#ff1e38;" data-i18n="cortex_layer">CORTEX — Risk / Security / Audit Layer</strong> · 
                         <span data-i18n="native_on">Native on</span> <strong class="poly-glow">Polygon</strong>
+                    </div>
+                    <div class="cred-line" style="margin-top:2px; font-weight:700; color:#ffffff; font-size:0.68rem; letter-spacing:0.5px;">
+                        <span>TRADEAID NEVER STOPS LEARNING</span> · 
+                        <span style="color:#ff1e38;">PREDICT. ADAPT. PROTECT.</span>
                     </div>
                 </div>
             </div>
@@ -201,6 +219,10 @@
                         TRADEAID does not ask a single black-box AI. It fuses 7 specialized quantitative models into a dynamic probabilistic trajectory:
                     </p>
 
+                    <div class="media-card-16-9" style="margin-bottom:12px;">
+                        <img src="static/media/holographic_wolf_display_16x9.jpeg" alt="Neural Trajectory Analysis" loading="lazy">
+                    </div>
+
                     <div id="ph-ensemble-list" style="margin-bottom: 12px;"></div>
 
                     <div style="background:rgba(255,30,56,0.08); border:1px solid rgba(255,30,56,0.3); border-radius:10px; padding:10px; margin-bottom:12px;">
@@ -322,152 +344,352 @@
                     </button>
                 </div>
 
-                <!-- =======================================================
-                     TRADEAID PREDICTIVE HEART (The Visible Forecasting Core)
-                     ======================================================= -->
-                <section class="predictive-heart-card">
-                    <div class="ph-top-bar">
-                        <div class="ph-badge-title">
-                            <svg class="icon-svg sm svg-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                            <span>TRADEAID PREDICTIVE HEART</span>
-                        </div>
-                        <div class="ph-timeframes">
-                            <button class="ph-tf-btn" data-tf="5M">5M</button>
-                            <button class="ph-tf-btn active" data-tf="15M">15M</button>
-                            <button class="ph-tf-btn" data-tf="1H">1H</button>
-                            <button class="ph-tf-btn" data-tf="4H">4H</button>
-                            <button class="ph-tf-btn" data-tf="24H">24H</button>
-                        </div>
-                    </div>
-
-                    <!-- Price & Live Prediction Stats -->
-                    <div class="ph-price-row">
-                        <div class="ph-price-box">
-                            <select id="ph-asset-select" class="ph-asset-select" aria-label="Select Asset">
-                                <option value="POL/USDT" selected>POL / USDT</option>
-                                <option value="WBTC/USDT">WBTC / USDT</option>
-                                <option value="WETH/USDT">WETH / USDT</option>
-                            </select>
-                            <span id="ph-cur-price" class="ph-live-price">$0.3245</span>
-                        </div>
-                        <div class="ph-pred-tag">
-                            <span id="ph-pred-move" class="ph-move-val">↑ +1.84%</span>
-                            <span id="ph-confidence" class="ph-conf-pill">CONFIDENCE 78%</span>
-                        </div>
-                    </div>
-
-                    <!-- Interactive Canvas Chart -->
-                    <div class="ph-canvas-wrapper">
-                        <canvas id="ph-canvas"></canvas>
-                    </div>
-
-                    <!-- Visual Legend -->
-                    <div class="ph-legend-bar">
-                        <div class="ph-legend-item">
-                            <span class="ph-dot-white"></span>
-                            <span>WHITE = REAL MARKET</span>
-                        </div>
-                        <div class="ph-legend-item">
-                            <span class="ph-dot-red"></span>
-                            <span>RED = PREDICTION (P50)</span>
-                        </div>
-                        <div class="ph-legend-item">
-                            <span style="color:#ff1e38; font-size:0.75rem;">░</span>
-                            <span>CONFIDENCE BAND</span>
-                        </div>
-                    </div>
-
-                    <!-- Telemetry Strip -->
-                    <div class="ph-telemetry-grid">
-                        <div class="ph-tele-item">
-                            <span class="ph-tele-label">DIRECTION</span>
-                            <span class="ph-tele-val green">↑ LONG 81%</span>
-                        </div>
-                        <div class="ph-tele-item">
-                            <span class="ph-tele-label">NET EDGE</span>
-                            <span class="ph-tele-val cyan" id="ph-net-edge">+1.12%</span>
-                        </div>
-                        <div class="ph-tele-item">
-                            <span class="ph-tele-label">DYNAMIC SL</span>
-                            <span class="ph-tele-val" id="ph-lvl-sl" style="color:#ff1e38;">$0.3195 (-0.6%)</span>
-                        </div>
-                        <div class="ph-tele-item">
-                            <span class="ph-tele-label">TARGET TP2</span>
-                            <span class="ph-tele-val" id="ph-lvl-tp" style="color:#ffffff;">$0.3313 (+2.1%)</span>
-                        </div>
-                    </div>
-
-                    <!-- Action Controls -->
-                    <div class="ph-btn-row">
-                        <button id="btn-ph-why" class="ph-ctrl-btn highlight">
-                            <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                            <span>WHY? (ENSEMBLE)</span>
-                        </button>
-                        <button id="btn-ph-scenarios" class="ph-ctrl-btn">
-                            <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                            <span>SCENARIOS (3)</span>
-                        </button>
-                        <button id="btn-ph-learning" class="ph-ctrl-btn">
-                            <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                            <span>ACCURACY 84%</span>
-                        </button>
-                    </div>
-                </section>
-
-                <!-- Status Card -->
-                <section class="card-cockpit live-status-card">
-                    <div class="status-row">
-                        <div class="status-indicator">
-                            <span class="pulse-beacon"></span>
-                            <span class="status-txt" data-i18n="guardian_status">POSITION GUARDIAN: <strong>ACTIVE 24/7</strong></span>
-                        </div>
-                        <span class="shield-badge" data-i18n="guardian_ceiling">CEILING: -5.0%</span>
-                    </div>
-                    <div class="metrics-grid">
-                        <div class="metric-item">
-                            <span class="m-label" data-i18n="metric_cash">LIQUID BALANCE</span>
-                            <span class="m-val green" id="metric-cash">10,000.00 USDT (SIM)</span>
-                        </div>
-                        <div class="metric-item">
-                            <span class="m-label" data-i18n="metric_equity">TOTAL EQUITY</span>
-                            <span class="m-val" id="metric-equity">10,000.00 USDT</span>
-                        </div>
-                        <div class="metric-item">
-                            <span class="m-label" data-i18n="metric_net_edge">MIN NET EDGE</span>
-                            <span class="m-val cyan">+0.40% NET</span>
-                        </div>
-                        <div class="metric-item">
-                            <span class="m-label" data-i18n="metric_exposure">ACTIVE EXPOSURE</span>
-                            <span class="m-val" id="metric-exposure">0.00 USDT (0%)</span>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Navigation Tabs with SVG (No Emojis) -->
+                <!-- 6 CANONICAL NAVIGATION SECTIONS -->
                 <nav class="cockpit-tab-bar">
-                    <button class="tab-btn active" data-target="tab-scanner">
+                    <button class="tab-btn active" data-target="tab-heart">
+                        <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                        <span data-i18n="tab_heart">HEART</span>
+                    </button>
+                    <button class="tab-btn" data-target="tab-markets">
                         <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M12 3a9 9 0 0 1 9 9"></path><circle cx="12" cy="12" r="2"></circle><line x1="12" y1="12" x2="19" y2="5"></line></svg>
-                        <span data-i18n="tab_scanner">Scanner</span>
+                        <span data-i18n="tab_markets">MARKETS</span>
                     </button>
                     <button class="tab-btn" data-target="tab-positions">
                         <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"></path><path d="M7 16l4-6 4 3 6-8"></path></svg>
-                        <span data-i18n="tab_positions">Positions (0)</span>
+                        <span data-i18n="tab_positions">POSITIONS</span>
                     </button>
                     <button class="tab-btn" data-target="tab-strategies">
                         <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
-                        <span data-i18n="tab_strategies">Strategies</span>
+                        <span data-i18n="tab_strategies">STRATEGIES</span>
                     </button>
-                    <button class="tab-btn" data-target="tab-security">
+                    <button class="tab-btn" data-target="tab-performance">
+                        <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        <span data-i18n="tab_performance">PERFORMANCE</span>
+                    </button>
+                    <button class="tab-btn" data-target="tab-cortex">
                         <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                        <span data-i18n="tab_security">Security</span>
+                        <span data-i18n="tab_cortex">CORTEX</span>
                     </button>
                 </nav>
 
-                <!-- TAB 1: SCANNER LIVE -->
-                <section id="tab-scanner" class="tab-content active">
+                <!-- =======================================================
+                     SECTION 1: HEART (HOME PWA COCKPIT)
+                     ======================================================= -->
+                <section id="tab-heart" class="tab-content active">
+                    
+                    <div class="predictive-heart-card">
+                        <div class="ph-top-bar">
+                            <div class="ph-badge-title">
+                                <svg class="icon-svg sm svg-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                <span>TRADEAID PREDICTIVE HEART</span>
+                            </div>
+                            <div class="ph-timeframes">
+                                <button class="ph-tf-btn" data-tf="5M">5M</button>
+                                <button class="ph-tf-btn active" data-tf="15M">15M</button>
+                                <button class="ph-tf-btn" data-tf="1H">1H</button>
+                                <button class="ph-tf-btn" data-tf="4H">4H</button>
+                                <button class="ph-tf-btn" data-tf="24H">24H</button>
+                            </div>
+                        </div>
+
+                        <!-- SOPRA (Top Telemetry Bar: Prediction / Confidence / Regime / Net Edge / CORTEX) -->
+                        <div class="ph-above-telemetry">
+                            <div class="ph-above-item">
+                                <span class="ph-above-label">PREDICTION</span>
+                                <span class="ph-above-val red" id="ph-val-pred">↑ +1.84% (P50)</span>
+                            </div>
+                            <div class="ph-above-item">
+                                <span class="ph-above-label">CONFIDENCE</span>
+                                <span class="ph-above-val white" id="ph-val-conf">78% HIGH</span>
+                            </div>
+                            <div class="ph-above-item">
+                                <span class="ph-above-label">REGIME</span>
+                                <span class="ph-above-val" id="ph-val-regime" style="color:#ffffff;">EXPANSION</span>
+                            </div>
+                            <div class="ph-above-item">
+                                <span class="ph-above-label">NET EDGE</span>
+                                <span class="ph-above-val green" id="ph-val-edge">+1.12% NET</span>
+                            </div>
+                            <div class="ph-above-item">
+                                <span class="ph-above-label">CORTEX</span>
+                                <span class="ph-above-val" id="ph-val-cortex" style="color:#ff1e38;">PASS (CLEAR)</span>
+                            </div>
+                        </div>
+
+                        <!-- Asset & Live Price Selector -->
+                        <div class="ph-price-row">
+                            <div class="ph-price-box">
+                                <select id="ph-asset-select" class="ph-asset-select" aria-label="Select Asset">
+                                    <option value="POL/USDT" selected>POL / USDT</option>
+                                    <option value="WBTC/USDT">WBTC / USDT</option>
+                                    <option value="WETH/USDT">WETH / USDT</option>
+                                </select>
+                                <span id="ph-cur-price" class="ph-live-price">$0.3245</span>
+                            </div>
+                            <div class="ph-pred-tag">
+                                <span id="ph-pred-move" class="ph-move-val">↑ +1.84%</span>
+                                <span id="ph-confidence" class="ph-conf-pill">CONFIDENCE 78%</span>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Canvas Chart: White History × Red Prediction -->
+                        <div class="ph-canvas-wrapper">
+                            <canvas id="ph-canvas"></canvas>
+                        </div>
+
+                        <!-- Visual Legend -->
+                        <div class="ph-legend-bar">
+                            <div class="ph-legend-item">
+                                <span class="ph-dot-white"></span>
+                                <span>WHITE = REALITY</span>
+                            </div>
+                            <div class="ph-legend-item">
+                                <span class="ph-dot-red"></span>
+                                <span>RED = PREDICTION</span>
+                            </div>
+                            <div class="ph-legend-item">
+                                <span style="color:#ff1e38; font-size:0.75rem;">░</span>
+                                <span>DIFFERENCE = LEARNING</span>
+                            </div>
+                        </div>
+
+                        <!-- SOTTO: LONG / SHORT / NO TRADE + WHY? -->
+                        <div class="ph-below-actions">
+                            <div class="ph-action-badges">
+                                <span class="ph-action-pill active-long">LONG</span>
+                                <span class="ph-action-pill">SHORT</span>
+                                <span class="ph-action-pill">NO TRADE</span>
+                            </div>
+                            <div class="ph-below-buttons">
+                                <button id="btn-ph-why" class="ph-ctrl-btn highlight">
+                                    <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                    <span>WHY?</span>
+                                </button>
+                                <button id="btn-ph-scenarios" class="ph-ctrl-btn">
+                                    <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                                    <span>SCENARIOS</span>
+                                </button>
+                                <button id="btn-ph-learning" class="ph-ctrl-btn">
+                                    <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                                    <span>ACCURACY 84%</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- =======================================================
+                         REALTIME 1-SECOND BTC/USDT TICKER & OSCILLOSCOPE
+                         ======================================================= -->
+                    <div class="card-cockpit btc-realtime-card" style="margin-top:12px; border:1px solid rgba(247,147,26,0.35); background: linear-gradient(145deg, rgba(20,18,14,0.96), rgba(12,12,14,0.96)); box-shadow: 0 4px 24px rgba(247,147,26,0.08);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <div style="width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg, #f7931a, #ffb347); display:flex; align-items:center; justify-content:center; font-weight:800; color:#ffffff; font-size:0.95rem; box-shadow:0 0 12px rgba(247,147,26,0.6);">₿</div>
+                                <div>
+                                    <div style="display:flex; align-items:center; gap:6px;">
+                                        <strong style="color:#ffffff; font-size:0.92rem; letter-spacing:0.5px;">BTC / USDT</strong>
+                                        <span class="cert-pill" style="background:rgba(247,147,26,0.18); color:#f7931a; border:1px solid rgba(247,147,26,0.45); font-size:0.62rem; font-weight:800; padding:2px 7px;">● REALTIME 1s</span>
+                                    </div>
+                                    <span style="font-size:0.65rem; color:#a1a1aa; font-family:'JetBrains Mono',monospace;">HIGH-FREQUENCY OSCILLOSCOPE (60s ROLLING)</span>
+                                </div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div id="btc-1s-price" style="font-family:'JetBrains Mono',monospace; font-size:1.18rem; font-weight:800; color:#f7931a; text-shadow:0 0 10px rgba(247,147,26,0.45);">$89,450.20</div>
+                                <div id="btc-1s-delta" style="font-size:0.68rem; font-family:'JetBrains Mono',monospace; color:#34d399; font-weight:700;">▲ +$12.40 (+0.02%) 1s</div>
+                            </div>
+                        </div>
+
+                        <!-- 1s Chart Canvas -->
+                        <div style="position:relative; width:100%; height:135px; margin-top:10px; background:rgba(0,0,0,0.55); border-radius:8px; border:1px solid rgba(255,255,255,0.08); overflow:hidden;">
+                            <canvas id="btc-1s-canvas" style="width:100%; height:100%; display:block;"></canvas>
+                            <div style="position:absolute; bottom:5px; left:8px; font-size:0.58rem; color:#71717a; font-family:'JetBrains Mono',monospace;">-60s</div>
+                            <div style="position:absolute; bottom:5px; left:50%; transform:translateX(-50%); font-size:0.58rem; color:#71717a; font-family:'JetBrains Mono',monospace;">-30s</div>
+                            <div style="position:absolute; bottom:5px; right:8px; font-size:0.58rem; color:#f7931a; font-family:'JetBrains Mono',monospace; font-weight:700;">LIVE 1s</div>
+                        </div>
+
+                        <!-- Micro Stats Bar -->
+                        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-top:8px;">
+                            <div style="background:rgba(255,255,255,0.03); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); text-align:center;">
+                                <span style="font-size:0.58rem; color:#71717a; display:block;">60s HIGH</span>
+                                <strong id="btc-60s-high" style="font-size:0.72rem; font-family:'JetBrains Mono',monospace; color:#ffffff;">$89,465.00</strong>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.03); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); text-align:center;">
+                                <span style="font-size:0.58rem; color:#71717a; display:block;">60s LOW</span>
+                                <strong id="btc-60s-low" style="font-size:0.72rem; font-family:'JetBrains Mono',monospace; color:#ffffff;">$89,420.10</strong>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.03); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); text-align:center;">
+                                <span style="font-size:0.58rem; color:#71717a; display:block;">1s VELOCITY</span>
+                                <strong id="btc-1s-velocity" style="font-size:0.72rem; font-family:'JetBrains Mono',monospace; color:#34d399;">+0.35/s</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- =======================================================
+                         CENTRAL AUTOTRADE PRO ENGINE (1-CLICK AUTOPILOT)
+                         ======================================================= -->
+
+                    <div class="card-cockpit autotrade-pro-card" style="margin-top:12px; border:1px solid rgba(255,30,56,0.35); background: linear-gradient(145deg, rgba(22,22,30,0.96), rgba(12,12,18,0.96));">
+                        <div class="autotrade-header-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span class="pulse-beacon" id="autotrade-beacon" style="background:#34d399; box-shadow:0 0 12px #34d399;"></span>
+                                <strong style="color:#ffffff; font-size:0.92rem; letter-spacing:0.5px;">AUTOTRADE PRO</strong>
+                                <span class="cert-pill" id="autotrade-status-pill" style="background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3); font-weight:700; font-size:0.68rem;">● RUNNING (DEMO 1,000 USDT)</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span class="shield-badge" style="font-size:0.65rem;">STOP CEILING: -5.0%</span>
+                                <button id="btn-toggle-autotrade" class="btn-autotrade-toggle active" style="background:#ff1e38; color:#ffffff; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:0.72rem; padding:4px 10px; border-radius:6px; border:none; cursor:pointer;">PAUSE</button>
+                            </div>
+                        </div>
+
+                        <!-- Viral Scale Benchmark (178k+ Active Traders) -->
+                        <div style="margin-top:8px; padding:6px 10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:0.70rem;">
+                            <span style="color:#a1a1aa;">COMMUNITY SCALE:</span>
+                            <strong style="color:#34d399; font-family:'JetBrains Mono',monospace;">178,420+ ACTIVE AUTOTRADERS ON POLYGON</strong>
+                        </div>
+
+                        <!-- Autopilot Risk Profile Selector -->
+                        <div style="margin-top:10px;">
+                            <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">AUTOPILOT RISK PROFILE:</span>
+                            <div class="autotrade-mode-grid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;">
+                                <button class="autotrade-preset-btn" data-preset="SAFE" style="padding:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#ffffff; font-size:0.68rem; font-weight:700; cursor:pointer;">SAFE (1-2%)</button>
+                                <button class="autotrade-preset-btn active" data-preset="BALANCED" style="padding:6px; background:rgba(255,30,56,0.2); border:1px solid #ff1e38; border-radius:6px; color:#ffffff; font-size:0.68rem; font-weight:700; cursor:pointer;">BALANCED</button>
+                                <button class="autotrade-preset-btn" data-preset="TURBO" style="padding:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#ffffff; font-size:0.68rem; font-weight:700; cursor:pointer;">TURBO (5-10%)</button>
+                                <button class="autotrade-preset-btn" data-preset="GEM" style="padding:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#ffffff; font-size:0.68rem; font-weight:700; cursor:pointer;">GEM FUND</button>
+                            </div>
+                        </div>
+
+                        <!-- Core Telemetry Metrics Grid -->
+                        <div class="metrics-grid" style="margin-top:10px;">
+                            <div class="metric-item">
+                                <span class="m-label">PAPER BALANCE</span>
+                                <span class="m-val green" id="metric-cash">1,000.00 USDT (PAPER)</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="m-label" data-i18n="metric_equity">TOTAL EQUITY</span>
+                                <span class="m-val" id="metric-equity">1,000.00 USDT</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="m-label">BEST OPPORTUNITY</span>
+                                <span class="m-val cyan">POL/USDT (+1.84%)</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="m-label">CURRENT STRATEGY</span>
+                                <span class="m-val" id="metric-strategy-display" style="color:#ffffff;">MOMENTUM HOLD</span>
+                            </div>
+                        </div>
+
+                        <!-- Live Automated Execution Stream (Console Ticker) -->
+                        <div style="margin-top:10px; background:#08080c; border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:8px; font-family:'JetBrains Mono',monospace; font-size:0.68rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:4px;">
+                                <span style="color:#71717a;">LIVE AUTOTRADE TELEMETRY:</span>
+                                <span style="color:#34d399;" id="autotrade-tick-speed">1s TICK ● POLYGON RPC</span>
+                            </div>
+                            <div id="autotrade-log-stream" style="display:flex; flex-direction:column; gap:3px;">
+                                <div style="color:#e4e4e7;"><span style="color:#a1a1aa;">[17:51:04]</span> <strong style="color:#34d399;">BUY EXECUTION:</strong> POL/USDT @ $0.3245 (Target: +2.1%, Stop: -1.2%)</div>
+                                <div style="color:#a1a1aa;"><span style="color:#71717a;">[17:50:22]</span> <span style="color:#60a5fa;">GUARDIAN:</span> Stop Loss moved to Break-Even (+0.20% DEX fee locked)</div>
+                                <div style="color:#a1a1aa;"><span style="color:#71717a;">[17:49:15]</span> <span style="color:#ff1e38;">CORTEX:</span> 6 Veto check passed (Honeypot: 0/100, Liquidity: $450K)</div>
+                            </div>
+                        </div>
+
+                        <div class="preventivo-row" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.06); font-size:0.75rem;">
+                            <span>TODAY NET P&L (PAPER):</span>
+                            <strong style="color:#34d399;" id="metric-today-pnl">+0.00 USDT (0.00%)</strong>
+                        </div>
+
+                        <!-- CENTRAL ON-CHAIN ACTIVATION BUTTON (10 POL PER SIGNATURE) -->
+                        <div style="margin-top:12px;">
+                            <button id="btn-activate-onchain-autotrade" class="btn-unlock-real" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; font-weight:800; font-size:0.80rem; letter-spacing:0.5px; background:linear-gradient(90deg, #ff1e38, #b91c1c); border:none; border-radius:8px; color:#ffffff; cursor:pointer; box-shadow: 0 4px 20px rgba(255,30,56,0.35);">
+                                <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                                <span>ACTIVATE ON-CHAIN AUTOTRADE (10 POL DAO QUOTA)</span>
+                            </button>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:0.62rem; color:#a1a1aa;">
+                                <span>Non-Custodial · Direct Polygon Network Signature</span>
+                                <strong style="color:#ffffff;">10 POL per On-Chain Trade Authorization</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GEM HUNTER RADAR (Polygon Microcap Discovery) -->
+                    <div class="card-cockpit" style="margin-top:12px; border:1px solid rgba(255,30,56,0.25);">
+                        <div class="status-row">
+                            <div class="status-indicator">
+                                <span class="pulse-beacon" style="background:#ff1e38; box-shadow:0 0 10px #ff1e38;"></span>
+                                <span class="status-txt">GEM RADAR · <strong>SCANNING POLYGON DEX...</strong></span>
+                            </div>
+                            <span class="shield-badge" style="background:rgba(255,30,56,0.12); color:#ff1e38; border-color:rgba(255,30,56,0.25);">ASYMMETRIC PAYOFF</span>
+                        </div>
+                        <div id="gem-radar-list" style="margin-top:8px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:0.75rem;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <strong style="color:#ffffff;">$NEURA</strong>
+                                    <span class="cert-pill" style="font-size:0.62rem; background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3);">HIGH POTENTIAL</span>
+                                </div>
+                                <div style="text-align:right;">
+                                    <span style="color:#34d399; font-weight:700;">SCORE: 88.0</span>
+                                    <span style="display:block; color:#a1a1aa; font-size:0.65rem;">Liq $85K · 24h Vol $115K · Lock 100%</span>
+                                </div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:0.75rem;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <strong style="color:#ffffff;">$QUICKAI</strong>
+                                    <span class="cert-pill" style="font-size:0.62rem; background:rgba(96,165,250,0.15); color:#60a5fa; border:1px solid rgba(96,165,250,0.3);">EMERGING</span>
+                                </div>
+                                <div style="text-align:right;">
+                                    <span style="color:#60a5fa; font-weight:700;">SCORE: 72.0</span>
+                                    <span style="display:block; color:#a1a1aa; font-size:0.65rem;">Liq $42K · 24h Vol $38K · Lock 100%</span>
+                                </div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; font-size:0.75rem;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <strong style="color:#ffffff;">$POLYM</strong>
+                                    <span class="cert-pill" style="font-size:0.62rem; background:rgba(251,191,36,0.15); color:#fbbf24; border:1px solid rgba(251,191,36,0.3);">SPECULATION</span>
+                                </div>
+                                <div style="text-align:right;">
+                                    <span style="color:#fbbf24; font-weight:700;">SCORE: 58.0</span>
+                                    <span style="display:block; color:#a1a1aa; font-size:0.65rem;">Liq $18K · 24h Vol $45K · Top10 62%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top:6px; font-size:0.68rem; color:#71717a; text-align:center;">
+                            GEM FUND (1,000 USDT Paper) · Sizing 10–30 USDT · Asymmetric Exit: Principal Back @ 2x (+100%)
+                        </div>
+                    </div>
+
+                    <!-- Predictive Engine 16:9 Cinematic Video Banner -->
+                    <div class="media-card-16-9">
+                        <div class="media-badge-overlay">
+                            <span class="cred-tag-pulse"></span>
+                            <span>PREDICTIVE ENGINE · 16:9 HUD</span>
+                        </div>
+                        <video autoplay muted loop playsinline src="static/videos/tradeaid_promo_16x9.mp4" poster="static/media/holographic_wolf_display_16x9.jpeg"></video>
+                        <div class="media-caption-overlay">
+                            <h6>TRADEAID PREDICTIVE RADAR</h6>
+                            <p>Real-time neural trajectory scan across Polygon order flow and momentum vectors.</p>
+                        </div>
+                    </div>
+
+
+                </section>
+
+                <!-- =======================================================
+                     SECTION 2: MARKETS (Polygon Live, Depth, Intelligence)
+                     ======================================================= -->
+                <section id="tab-markets" class="tab-content">
                     <div class="section-title-row">
                         <h4 data-i18n="scanner_title">POLYGON MARKETS MONITORED</h4>
                         <span class="refresh-pill" data-i18n="live_tick">LIVE TICK: 10s</span>
+                    </div>
+
+                    <!-- Polygon On-Chain Discovery 16:9 Cinematic Video -->
+                    <div class="media-card-16-9">
+                        <div class="media-badge-overlay">
+                            <span class="cred-tag-pulse"></span>
+                            <span>POLYGON DEX STREAM</span>
+                        </div>
+                        <video autoplay muted loop playsinline src="static/videos/autonomous_trading_16x9.mp4" poster="static/media/glass_vault_trading_16x9.jpeg"></video>
+                        <div class="media-caption-overlay">
+                            <h6>AUTONOMOUS ON-CHAIN DISCOVERY</h6>
+                            <p>Deep scanning Polygon liquidity pools, slippage bounds, and mempool front-running guards.</p>
+                        </div>
                     </div>
                     
                     <div class="market-cards-list">
@@ -534,9 +756,31 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Narrative & Sentiment Intelligence Card -->
+                    <div class="audit-card" style="margin-top:10px;">
+                        <h5>SENTIMENT & NARRATIVE INTELLIGENCE</h5>
+                        <p>Real-time social volume, sentiment delta (+14.2% Bullish), and narrative velocity tracking for Polygon ecosystem tokens.</p>
+                        <div class="cert-badge-row">
+                            <span class="cert-pill">POL NARRATIVE: ACCUMULATION</span>
+                            <span class="cert-pill">FEAR & GREED: 58 (GREED)</span>
+                        </div>
+                    </div>
+
+                    <!-- Gem Hunter & Liquidity Scanner Card -->
+                    <div class="audit-card" style="margin-top:10px;">
+                        <h5>GEM HUNTER & LIQUIDITY SCANNER</h5>
+                        <p>Anti-honeypot screening, liquidity lock detection, and early DEX pool verification on Polygon POS.</p>
+                        <div class="cert-badge-row">
+                            <span class="cert-pill">POOLS SCANNED: 42</span>
+                            <span class="cert-pill">HONEYPOT REJECTIONS: 3</span>
+                        </div>
+                    </div>
                 </section>
 
-                <!-- TAB 2: OPEN POSITIONS -->
+                <!-- =======================================================
+                     SECTION 3: POSITIONS (Active Watches, Locks, Guardian)
+                     ======================================================= -->
                 <section id="tab-positions" class="tab-content">
                     <div class="empty-state">
                         <div class="preventivo-icon">
@@ -545,44 +789,227 @@
                         <h5 data-i18n="no_pos_title">No Positions Exposed to Risk</h5>
                         <p data-i18n="no_pos_desc">Position Guardian is waiting for Net Edge threshold (+0.40%). 100% of funds preserved in USDT.</p>
                     </div>
-                </section>
 
-                <!-- TAB 3: ACTIVE STRATEGIES -->
-                <section id="tab-strategies" class="tab-content">
-                    <div class="strategy-list">
-                        <div class="strat-item">
-                            <div class="strat-info">
-                                <strong data-i18n="strat_1_title">Scalping Strategy (1m/3m/5m)</strong>
-                                <small data-i18n="strat_1_desc">Max spread filter 0.15% | Micro-momentum</small>
-                            </div>
-                            <span class="strat-weight"><span data-i18n="strat_weight">WEIGHT:</span> 1.2x</span>
-                        </div>
-                        <div class="strat-item">
-                            <div class="strat-info">
-                                <strong data-i18n="strat_2_title">Trend Following (EMA 12/26 + MACD)</strong>
-                                <small data-i18n="strat_2_desc">Macro trend breakout identification</small>
-                            </div>
-                            <span class="strat-weight"><span data-i18n="strat_weight">WEIGHT:</span> 1.0x</span>
-                        </div>
-                        <div class="strat-item">
-                            <div class="strat-info">
-                                <strong data-i18n="strat_3_title">Breakout & Donchian Channels</strong>
-                                <small data-i18n="strat_3_desc">High expansion volatility</small>
-                            </div>
-                            <span class="strat-weight"><span data-i18n="strat_weight">WEIGHT:</span> 1.0x</span>
-                        </div>
-                        <div class="strat-item">
-                            <div class="strat-info">
-                                <strong data-i18n="strat_4_title">Mean Reversion (Z-Score + RSI Divergence)</strong>
-                                <small data-i18n="strat_4_desc">Quick reversal on overbought/oversold</small>
-                            </div>
-                            <span class="strat-weight"><span data-i18n="strat_weight">WEIGHT:</span> 0.8x</span>
+                    <div class="audit-card" style="margin-top:12px;">
+                        <h5>POSITION GUARDIAN PROTOCOL</h5>
+                        <p>Automated protection rules: Break-even lock activated at +1.0% PnL. Dynamic trailing stop engages at +1.8%. Absolute hard ceiling: -5.0%.</p>
+                        <div class="cert-badge-row">
+                            <span class="cert-pill">BREAK-EVEN: ARMED</span>
+                            <span class="cert-pill">TRAILING STOP: READY</span>
                         </div>
                     </div>
                 </section>
 
-                <!-- TAB 4: SECURITY & AUDIT -->
-                <section id="tab-security" class="tab-content">
+                <!-- =======================================================
+                     SECTION 4: STRATEGIES (DNA, Council, Tournament)
+                     ======================================================= -->
+                <section id="tab-strategies" class="tab-content">
+                    <div class="section-title-row" style="margin-bottom:8px;">
+                        <h4>MULTI-AGENT STRATEGY COUNCIL</h4>
+                        <span class="refresh-pill">10 ENSEMBLE AGENTS</span>
+                    </div>
+
+                    <div class="strategy-list">
+                        <div class="strat-item">
+                            <div class="strat-info">
+                                <strong>Scalping Strategy (1m/3m/5m)</strong>
+                                <small>Max spread filter 0.15% | Micro-momentum</small>
+                            </div>
+                            <span class="strat-weight">WEIGHT: 1.2x</span>
+                        </div>
+                        <div class="strat-item">
+                            <div class="strat-info">
+                                <strong>Trend Following (EMA 12/26 + MACD)</strong>
+                                <small>Macro trend breakout identification</small>
+                            </div>
+                            <span class="strat-weight">WEIGHT: 1.0x</span>
+                        </div>
+                        <div class="strat-item">
+                            <div class="strat-info">
+                                <strong>Momentum Engine (RSI + ROC)</strong>
+                                <small>Impulse expansion and volume surge</small>
+                            </div>
+                            <span class="strat-weight">WEIGHT: 1.1x</span>
+                        </div>
+                        <div class="strat-item">
+                            <div class="strat-info">
+                                <strong>Breakout & Donchian Channels</strong>
+                                <small>High expansion volatility bursts</small>
+                            </div>
+                            <span class="strat-weight">WEIGHT: 1.0x</span>
+                        </div>
+                        <div class="strat-item">
+                            <div class="strat-info">
+                                <strong>Mean Reversion (Z-Score + RSI)</strong>
+                                <small>Quick reversal on overbought/oversold</small>
+                            </div>
+                            <span class="strat-weight">WEIGHT: 0.8x</span>
+                        </div>
+                        <div class="strat-item">
+                            <div class="strat-info">
+                                <strong>Volatility & Liquidity Flow</strong>
+                                <small>ATR volatility & depth dispersion</small>
+                            </div>
+                            <span class="strat-weight">WEIGHT: 0.9x</span>
+                        </div>
+                        <div class="strat-item">
+                            <div class="strat-info">
+                                <strong>Multi-DEX & Triangular Arbitrage</strong>
+                                <small>Cross-venue spatial spread detection</small>
+                            </div>
+                            <span class="strat-weight" style="color:var(--text-muted);">STANDBY</span>
+                        </div>
+                        <div class="strat-item">
+                            <div class="strat-info">
+                                <strong>On-Chain Flow & Whale Intelligence</strong>
+                                <small>Mempool monitoring & DEX bridge flows</small>
+                            </div>
+                            <span class="strat-weight">ACTIVE</span>
+                        </div>
+                        <div class="strat-item">
+                            <div class="strat-info">
+                                <strong>Sentiment & Narrative Intelligence</strong>
+                                <small>Narrative velocity & social clustering</small>
+                            </div>
+                            <span class="strat-weight">ACTIVE</span>
+                        </div>
+                        <div class="strat-item">
+                            <div class="strat-info">
+                                <strong>Meta-Strategy Adaptive Allocator</strong>
+                                <small>Regime-weighted consensus synthesizer</small>
+                            </div>
+                            <span class="strat-weight" style="color:#ff1e38;">GOVERNOR</span>
+                        </div>
+                    </div>
+
+                    <!-- Neuralog Architecture 16:9 Schematic -->
+                    <div class="media-card-16-9">
+                        <div class="media-badge-overlay">
+                            <span class="cred-tag-pulse"></span>
+                            <span>NEURALOG ARCHITECTURE</span>
+                        </div>
+                        <img src="static/media/neuralog_schematic_16x9.jpeg" alt="Neuralog Trade Engine Schematic" loading="lazy">
+                        <div class="media-caption-overlay">
+                            <h6>10-AGENT MULTI-MODEL CONSENSUS</h6>
+                            <p>Formal tournament architecture fusing Scalping, Trend, Momentum, and CORTEX Risk Veto.</p>
+                        </div>
+                    </div>
+
+                    <div class="audit-card" style="margin-top:12px;">
+                        <h5>STRATEGY TOURNAMENT RANKINGS</h5>
+                        <p>Continuous out-of-sample stress testing and backtest tournament results.</p>
+                        <div class="cert-badge-row">
+                            <span class="cert-pill">PROMOTED: 4 STRATEGIES</span>
+                            <span class="cert-pill">WATCHLIST: 3 STRATEGIES</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- =======================================================
+                     SECTION 5: PERFORMANCE (Calibration & Learning Ledger)
+                     ======================================================= -->
+                <section id="tab-performance" class="tab-content">
+                    <div class="section-title-row" style="margin-bottom:8px;">
+                        <h4>PARALLEL PAPER PORTFOLIOS (1,000 USDT EACH)</h4>
+                        <span class="refresh-pill">REAL POLYGON 0X DATA</span>
+                    </div>
+
+                    <!-- 4-Tier Paper Portfolio Navigation Pills -->
+                    <div class="ph-timeframes" style="margin-bottom:12px; display:flex; gap:6px;">
+                        <button class="ph-tf-btn paper-port-btn active" data-port="safe" style="flex:1;">SAFE</button>
+                        <button class="ph-tf-btn paper-port-btn" data-port="balanced" style="flex:1;">BALANCED</button>
+                        <button class="ph-tf-btn paper-port-btn" data-port="turbo" style="flex:1;">TURBO</button>
+                        <button class="ph-tf-btn paper-port-btn" data-port="gem" style="flex:1; border-color:rgba(255,30,56,0.5); color:#ff1e38;">GEM FUND</button>
+                    </div>
+
+                    <!-- Active Portfolio Metrics Card (PAPER) -->
+                    <div class="card-cockpit" id="paper-port-card" style="margin-bottom:12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.1);">
+                        <div class="status-row">
+                            <div class="status-indicator">
+                                <span class="pulse-beacon"></span>
+                                <span class="status-txt" id="port-title">PORTFOLIO: <strong>PAPER SAFE (1,000 USDT)</strong></span>
+                            </div>
+                            <span class="shield-badge" id="port-risk-badge">CONFIDENCE &gt;= 80%</span>
+                        </div>
+                        <div class="metrics-grid" style="margin-top:8px;">
+                            <div class="metric-item">
+                                <span class="m-label">CASH BALANCE [PAPER]</span>
+                                <span class="m-val green" id="port-cash">1,000.00 USDT</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="m-label">TOTAL EQUITY</span>
+                                <span class="m-val" id="port-equity">1,000.00 USDT</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="m-label">DAILY REALIZED P&L</span>
+                                <span class="m-val" id="port-pnl" style="color:#34d399;">+0.00 USDT (0.00%)</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="m-label">CURRENT DRAWDOWN</span>
+                                <span class="m-val" id="port-drawdown" style="color:#ffffff;">0.00%</span>
+                            </div>
+                        </div>
+                        <div style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.06); font-size:0.72rem; color:#a1a1aa;" id="port-desc">
+                            Strategy: High-confidence scalping & momentum hold. Position sizing 1–2% notional. Strict -0.40% invalidation cut.
+                        </div>
+                    </div>
+
+                    <div class="section-title-row" style="margin-top:16px; margin-bottom:8px;">
+                        <h4>PREDICTION CALIBRATION & LEARNING LEDGER</h4>
+                        <span class="refresh-pill">HOURLY RECALIBRATION</span>
+                    </div>
+
+                    <div class="preventivo-box" style="margin-bottom:12px;">
+                        <div class="preventivo-row">
+                            <span>DIRECTIONAL ACCURACY:</span>
+                            <strong style="color:#34d399; font-size:0.85rem;">84.2%</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span>PATH ROOT-MEAN-SQUARE ERROR:</span>
+                            <strong style="color:#ffffff;">0.28%</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span>TURNING-POINT PREDICTABILITY:</span>
+                            <strong style="color:#34d399;">79.5%</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span>OVERALL LEARNING SCORE:</span>
+                            <strong class="highlight-quota" style="font-size:0.9rem;">83 / 100</strong>
+                        </div>
+                    </div>
+
+                    <div class="audit-card">
+                        <h5>DECISION QUALITY ATTRIBUTION</h5>
+                        <p>"Profit alone does not define decision quality; lucky wins and good losses must be distinguished."</p>
+                        <div class="cert-badge-row" style="margin-top:8px;">
+                            <span class="cert-pill">CORRECT DECISION: 74%</span>
+                            <span class="cert-pill">CORRECT NO-TRADE: 18%</span>
+                        </div>
+                        <div class="cert-badge-row" style="margin-top:6px;">
+                            <span class="cert-pill">GOOD LOSS: 5%</span>
+                            <span class="cert-pill">LUCKY WIN: 3%</span>
+                        </div>
+                    </div>
+
+                    <div class="audit-card" style="margin-top:10px;">
+                        <h5>5 DIGITAL TWINS SYNCHRONIZATION</h5>
+                        <div class="cert-badge-row" style="margin-top:8px;">
+                            <span class="cert-pill">MARKET TWIN: ACTIVE</span>
+                            <span class="cert-pill">PREDICTION TWIN: ACTIVE</span>
+                            <span class="cert-pill">STRATEGY TWIN: ACTIVE</span>
+                        </div>
+                        <div class="cert-badge-row" style="margin-top:6px;">
+                            <span class="cert-pill">POSITION TWIN: ACTIVE</span>
+                            <span class="cert-pill" style="border-color:rgba(255,30,56,0.4); color:#ff1e38;">GEM TWIN: ACTIVE</span>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- =======================================================
+                     SECTION 6: CORTEX (Risk / Security / Audit Layer)
+                     ======================================================= -->
+                <section id="tab-cortex" class="tab-content">
                     <div class="security-card">
                         <h5 data-i18n="kill_switch_title">EMERGENCY KILL SWITCH</h5>
                         <p data-i18n="kill_switch_desc">In case of emergency or market anomaly, immediately closes all positions and liquidates 100% to USDT in your wallet.</p>
@@ -592,18 +1019,43 @@
                         </button>
                     </div>
 
+                    <!-- CORTEX Security Radar 16:9 Video -->
+                    <div class="media-card-16-9">
+                        <div class="media-badge-overlay">
+                            <span class="cred-tag-pulse"></span>
+                            <span>CORTEX RADAR · AUDIT LAYER</span>
+                        </div>
+                        <video autoplay muted loop playsinline src="static/videos/cortex_badge_16x9.mp4" poster="static/media/holographic_wolf_display_16x9.jpeg"></video>
+                        <div class="media-caption-overlay">
+                            <h6>FAIL-CLOSED HEURISTIC MONITORING</h6>
+                            <p>Zero custody, anti-sandwich protection, and instant emergency stop enforcement.</p>
+                        </div>
+                    </div>
+
                     <div class="audit-card">
-                        <h5 data-i18n="cortex_title">AUDITED & CERTIFIED BY CORTEX</h5>
-                        <p data-i18n="cortex_desc">Continuous heuristic security tests on bor RPC, anti-honeypot gate, and formal smart contract verification.</p>
+                        <h5 style="color:#ff1e38;">CORTEX — RISK / SECURITY / AUDIT LAYER</h5>
+                        <p>Continuous heuristic security monitoring on bor RPC, anti-honeypot checks, and formal smart contract verification.</p>
                         <div class="cert-badge-row">
-                            <span class="cert-pill" data-i18n="cortex_pill_1">FORMAL VERIFICATION: PASSED</span>
-                            <span class="cert-pill" data-i18n="cortex_pill_2">FAIL-CLOSED PROTOCOL: ACTIVE</span>
+                            <span class="cert-pill">HARD STOP CEILING: -5.0%</span>
+                            <span class="cert-pill">FAIL-CLOSED PROTOCOL: ACTIVE</span>
+                        </div>
+                        <div class="cert-badge-row" style="margin-top:6px;">
+                            <span class="cert-pill">NON-CUSTODIAL: 100% WALLET-HELD</span>
+                            <span class="cert-pill">POLYGON POS FINALITY: 137</span>
                         </div>
                     </div>
 
                     <div class="audit-card" style="margin-top: 10px;">
-                        <h5 data-i18n="neuralog_title">ENGINEERED BY NEURALOG · POWERED BY BLOCKCHAIN+</h5>
-                        <p data-i18n="neuralog_desc">Quant Engine powered by proprietary Neuralog statistical models, Blockchain+ decentralized routing, and native Polygon (137) finality.</p>
+                        <h5>DAO TREASURY & ON-CHAIN QUOTAS</h5>
+                        <p>DAO Quota (100 USDT) and Trade Execution Gas Quote (10 POL) sent directly on-chain to official treasury.</p>
+                        <div style="margin-top:8px;">
+                            <code style="font-size:0.7rem; color:#ffffff; word-break:break-all;">0x3C320B3a0917fF44BF6551CDdee44402AFcF250C</code>
+                        </div>
+                    </div>
+
+                    <div class="audit-card" style="margin-top: 10px;">
+                        <h5>ENGINEERED BY NEURALOG · POWERED BY BLOCKCHAIN+ (B+)</h5>
+                        <p>Statistical predictive engine engineered by Neuralog, powered by Blockchain+ decentralized architecture, and native on Polygon POS.</p>
                     </div>
                 </section>
 
@@ -615,18 +1067,99 @@
                     <span class="pulse-icon">
                         <svg class="icon-svg sm svg-red" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"></circle></svg>
                     </span>
-                    <span class="ticker-text" data-i18n="ticker_engine">TRADEAID · Powered by Blockchain+ · Audited by Cortex · Engineered by Neuralog · Polygon 137</span>
+                    <span class="ticker-text">TRADEAID · Powered by BLOCKCHAIN+ (B+) · Engineered by NEURALOG · CORTEX — Risk / Security / Audit Layer · Native on Polygon</span>
                 </div>
             </footer>
+
+    <!-- =======================================================
+         PREDICTIVE HEART MODALS (EXPLAINABILITY & CALIBRATION)
+         ======================================================= -->
+    <!-- Modal: WHY? (Multi-Agent Council & Explainability) -->
+    <div id="modal-ph-ensemble" class="ph-modal-overlay hidden">
+        <div class="ph-modal-box">
+            <div class="ph-modal-header">
+                <h5>WHY? — MULTI-AGENT COUNCIL EXPLAINABILITY</h5>
+                <button class="ph-modal-close" onclick="document.getElementById('modal-ph-ensemble').classList.add('hidden')">&times;</button>
+            </div>
+            <div class="ph-modal-content">
+                <div style="margin-bottom:12px; padding:8px 10px; background:rgba(255,30,56,0.08); border-left:3px solid #ff1e38; border-radius:4px;">
+                    <strong style="color:#ffffff; font-size:0.72rem; display:block;">GOLDEN MASTER PIPELINE CONSENSUS</strong>
+                    <small style="color:#94a3b8; font-size:0.62rem;">Predictive Heart + 10 Council Agents consensus with CORTEX Risk Veto check.</small>
+                </div>
+                <div id="ph-ensemble-list">
+                    <!-- Populated dynamically by PredictiveHeart.openEnsembleModal() -->
+                </div>
+                <div style="margin-top:10px; padding:8px; background:rgba(255,255,255,0.02); border-radius:8px; text-align:center;">
+                    <span style="color:#10b981; font-family:'JetBrains Mono',monospace; font-size:0.68rem; font-weight:700;">CORTEX STATUS: 0 RISKS DETECTED (PASSED)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: SCENARIOS (P10 / P50 / P90 Probability Envelope) -->
+    <div id="modal-ph-scenarios" class="ph-modal-overlay hidden">
+        <div class="ph-modal-box">
+            <div class="ph-modal-header">
+                <h5>PROBABILISTIC TRAJECTORY SCENARIOS</h5>
+                <button class="ph-modal-close" onclick="document.getElementById('modal-ph-scenarios').classList.add('hidden')">&times;</button>
+            </div>
+            <div class="ph-modal-content">
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div style="padding:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:8px;">
+                        <strong style="color:#10b981; font-size:0.75rem; display:block;">BULL EXPANSION (P90)</strong>
+                        <span style="color:#ffffff; font-family:'JetBrains Mono',monospace; font-size:0.8rem; font-weight:700;">$0.3340 (+2.9%)</span>
+                        <small style="color:#94a3b8; font-size:0.62rem; display:block;">Probability: 18% | Volume Surge + Breakout trigger</small>
+                    </div>
+                    <div style="padding:10px; background:rgba(255,30,56,0.1); border:1px solid rgba(255,30,56,0.3); border-radius:8px;">
+                        <strong style="color:#ff1e38; font-size:0.75rem; display:block;">BASE CASE TRAJECTORY (P50 - ACTIVE)</strong>
+                        <span style="color:#ffffff; font-family:'JetBrains Mono',monospace; font-size:0.8rem; font-weight:700;">$0.3304 (+1.84%)</span>
+                        <small style="color:#94a3b8; font-size:0.62rem; display:block;">Probability: 64% | Consensus Target TP2</small>
+                    </div>
+                    <div style="padding:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:8px;">
+                        <strong style="color:#e2e8f0; font-size:0.75rem; display:block;">BEAR RETRACTION (P10)</strong>
+                        <span style="color:#ffffff; font-family:'JetBrains Mono',monospace; font-size:0.8rem; font-weight:700;">$0.3179 (-0.6%)</span>
+                        <small style="color:#94a3b8; font-size:0.62rem; display:block;">Probability: 18% | Hard Stop Loss Level (SL)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: ACCURACY & CALIBRATION (Tournament Learning) -->
+    <div id="modal-ph-learning" class="ph-modal-overlay hidden">
+        <div class="ph-modal-box">
+            <div class="ph-modal-header">
+                <h5>PREDICTION CALIBRATION & LEARNING</h5>
+                <button class="ph-modal-close" onclick="document.getElementById('modal-ph-learning').classList.add('hidden')">&times;</button>
+            </div>
+            <div class="ph-modal-content">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+                    <div style="padding:10px; background:rgba(255,255,255,0.03); border-radius:8px; text-align:center;">
+                        <small style="color:#94a3b8; font-size:0.62rem; display:block;">24H ACCURACY</small>
+                        <strong style="color:#ffffff; font-size:1.1rem; font-family:'JetBrains Mono',monospace;">84.2%</strong>
+                    </div>
+                    <div style="padding:10px; background:rgba(255,255,255,0.03); border-radius:8px; text-align:center;">
+                        <small style="color:#94a3b8; font-size:0.62rem; display:block;">BRIER SCORE</small>
+                        <strong style="color:#10b981; font-size:1.1rem; font-family:'JetBrains Mono',monospace;">0.078</strong>
+                    </div>
+                </div>
+                <p style="color:#94a3b8; font-size:0.68rem; line-height:1.4; margin:0;">
+                    Predictions that fall outside the 90% confidence corridor automatically trigger a weight recalibration in the Strategy Tournament cycle.
+                </p>
+            </div>
+        </div>
+    </div>
 
         </main>
     </div>
 
     <!-- Web3 Scripts -->
-    <script src="static/js/matrix.js?v=upward2"></script>
-    <script src="static/js/predictive-heart.js?v=ph1"></script>
-    <script src="static/js/web3-dapp.js?v=paper3"></script>
+    <script src="static/js/matrix.js?v=slow_large"></script>
+    <script src="static/js/predictive-heart.js?v=gm11"></script>
+    <script src="static/js/btc-realtime.js?v=1s"></script>
+    <script src="static/js/web3-dapp.js?v=autotrade10pol"></script>
     <script>
+
         // Initialize Predictive Heart Engine
         document.addEventListener('DOMContentLoaded', () => {
             if (window.PredictiveHeart) {
@@ -634,7 +1167,7 @@
             }
         });
 
-        // Tab switching
+        // Tab switching (6 Canonical Sections)
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -643,6 +1176,10 @@
                 const targetId = btn.getAttribute('data-target');
                 const targetEl = document.getElementById(targetId);
                 if (targetEl) targetEl.classList.add('active');
+                if (targetId === 'tab-heart') {
+                    if (window.predictiveHeart) setTimeout(() => window.predictiveHeart.resize(), 50);
+                    if (window.btcRealtime) setTimeout(() => window.btcRealtime.setupCanvas(), 50);
+                }
             });
         });
 
@@ -657,6 +1194,36 @@
                 }
             });
         }
+
+        // Live Users Counter (Range: 136.893 to 387.357, fluctuating every 2s by a few tens)
+        (function initLiveUsersCounter() {
+            const minUsers = 136893;
+            const maxUsers = 387357;
+            let currentUsers = Math.floor(215400 + Math.random() * 45000);
+            const countEl = document.getElementById('live-users-count');
+            if (!countEl) return;
+
+            function formatNumber(num) {
+                return num.toLocaleString('it-IT');
+            }
+
+            countEl.textContent = formatNumber(currentUsers);
+
+            setInterval(() => {
+                // Vary by a few tens (-35 to +38)
+                const delta = Math.floor(Math.random() * 74) - 35;
+                currentUsers += delta;
+                if (currentUsers < minUsers) currentUsers = minUsers + Math.floor(Math.random() * 120);
+                if (currentUsers > maxUsers) currentUsers = maxUsers - Math.floor(Math.random() * 120);
+
+                countEl.textContent = formatNumber(currentUsers);
+                countEl.style.textShadow = '0 0 14px rgba(255, 255, 255, 0.9)';
+                setTimeout(() => {
+                    if (countEl) countEl.style.textShadow = '0 0 8px rgba(255, 255, 255, 0.45)';
+                }, 300);
+            }, 2000);
+        })();
     </script>
+
 </body>
 </html>
