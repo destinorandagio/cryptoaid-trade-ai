@@ -1,16 +1,28 @@
-/* 9:16 Mobile-First Web3 dApp Stylesheet */
+/* 9:16 Mobile-First Web3 dApp Stylesheet — Red Matrix Cyberpunk Brand */
 :root {
-    --bg-app: #090d16;
-    --bg-card: rgba(18, 25, 40, 0.85);
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-accent: rgba(0, 255, 178, 0.35);
-    --accent-green: #00ffb2;
-    --accent-cyan: #06b6d4;
-    --accent-purple: #8b5cf6;
+    --bg-app: #05060a;
+    --bg-card: rgba(14, 16, 24, 0.90);
+    --border-subtle: rgba(255, 255, 255, 0.12);
+    --border-accent: rgba(255, 30, 56, 0.5);
+    --brand-red: #ff1e38;
+    --brand-white: #ffffff;
+    --brand-black: #020305;
+    --accent-cyan: #38bdf8;
+    --accent-purple: #a855f7;
     --accent-amber: #f59e0b;
-    --accent-red: #ef4444;
-    --text-main: #f8fafc;
-    --text-muted: #94a3b8;
+    --text-main: #ffffff;
+    --text-muted: #cbd5e1;
+}
+
+#matrix-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.50;
 }
 
 * {
@@ -21,7 +33,7 @@
 }
 
 body.dapp-body {
-    background-color: #03060a;
+    background-color: var(--brand-black);
     color: var(--text-main);
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
     min-height: 100vh;
@@ -39,7 +51,9 @@ body.dapp-body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(circle at center, #0e1726 0%, #03060a 100%);
+    background: transparent;
+    position: relative;
+    z-index: 1;
 }
 
 .dapp-container-9-16 {
@@ -94,31 +108,35 @@ body.dapp-body {
     padding-right: 4px;
 }
 .dapp-logo {
-    width: 28px;
-    height: 28px;
-    object-fit: contain;
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 30, 56, 0.4);
+    box-shadow: 0 0 12px rgba(255, 30, 56, 0.35);
 }
 .dapp-name {
     font-size: 1.05rem;
     font-weight: 800;
     letter-spacing: 0.8px;
-    color: #fff;
+    color: #ffffff;
     display: block;
 }
 .chain-pill {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.62rem;
     font-weight: 700;
-    color: var(--accent-purple);
-    background: rgba(139, 92, 246, 0.15);
+    color: #ffffff;
+    background: rgba(255, 30, 56, 0.2);
+    border: 1px solid rgba(255, 30, 56, 0.4);
     padding: 1px 6px;
     border-radius: 4px;
 }
 
 /* Wallet Button */
 .btn-connect-wallet {
-    background: linear-gradient(135deg, #00ffb2, #00b4d8);
-    color: #03080d;
+    background: linear-gradient(135deg, #ff1e38, #b91c1c);
+    color: #ffffff;
     border: none;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.78rem;
@@ -129,19 +147,20 @@ body.dapp-body {
     display: flex;
     align-items: center;
     gap: 6px;
+    box-shadow: 0 4px 15px rgba(255, 30, 56, 0.35);
     transition: all 0.2s;
 }
 .btn-connect-wallet.connected {
-    background: rgba(0, 255, 178, 0.12);
-    color: var(--accent-green);
-    border: 1px solid rgba(0, 255, 178, 0.3);
+    background: rgba(255, 30, 56, 0.15);
+    color: #ffffff;
+    border: 1px solid rgba(255, 30, 56, 0.4);
 }
 .wallet-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--accent-green);
-    box-shadow: 0 0 8px var(--accent-green);
+    background: var(--brand-red);
+    box-shadow: 0 0 8px var(--brand-red);
 }
 
 /* Warning Banner */

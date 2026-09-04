@@ -11,8 +11,10 @@
     <link rel="stylesheet" href="static/css/dapp.css">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="static/logo.png">
-</head>
 <body class="dapp-body">
+    <!-- Matrix Red 01010101 Rain Effect Canvas -->
+    <canvas id="matrix-canvas"></canvas>
+
     <!-- Main 9:16 Aspect Ratio Container -->
     <div class="viewport-wrapper">
         <main class="dapp-container-9-16">
@@ -267,6 +269,7 @@
     </div>
 
     <!-- Web3 Scripts -->
+    <script src="static/js/matrix.js"></script>
     <script src="static/js/web3-dapp.js"></script>
     <script>
         // Simple tab switching for the 9:16 cockpit
