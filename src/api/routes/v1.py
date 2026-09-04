@@ -459,6 +459,94 @@ def get_auto_learning_status() -> dict[str, Any]:
     }
 
 
+# =========================================================================
+# REWARD ENGINE & ONE-TIME AUTOTRADE SESSION AUTHORIZATION ROUTES
+# =========================================================================
+from src.rewards.reward_engine import RewardEngine
+
+reward_engine = RewardEngine(db_manager=db, live_mode=False)
+
+
+class RewardClaimRequest(BaseModel):
+    wallet: str = Field(example="0x71C...3a9")
+    action: str = Field(example="AUTOTRADE_ACTIVATION")
+    tx_hash: str | None = Field(default=None)
+
+
+class AutotradeAuthorizeRequest(BaseModel):
+    wallet: str = Field(example="0x71C...3a9")
+    mode: str = Field(default="PAPER", example="PAPER")
+    initial_capital_usdt: float = Field(default=1000.0, example=1000.0)
+    risk_profile: str = Field(default="BALANCED", example="BALANCED")
+    max_risk_pct: float = Field(default=2.0, example=2.0)
+    stop_ceiling_pct: float = Field(default=-5.0, example=-5.0)
+
+
+@router.post("/rewards/claim")
+def claim_qualified_reward(req: RewardClaimRequest) -> dict[str, Any]:
+    """Claim qualified action protocol reward (Anti-Sybil enforced)."""
+    try:
+        return reward_engine.claim_reward(
+            wallet=req.wallet,
+            action=req.action,
+            tx_hash=req.tx_hash,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to claim reward: {str(e)}")
+
+
+@router.get("/rewards/wallet/{wallet}")
+def get_wallet_rewards(wallet: str) -> dict[str, Any]:
+    """Get all rewards, claimed POL, and available eligible actions for a wallet."""
+    try:
+        return reward_engine.get_wallet_reward_summary(wallet)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get wallet rewards: {str(e)}")
+
+
+@router.post("/autotrade/authorize")
+def authorize_autotrade_session(req: AutotradeAuthorizeRequest) -> dict[str, Any]:
+    """Authorize 24/7 autonomous autotrade policy with single-click transparent signature."""
+    try:
+        auth_record = db.record_autotrade_authorization(
+            wallet=req.wallet,
+            mode=req.mode,
+            initial_capital_usdt=req.initial_capital_usdt,
+            risk_profile=req.risk_profile,
+            max_risk_pct=req.max_risk_pct,
+            stop_ceiling_pct=req.stop_ceiling_pct,
+        )
+        # Check and grant initial onboarding / autotrade activation reward
+        reward_result = reward_engine.claim_reward(
+            wallet=req.wallet,
+            action="AUTOTRADE_ACTIVATION",
+            tx_hash=f"0xauth_{auth_record['id']}",
+        )
+        return {
+            "status": "AUTHORIZED",
+            "authorization": auth_record,
+            "onboarding_reward": reward_result,
+            "message": "Autotrade authorized successfully. TradeAID will execute autonomously within limits without further signatures.",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to authorize autotrade: {str(e)}")
+
+
+@router.get("/autotrade/status/{wallet}")
+def get_autotrade_status(wallet: str) -> dict[str, Any]:
+    """Get active autotrade policy authorization for a wallet."""
+    try:
+        auth = db.get_active_autotrade_authorization(wallet)
+        return {
+            "wallet": wallet,
+            "has_active_authorization": auth is not None,
+            "authorization": auth,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get autotrade status: {str(e)}")
+
+
+
 
 
 

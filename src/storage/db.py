@@ -608,4 +608,105 @@ class DatabaseManager:
             cursor.execute("SELECT * FROM paper_accounts ORDER BY id ASC")
             return [dict(r) for r in cursor.fetchall()]
 
+    # Reward Ledger Operations (Anti-Sybil Qualified Actions)
+    def record_reward_event(
+        self,
+        wallet: str,
+        qualified_action: str,
+        tx_hash: str | None = None,
+        pol_reward: float = 10.0,
+        sybil_score: float = 0.0,
+        status: str = "CLAIMED",
+    ) -> dict[str, Any]:
+        eid = f"REW-{uuid.uuid4().hex[:12].upper()}"
+        now_str = datetime.now(timezone.utc).isoformat()
+        record = {
+            "reward_event_id": eid,
+            "wallet": wallet.lower(),
+            "qualified_action": qualified_action.upper(),
+            "tx_hash": tx_hash,
+            "pol_reward": pol_reward,
+            "sybil_score": sybil_score,
+            "status": status.upper(),
+            "claimed_at": now_str,
+        }
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO rewards_ledger (reward_event_id, wallet, qualified_action, tx_hash, pol_reward, sybil_score, status, claimed_at)
+                VALUES (:reward_event_id, :wallet, :qualified_action, :tx_hash, :pol_reward, :sybil_score, :status, :claimed_at)
+                """,
+                record,
+            )
+            conn.commit()
+        return record
+
+    def get_wallet_rewards(self, wallet: str) -> dict[str, Any]:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM rewards_ledger WHERE wallet = ? ORDER BY claimed_at DESC",
+                (wallet.lower(),),
+            )
+            rows = [dict(r) for r in cursor.fetchall()]
+
+        total_pol = sum(r["pol_reward"] for r in rows if r["status"] == "CLAIMED")
+        return {
+            "wallet": wallet.lower(),
+            "total_pol_reward": total_pol,
+            "events_count": len(rows),
+            "events": rows,
+        }
+
+    # Autotrade Session Authorization (Single Sign & 24/7 Autonomous Policy)
+    def record_autotrade_authorization(
+        self,
+        wallet: str,
+        mode: str = "PAPER",
+        initial_capital_usdt: float = 1000.0,
+        risk_profile: str = "BALANCED",
+        max_risk_pct: float = 2.0,
+        stop_ceiling_pct: float = -5.0,
+        policy_hash: str | None = None,
+    ) -> dict[str, Any]:
+        aid = f"AUTH-{uuid.uuid4().hex[:10].upper()}"
+        now_str = datetime.now(timezone.utc).isoformat()
+        record = {
+            "id": aid,
+            "wallet": wallet.lower(),
+            "mode": mode.upper(),
+            "initial_capital_usdt": initial_capital_usdt,
+            "risk_profile": risk_profile.upper(),
+            "max_risk_pct": max_risk_pct,
+            "stop_ceiling_pct": stop_ceiling_pct,
+            "authorized_at": now_str,
+            "is_active": 1,
+            "policy_hash": policy_hash or f"0x{uuid.uuid4().hex}",
+        }
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            # Deactivate previous active authorizations for this wallet
+            cursor.execute("UPDATE autotrade_authorizations SET is_active = 0 WHERE wallet = ?", (wallet.lower(),))
+            cursor.execute(
+                """
+                INSERT INTO autotrade_authorizations (id, wallet, mode, initial_capital_usdt, risk_profile, max_risk_pct, stop_ceiling_pct, authorized_at, is_active, policy_hash)
+                VALUES (:id, :wallet, :mode, :initial_capital_usdt, :risk_profile, :max_risk_pct, :stop_ceiling_pct, :authorized_at, :is_active, :policy_hash)
+                """,
+                record,
+            )
+            conn.commit()
+        return record
+
+    def get_active_autotrade_authorization(self, wallet: str) -> dict[str, Any] | None:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM autotrade_authorizations WHERE wallet = ? AND is_active = 1 ORDER BY authorized_at DESC LIMIT 1",
+                (wallet.lower(),),
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+
 

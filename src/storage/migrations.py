@@ -445,6 +445,39 @@ VALUES
     ('UNKNOWN', 'SCALP', 0.0050, 1.10, '["MEAN_REVERSION"]');
 """
 
+MIGRATION_V6 = """
+-- Rewards Ledger (Anti-Sybil Qualified Actions)
+CREATE TABLE IF NOT EXISTS rewards_ledger (
+    reward_event_id TEXT PRIMARY KEY,
+    wallet TEXT NOT NULL,
+    qualified_action TEXT NOT NULL,
+    tx_hash TEXT,
+    pol_reward REAL NOT NULL DEFAULT 10.0,
+    sybil_score REAL NOT NULL DEFAULT 0.0,
+    status TEXT NOT NULL DEFAULT 'CLAIMED',
+    claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_rewards_wallet ON rewards_ledger (wallet);
+CREATE INDEX IF NOT EXISTS idx_rewards_action ON rewards_ledger (qualified_action);
+
+-- Autotrade One-Time Session Authorizations
+CREATE TABLE IF NOT EXISTS autotrade_authorizations (
+    id TEXT PRIMARY KEY,
+    wallet TEXT NOT NULL,
+    mode TEXT NOT NULL DEFAULT 'PAPER',
+    initial_capital_usdt REAL NOT NULL DEFAULT 1000.0,
+    risk_profile TEXT NOT NULL DEFAULT 'BALANCED',
+    max_risk_pct REAL NOT NULL DEFAULT 2.0,
+    stop_ceiling_pct REAL NOT NULL DEFAULT -5.0,
+    authorized_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active INTEGER DEFAULT 1,
+    policy_hash TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_autotrade_wallet ON autotrade_authorizations (wallet);
+"""
+
 
 def apply_migrations(db_path: Path | str) -> None:
     """Run migrations to ensure all database tables are up to date."""
@@ -490,8 +523,16 @@ def apply_migrations(db_path: Path | str) -> None:
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (5)")
             conn.commit()
             logger.info("Database migration V5 applied successfully.")
+
+        if current_version < 6:
+            logger.info("Applying database migration V6 (Rewards Ledger & Autotrade Authorizations)...")
+            cursor.executescript(MIGRATION_V6)
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (6)")
+            conn.commit()
+            logger.info("Database migration V6 applied successfully.")
     finally:
         conn.close()
+
 
 
 

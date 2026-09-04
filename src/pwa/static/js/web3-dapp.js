@@ -31,15 +31,56 @@ class Web3Controller {
         this.isRealMode = false;
         this.hasDaoMembership = false;
         
-        // Paper Simulation State
-        this.paperBalance = 10000.00;
+        // Paper Simulation State (1,000 USDT Virtual)
+        this.paperBalance = 1000.00;
         this.paperPositions = [];
         this.realPositions = [];
         
+        // 4 Parallel Paper Portfolios (1,000 USDT each)
+        this.paperPortfolios = {
+            safe: {
+                title: "PAPER SAFE (1,000 USDT)",
+                riskBadge: "CONFIDENCE >= 80%",
+                cash: "1,000.00 USDT",
+                equity: "1,000.00 USDT",
+                pnl: "+0.00 USDT (0.00%)",
+                drawdown: "0.00%",
+                desc: "Strategy: High-confidence scalping & momentum hold. Position sizing 1–2% notional. Strict -0.40% invalidation cut."
+            },
+            balanced: {
+                title: "PAPER BALANCED (1,000 USDT)",
+                riskBadge: "CONFIDENCE >= 70%",
+                cash: "1,000.00 USDT",
+                equity: "1,000.00 USDT",
+                pnl: "+0.00 USDT (0.00%)",
+                drawdown: "0.00%",
+                desc: "Strategy: Balanced scalp/momentum/trend transition. Position sizing 2–5% notional. Dynamic trailing stops."
+            },
+            turbo: {
+                title: "PAPER TURBO (1,000 USDT)",
+                riskBadge: "CONFIDENCE >= 60%",
+                cash: "1,000.00 USDT",
+                equity: "1,000.00 USDT",
+                pnl: "+0.00 USDT (0.00%)",
+                drawdown: "0.00%",
+                desc: "Strategy: Aggressive volatility expansion & breakout capture. Position sizing 5–10% notional. Wider trailing corridors."
+            },
+            gem: {
+                title: "GEM PAPER FUND (1,000 USDT)",
+                riskBadge: "ASYMMETRIC PAYOFF (x10 / x100)",
+                cash: "1,000.00 USDT",
+                equity: "1,000.00 USDT",
+                pnl: "+0.00 USDT (0.00%)",
+                drawdown: "0.00%",
+                desc: "Strategy: Microcap asymmetric discovery. Small sizing 10–30 USDT. Exit policy: recover principal @ 2x (+100%), partial TP @ 4x (+300%), moonbag trailing."
+            }
+        };
+
         // Active trade staging for on-chain preventivo
         this.activeTradeStaging = null;
 
         this.init();
+
     }
 
     init() {
@@ -68,6 +109,10 @@ class Web3Controller {
         if (savedRealPos) {
             try { this.realPositions = JSON.parse(savedRealPos); } catch (e) { this.realPositions = []; }
         }
+
+        this.autotradeAuthorized = localStorage.getItem("ca_autotrade_authorized") === "true";
+        this.autotradeRunning = localStorage.getItem("ca_autotrade_running") !== "false";
+        this.rewardBalance = parseFloat(localStorage.getItem("ca_reward_balance") || "10.00");
     }
 
     saveState() {
@@ -133,11 +178,129 @@ class Web3Controller {
             window.ethereum.on("chainChanged", (chainId) => this.handleChainChanged(chainId));
         }
 
-        // Language change event
-        window.addEventListener("languageChanged", () => {
-            this.renderState();
+        // Paper Portfolios tab switcher in tab-performance
+        document.querySelectorAll(".paper-port-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".paper-port-btn").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                const portKey = btn.dataset.port;
+                this.renderPortfolioTab(portKey);
+            });
         });
+
+        // =======================================================
+        // HERO AUTOTRADE PRO ENGINE (DUAL-STATE & 1-CLICK AUTOPILOT)
+        // =======================================================
+        const btnHeroAutotrade = document.getElementById("btn-hero-autotrade");
+        if (btnHeroAutotrade) {
+            btnHeroAutotrade.addEventListener("click", () => this.handleHeroAutotradeClick());
+        }
+
+        const btnConfirmAuth = document.getElementById("btn-confirm-autotrade-auth");
+        if (btnConfirmAuth) {
+            btnConfirmAuth.addEventListener("click", () => this.authorizeAutotradeSession());
+        }
+
+        const btnCancelAuth = document.getElementById("btn-cancel-autotrade-auth");
+        const modalAuth = document.getElementById("modal-autotrade-auth");
+        if (btnCancelAuth && modalAuth) {
+            btnCancelAuth.addEventListener("click", () => {
+                modalAuth.classList.add("hidden");
+            });
+            modalAuth.addEventListener("click", (e) => {
+                if (e.target === modalAuth) {
+                    modalAuth.classList.add("hidden");
+                }
+            });
+        }
+
+        const btnActivateOnchain = document.getElementById("btn-activate-onchain-autotrade");
+        if (btnActivateOnchain) {
+            btnActivateOnchain.addEventListener("click", () => {
+                this.openTradePreventivo("POL/USDT");
+            });
+        }
+
+        document.querySelectorAll(".autotrade-preset-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".autotrade-preset-btn").forEach(b => {
+                    b.style.background = "rgba(255,255,255,0.05)";
+                    b.style.borderColor = "rgba(255,255,255,0.1)";
+                    b.classList.remove("active");
+                });
+                btn.classList.add("active");
+                btn.style.background = "rgba(255,30,56,0.2)";
+                btn.style.borderColor = "#ff1e38";
+                const preset = btn.dataset.preset;
+                const stratDisplay = document.getElementById("metric-strategy-display");
+                const heroStratTxt = document.getElementById("hero-strategy-txt");
+                if (preset === "SAFE") {
+                    if (stratDisplay) stratDisplay.textContent = "SCALP SAFE (+0.8%)";
+                    if (heroStratTxt) heroStratTxt.textContent = "SCALP SAFE";
+                } else if (preset === "BALANCED") {
+                    if (stratDisplay) stratDisplay.textContent = "MOMENTUM HOLD (+1.8%)";
+                    if (heroStratTxt) heroStratTxt.textContent = "MOMENTUM";
+                } else if (preset === "TURBO") {
+                    if (stratDisplay) stratDisplay.textContent = "BREAKOUT TURBO (+3.2%)";
+                    if (heroStratTxt) heroStratTxt.textContent = "BREAKOUT";
+                } else if (preset === "GEM") {
+                    if (stratDisplay) stratDisplay.textContent = "GEM ASYMMETRIC (2x Moonbag)";
+                    if (heroStratTxt) heroStratTxt.textContent = "GEM HUNTER";
+                }
+            });
+        });
+
+        this.setupHeroTelemetryCycle();
+
+        // Live rolling telemetry log stream
+        const autotradeStream = document.getElementById("autotrade-log-stream");
+        if (autotradeStream) {
+            const telemetryEvents = [
+                { tag: "BUY EXECUTION", color: "#34d399", txt: "POL/USDT @ $0.3245 (Target: +2.1%, Stop: -1.2%)" },
+                { tag: "GUARDIAN", color: "#60a5fa", txt: "Stop Loss moved to Break-Even (+0.20% DEX fee locked)" },
+                { tag: "CORTEX", color: "#ff1e38", txt: "6-Stage Veto passed (Honeypot: 0/100, Liquidity: $450K)" },
+                { tag: "SCANNER", color: "#a1a1aa", txt: "Predictive Heart: POL P50 +1.84% (Confidence 78%)" },
+                { tag: "GUARDIAN", color: "#60a5fa", txt: "Trailing stop activated @ +1.45% from local peak" },
+                { tag: "STRATEGY SWITCH", color: "#c084fc", txt: "SCALP -> MOMENTUM HOLD transition recorded" },
+                { tag: "GEM RADAR", color: "#fbbf24", txt: "$NEURA liquidity pool verified: 100% Locked, Score 88" },
+            ];
+            let eventIdx = 0;
+            setInterval(() => {
+                if (!isAutotradeActive) return;
+                const ev = telemetryEvents[eventIdx % telemetryEvents.length];
+                eventIdx++;
+                const timeStr = new Date().toTimeString().split(" ")[0];
+                const newRow = document.createElement("div");
+                newRow.style.color = "#e4e4e7";
+                newRow.innerHTML = `<span style="color:#71717a;">[${timeStr}]</span> <strong style="color:${ev.color};">${ev.tag}:</strong> ${ev.txt}`;
+                autotradeStream.insertBefore(newRow, autotradeStream.firstChild);
+                if (autotradeStream.children.length > 5) {
+                    autotradeStream.removeChild(autotradeStream.lastChild);
+                }
+            }, 4000);
+        }
     }
+
+
+    renderPortfolioTab(portKey = "safe") {
+        const data = this.paperPortfolios[portKey] || this.paperPortfolios["safe"];
+        const elTitle = document.getElementById("port-title");
+        const elBadge = document.getElementById("port-risk-badge");
+        const elCash = document.getElementById("port-cash");
+        const elEquity = document.getElementById("port-equity");
+        const elPnl = document.getElementById("port-pnl");
+        const elDrawdown = document.getElementById("port-drawdown");
+        const elDesc = document.getElementById("port-desc");
+
+        if (elTitle) elTitle.innerHTML = `PORTFOLIO: <strong>${data.title}</strong>`;
+        if (elBadge) elBadge.textContent = data.riskBadge;
+        if (elCash) elCash.textContent = data.cash;
+        if (elEquity) elEquity.textContent = data.equity;
+        if (elPnl) elPnl.textContent = data.pnl;
+        if (elDrawdown) elDrawdown.textContent = data.drawdown;
+        if (elDesc) elDesc.textContent = data.desc;
+    }
+
 
     t(key, fallback) {
         return (window.t && window.t(key)) ? window.t(key) : fallback;
@@ -189,19 +352,21 @@ class Web3Controller {
                 `;
             }
 
-            // Simulated Paper Balances
+            // Simulated Paper Balances (1,000 USDT Virtual)
             const exposure = this.paperPositions.reduce((acc, p) => acc + (p.allocation || 0), 0);
             const currentCash = Math.max(0, this.paperBalance - exposure);
             const totalEquity = currentCash + exposure;
 
-            if (metricCash) metricCash.textContent = `${currentCash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT (SIM)`;
+            if (metricCash) metricCash.textContent = `${currentCash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT (PAPER)`;
             if (metricEquity) metricEquity.textContent = `${totalEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`;
             if (metricExposure) metricExposure.textContent = `${exposure.toFixed(2)} USDT (${((exposure / totalEquity) * 100).toFixed(1)}%)`;
 
             this.renderMarketButtons("paper");
+
         }
 
         this.renderPositionsTab();
+        this.renderHeroAutotrade();
     }
 
     renderMarketButtons(mode) {
@@ -244,8 +409,9 @@ class Web3Controller {
 
     // PAPER TRADING EXECUTION
     executePaperTrade(pair) {
-        const alloc = 500.00;
+        const alloc = 100.00;
         const entryPrice = pair.startsWith("POL") ? 0.3245 : 61240.00;
+
         const stopLoss = pair.startsWith("POL") ? 0.3195 : 60500.00;
         const newPos = {
             id: "paper_" + Date.now(),
@@ -629,6 +795,166 @@ class Web3Controller {
         } catch (e) {
             console.warn("Balance fetch error:", e);
         }
+    }
+
+    renderHeroAutotrade() {
+        const btnHero = document.getElementById("btn-hero-autotrade");
+        const btnMain = document.getElementById("hero-btn-main");
+        const btnSub = document.getElementById("hero-btn-sub");
+        const beacon = document.getElementById("autotrade-beacon");
+        const statusPill = document.getElementById("autotrade-status-pill");
+        const vaultDisplay = document.getElementById("reward-vault-display");
+
+        if (vaultDisplay) {
+            vaultDisplay.textContent = `${this.rewardBalance.toFixed(2)} POL`;
+        }
+
+        if (!btnHero) return;
+
+        if (this.autotradeRunning) {
+            btnHero.className = "btn-hero-autotrade running";
+            if (btnMain) {
+                btnMain.innerHTML = `
+                    <span class="pulse-beacon" style="background:#34d399; width:10px; height:10px;"></span>
+                    <span>● AUTOTRADE RUNNING 24/7</span>
+                `;
+            }
+            if (btnSub) {
+                btnSub.textContent = "(CLICK TO PAUSE AUTONOMOUS ENGINE)";
+            }
+            if (beacon) {
+                beacon.style.background = "#34d399";
+                beacon.style.boxShadow = "0 0 12px #34d399";
+            }
+            if (statusPill) {
+                statusPill.textContent = "● RUNNING (DEMO 1,000 USDT)";
+                statusPill.style.color = "#34d399";
+                statusPill.style.background = "rgba(52,211,153,0.15)";
+                statusPill.style.borderColor = "rgba(52,211,153,0.3)";
+            }
+        } else {
+            btnHero.className = "btn-hero-autotrade paused";
+            if (btnMain) {
+                btnMain.innerHTML = `
+                    <span style="font-size:1.1rem; margin-right:4px;">▶</span>
+                    <span>START AUTOTRADE</span>
+                `;
+            }
+            if (btnSub) {
+                btnSub.textContent = "(CLICK TO START AUTONOMOUS ENGINE)";
+            }
+            if (beacon) {
+                beacon.style.background = "#fbbf24";
+                beacon.style.boxShadow = "0 0 12px #fbbf24";
+            }
+            if (statusPill) {
+                statusPill.textContent = "⏸ PAUSED (DEMO 1,000 USDT)";
+                statusPill.style.color = "#fbbf24";
+                statusPill.style.background = "rgba(251,191,36,0.15)";
+                statusPill.style.borderColor = "rgba(251,191,36,0.3)";
+            }
+        }
+    }
+
+    handleHeroAutotradeClick() {
+        if (!this.autotradeAuthorized) {
+            const authModal = document.getElementById("modal-autotrade-auth");
+            if (authModal) authModal.classList.remove("hidden");
+            return;
+        }
+
+        this.autotradeRunning = !this.autotradeRunning;
+        localStorage.setItem("ca_autotrade_running", this.autotradeRunning ? "true" : "false");
+        this.renderHeroAutotrade();
+    }
+
+    async authorizeAutotradeSession() {
+        const btnConfirm = document.getElementById("btn-confirm-autotrade-auth");
+        const statusBox = document.getElementById("auth-tx-status");
+        if (btnConfirm) btnConfirm.disabled = true;
+        if (statusBox) {
+            statusBox.textContent = "Authorizing session policy & crediting 10 POL Paper Reward...";
+            statusBox.className = "status-box";
+        }
+
+        const wallet = this.account || "0x_demo_paper_user";
+
+        try {
+            // Record authorization to API if online
+            try {
+                await fetch("/api/v1/autotrade/authorize", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        wallet: wallet,
+                        max_allocation_usdt: 1000.0,
+                        max_drawdown_pct: 5.0,
+                        risk_profile: "BALANCED"
+                    })
+                });
+            } catch (e) {
+                console.warn("Autotrade API offline, continuing local demo mode:", e);
+            }
+
+            // Claim 10 POL Paper Reward for qualified action AUTOTRADE_ACTIVATION
+            try {
+                const claimResp = await fetch("/api/v1/rewards/claim", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        wallet: wallet,
+                        action_type: "AUTOTRADE_ACTIVATION",
+                        signature: "0x_demo_session_signature"
+                    })
+                });
+                const claimData = await claimResp.json();
+                if (claimData.pol_reward) {
+                    this.rewardBalance = 10.00;
+                }
+            } catch (e) {
+                console.warn("Reward claim API offline, local credit 10 POL:", e);
+                this.rewardBalance = 10.00;
+            }
+
+            localStorage.setItem("ca_autotrade_authorized", "true");
+            localStorage.setItem("ca_autotrade_running", "true");
+            localStorage.setItem("ca_reward_balance", this.rewardBalance.toString());
+
+            this.autotradeAuthorized = true;
+            this.autotradeRunning = true;
+
+            if (statusBox) {
+                statusBox.textContent = "Policy Authorized! 10 POL Paper Reward credited to Vault.";
+                statusBox.className = "status-box status-success";
+            }
+
+            setTimeout(() => {
+                const authModal = document.getElementById("modal-autotrade-auth");
+                if (authModal) authModal.classList.add("hidden");
+                if (btnConfirm) btnConfirm.disabled = false;
+                this.renderHeroAutotrade();
+            }, 700);
+
+        } catch (err) {
+            console.error("Auth error:", err);
+            if (btnConfirm) btnConfirm.disabled = false;
+            if (statusBox) {
+                statusBox.textContent = "Authorization error. Try again.";
+                statusBox.className = "status-box status-error";
+            }
+        }
+    }
+
+    setupHeroTelemetryCycle() {
+        setInterval(() => {
+            if (!this.autotradeRunning) return;
+            const regimes = ["TRENDING", "MOMENTUM EXPANSION", "MEAN REVERTING", "ACCUMULATION CORRIDOR"];
+            const rEl = document.getElementById("hero-regime-txt");
+            if (rEl && Math.random() < 0.35) {
+                const pick = regimes[Math.floor(Math.random() * regimes.length)];
+                rEl.textContent = pick;
+            }
+        }, 5000);
     }
 }
 

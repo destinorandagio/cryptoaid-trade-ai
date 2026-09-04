@@ -207,6 +207,67 @@
                 </div>
             </div>
 
+            <!-- ONE-TIME AUTOTRADE SESSION AUTHORIZATION MODAL (ZERO PER-TRADE SIGNATURES) -->
+            <div id="modal-autotrade-auth" class="preventivo-overlay hidden">
+                <div class="preventivo-modal" style="max-width:520px;">
+                    <div class="preventivo-icon">
+                        <svg class="icon-svg lg svg-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                        </svg>
+                    </div>
+                    <div class="preventivo-tag" style="background:rgba(52,211,153,0.12); color:#34d399; border-color:rgba(52,211,153,0.3);">
+                        ONE-TIME POLICY DELEGATION · ZERO SPAM SIGNATURES
+                    </div>
+                    <h3 style="color:#ffffff; margin-top:8px;">AUTOTRADE SESSION AUTHORIZATION</h3>
+                    <p class="preventivo-desc">
+                        Authorize TRADEAID to trade autonomously within your defined risk corridor. Once granted, 
+                        <strong>Heart → Cortex → Guardian</strong> executes 24/7 in background without interrupting you for per-trade signatures.
+                    </p>
+
+                    <div class="preventivo-box" style="margin-top:14px;">
+                        <div class="preventivo-row">
+                            <span>SESSION MODE:</span>
+                            <strong style="color:#34d399;">DEMO PAPER AUTOTRADE (1,000 USDT)</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span>HARD RISK CEILING:</span>
+                            <strong style="color:#ff1e38;">-5.0% CORTEX KILL-SWITCH</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span>MAX PER-TRADE RISK:</span>
+                            <strong style="color:#ffffff;">2.0% DYNAMIC ALLOCATION</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span>PER-TRADE SIGNATURES:</span>
+                            <strong style="color:#34d399;">ZERO (AUTONOMOUS BACKGROUND)</strong>
+                        </div>
+                        <div class="preventivo-row" style="background:rgba(247,147,26,0.1); border-top:1px dashed rgba(247,147,26,0.3); padding-top:6px; margin-top:4px;">
+                            <span style="color:#f7931a;">QUALIFIED ACTION REWARD:</span>
+                            <strong style="color:#f7931a; font-family:'JetBrains Mono',monospace;">🎁 +10.00 POL PAPER REWARD</strong>
+                        </div>
+                    </div>
+
+                    <div id="auth-tx-status" class="status-box" style="margin-top:12px; font-size:0.75rem;">
+                        Ready for 1-Click Policy Authorization
+                    </div>
+
+                    <div class="preventivo-actions" style="margin-top:14px;">
+                        <button id="btn-confirm-autotrade-auth" class="btn-sign-preventivo" style="background:linear-gradient(135deg, #059669, #10b981); border-color:#34d399;">
+                            <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            <span>AUTHORIZE & START AUTOTRADE (+10 POL)</span>
+                        </button>
+                        <button id="btn-cancel-autotrade-auth" class="btn-cancel-preventivo">
+                            CANCEL
+                        </button>
+                    </div>
+
+                    <div style="margin-top:10px; font-size:0.62rem; color:#71717a; text-align:center;">
+                        Trading performance ≠ POL reward · Anti-Sybil Ledger Protected · 100% Non-Custodial
+                    </div>
+                </div>
+            </div>
+
             <!-- MODAL: PREDICTIVE HEART ENSEMBLE ("WHY?") -->
             <div id="modal-ph-ensemble" class="preventivo-overlay hidden">
                 <div class="preventivo-modal ph-modal-content">
@@ -527,27 +588,76 @@
                          CENTRAL AUTOTRADE PRO ENGINE (1-CLICK AUTOPILOT)
                          ======================================================= -->
 
+                    <!-- =======================================================
+                         CENTRAL AUTOTRADE HERO ENGINE (ONE-CLICK AUTONOMOUS)
+                         ======================================================= -->
+
                     <div class="card-cockpit autotrade-pro-card" style="margin-top:12px; border:1px solid rgba(255,30,56,0.35); background: linear-gradient(145deg, rgba(22,22,30,0.96), rgba(12,12,18,0.96));">
                         <div class="autotrade-header-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <span class="pulse-beacon" id="autotrade-beacon" style="background:#34d399; box-shadow:0 0 12px #34d399;"></span>
-                                <strong style="color:#ffffff; font-size:0.92rem; letter-spacing:0.5px;">AUTOTRADE PRO</strong>
+                                <strong style="color:#ffffff; font-size:0.95rem; letter-spacing:0.5px;">🤖 AUTOTRADE PRO</strong>
                                 <span class="cert-pill" id="autotrade-status-pill" style="background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3); font-weight:700; font-size:0.68rem;">● RUNNING (DEMO 1,000 USDT)</span>
                             </div>
                             <div style="display:flex; align-items:center; gap:6px;">
                                 <span class="shield-badge" style="font-size:0.65rem;">STOP CEILING: -5.0%</span>
-                                <button id="btn-toggle-autotrade" class="btn-autotrade-toggle active" style="background:#ff1e38; color:#ffffff; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:0.72rem; padding:4px 10px; border-radius:6px; border:none; cursor:pointer;">PAUSE</button>
                             </div>
                         </div>
 
-                        <!-- Viral Scale Benchmark (178k+ Active Traders) -->
-                        <div style="margin-top:8px; padding:6px 10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:0.70rem;">
-                            <span style="color:#a1a1aa;">COMMUNITY SCALE:</span>
-                            <strong style="color:#34d399; font-family:'JetBrains Mono',monospace;">178,420+ ACTIVE AUTOTRADERS ON POLYGON</strong>
+                        <!-- BIG HERO CENTRAL DUAL-STATE BUTTON -->
+                        <div style="margin-top:14px; text-align:center;">
+                            <button id="btn-hero-autotrade" class="btn-hero-autotrade running">
+                                <span id="hero-btn-main" style="display:flex; align-items:center; gap:8px;">
+                                    <span class="pulse-beacon" style="background:#34d399; width:10px; height:10px;"></span>
+                                    <span>● AUTOTRADE RUNNING 24/7</span>
+                                </span>
+                                <span id="hero-btn-sub" class="btn-hero-sub">(CLICK TO PAUSE AUTONOMOUS ENGINE)</span>
+                            </button>
+                        </div>
+
+                        <!-- 4 LIVE TELEMETRY STATUS ITEMS DIRECTLY UNDER BUTTON -->
+                        <div class="autotrade-telemetry-strip" style="margin-top:10px;">
+                            <div class="telemetry-pill">
+                                <span class="t-dot green"></span>
+                                <span>HEART SCANNING 42 ASSETS</span>
+                            </div>
+                            <div class="telemetry-pill">
+                                <span class="t-dot cyan"></span>
+                                <span>CURRENT REGIME: <strong id="hero-regime-txt" style="color:#ffffff;">TRENDING</strong></span>
+                            </div>
+                            <div class="telemetry-pill">
+                                <span class="t-dot amber"></span>
+                                <span>STRATEGY: <strong id="hero-strategy-txt" style="color:#ffffff;">MOMENTUM</strong></span>
+                            </div>
+                            <div class="telemetry-pill">
+                                <span class="t-dot red"></span>
+                                <span>CORTEX: <strong id="hero-cortex-txt" style="color:#ffffff;">PROTECTED</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- SIMULATED REWARD ENGINE VAULT (SEPARATE FROM P&L) -->
+                        <div class="reward-vault-strip" style="margin-top:12px; background:linear-gradient(135deg, rgba(247,147,26,0.12), rgba(20,20,26,0.95)); border:1px solid rgba(247,147,26,0.35); border-radius:10px; padding:10px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:1.3rem;">🎁</span>
+                                    <div>
+                                        <strong style="color:#f7931a; font-size:0.85rem; letter-spacing:0.5px;">10 POL PAPER REWARD</strong>
+                                        <div style="font-size:0.62rem; color:#a1a1aa;">QUALIFIED ACTION: <span style="color:#ffffff;">AUTOTRADE ONBOARDING</span> · <span style="color:#34d399;">ANTI-SYBIL: CLEAN (0.02)</span></div>
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="font-size:0.58rem; color:#a1a1aa;">REWARD VAULT (SEPARATE FROM P&L):</div>
+                                    <strong id="reward-vault-display" style="font-family:'JetBrains Mono',monospace; color:#ffffff; font-size:0.95rem;">10.00 POL</strong>
+                                </div>
+                            </div>
+                            <div style="margin-top:6px; border-top:1px solid rgba(255,255,255,0.06); padding-top:4px; display:flex; justify-content:space-between; font-size:0.60rem; color:#71717a;">
+                                <span>Trading performance ≠ POL reward</span>
+                                <span style="color:#f7931a;">Paper Reward Adapter Active (Simulated)</span>
+                            </div>
                         </div>
 
                         <!-- Autopilot Risk Profile Selector -->
-                        <div style="margin-top:10px;">
+                        <div style="margin-top:12px;">
                             <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">AUTOPILOT RISK PROFILE:</span>
                             <div class="autotrade-mode-grid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;">
                                 <button class="autotrade-preset-btn" data-preset="SAFE" style="padding:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#ffffff; font-size:0.68rem; font-weight:700; cursor:pointer;">SAFE (1-2%)</button>
@@ -580,7 +690,7 @@
                         <!-- Live Automated Execution Stream (Console Ticker) -->
                         <div style="margin-top:10px; background:#08080c; border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:8px; font-family:'JetBrains Mono',monospace; font-size:0.68rem;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:4px;">
-                                <span style="color:#71717a;">LIVE AUTOTRADE TELEMETRY:</span>
+                                <span style="color:#71717a;">AUTONOMOUS EXECUTION STREAM (NO PER-TRADE SIGNATURE):</span>
                                 <span style="color:#34d399;" id="autotrade-tick-speed">1s TICK ● POLYGON RPC</span>
                             </div>
                             <div id="autotrade-log-stream" style="display:flex; flex-direction:column; gap:3px;">
@@ -594,19 +704,8 @@
                             <span>TODAY NET P&L (PAPER):</span>
                             <strong style="color:#34d399;" id="metric-today-pnl">+0.00 USDT (0.00%)</strong>
                         </div>
-
-                        <!-- CENTRAL ON-CHAIN ACTIVATION BUTTON (10 POL PER SIGNATURE) -->
-                        <div style="margin-top:12px;">
-                            <button id="btn-activate-onchain-autotrade" class="btn-unlock-real" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; font-weight:800; font-size:0.80rem; letter-spacing:0.5px; background:linear-gradient(90deg, #ff1e38, #b91c1c); border:none; border-radius:8px; color:#ffffff; cursor:pointer; box-shadow: 0 4px 20px rgba(255,30,56,0.35);">
-                                <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                                <span>ACTIVATE ON-CHAIN AUTOTRADE (10 POL DAO QUOTA)</span>
-                            </button>
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:0.62rem; color:#a1a1aa;">
-                                <span>Non-Custodial · Direct Polygon Network Signature</span>
-                                <strong style="color:#ffffff;">10 POL per On-Chain Trade Authorization</strong>
-                            </div>
-                        </div>
                     </div>
+
 
                     <!-- GEM HUNTER RADAR (Polygon Microcap Discovery) -->
                     <div class="card-cockpit" style="margin-top:12px; border:1px solid rgba(255,30,56,0.25);">
