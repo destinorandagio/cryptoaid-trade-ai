@@ -135,3 +135,28 @@ Native on Polygon
 - Treasury Address: `0x3C320B3a0917fF44BF6551CDdee44402AFcF250C`
 - Network: Polygon POS (Chain ID 137, Gas: POL, Base: USDT)
 - Hard Stop Ceiling: 5.0% Maximum Drawdown per Trade.
+
+---
+
+## 6. Open-Source Foundations & 10 P0 Critical Components
+
+Per la documentazione dettagliata di implementazione, consultare [STACK_RATIONALIZATION_P0.md](file:///c:/81PLUS_GLOBAL_MASTER/cryptoaid.support/cryptoaid-trade-ai/docs/STACK_RATIONALIZATION_P0.md).
+
+### I 10 Pezzi Indispensabili (P0):
+1. **DEX Execution Middleware:** `Hummingbot Gateway` (Polygon POS + wallet + 0x + Uniswap connectors).
+2. **DEX Aggregator Primario:** `0x Swap API v2` (Quote ottimali, gasless, Permit2).
+   - *Regola Invalicabile:* MAI concedere allowance a `Settler`, SOLO a `Permit2` / `AllowanceHolder`.
+3. **Second Router & Fallback:** `Uniswap Router / SOR` (Quote comparator e failover).
+4. **Meta-Router Pattern:** `DexGuru Meta Aggregation` (Pattern FastAPI `VIEW -> SERVICE -> PROVIDERS`).
+5. **Transaction Simulation:** `Router Protocol Simulator + RPC eth_call` (Pre-sign safety check su Chain 137).
+6. **Wallet & EVM Signer:** `web3.py / eth-account` (Firma transazione non-custodiale).
+7. **Strategy Research & Format:** `Freqtrade / FreqAI` (Formati standard, hyperopt, dry-run adattivo).
+8. **DEX Trading Patterns:** `Hummingbot Core` (Pattern Arbitraggio / Market Making).
+9. **Backtest Tournament Engine:** `vectorbt + Optuna + backtest-truth` (Anti-overfitting & look-ahead bias linter).
+10. **Performance & Calibration:** `QuantStats + TradeAID Ledger` (Sharpe, Calmar, MaxDD e Brier Score calibrazione).
+
+### Repository Architecture:
+- **GitHub (`destinorandagio/cryptoaid-trade-ai`):** Control plane primario di sviluppo e runtime.
+- **Forgejo:** Mirror sovrano, self-hosted backup e CI secondaria offline (NON nel critical path di trading).
+- **3 Repo Canonici:** `cryptoaidsupport` (Risk/Knowledge), `cryptoaid-trade-ai` (Runtime/PWA/Engine), `tradeaid-research` (Digital Twin/DNA/Warehouse).
+
