@@ -1821,11 +1821,11 @@
                 if (videoCard && !colRight.contains(videoCard)) colRight.appendChild(videoCard);
             }
 
-            // Trigger canvas resizing
-            if (window.predictiveHeart) {
+            // Trigger canvas resizing safely
+            if (window.predictiveHeart && typeof window.predictiveHeart.resize === 'function') {
                 setTimeout(() => window.predictiveHeart.resize(), 60);
             }
-            if (window.btcRealtime) {
+            if (window.btcRealtime && typeof window.btcRealtime.setupCanvas === 'function') {
                 setTimeout(() => window.btcRealtime.setupCanvas(), 60);
             }
         }

@@ -415,6 +415,7 @@ class Web3Controller {
                     if (stratDisplay) stratDisplay.textContent = "GEM ASYMMETRIC (2x Moonbag)";
                     if (heroStratTxt) heroStratTxt.textContent = "GEM HUNTER";
                 }
+            });
         });
 
         // Prop Challenge Tier selector buttons

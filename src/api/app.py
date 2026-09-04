@@ -48,7 +48,8 @@ app.include_router(v1_router)
 
 # Mount PWA static assets
 if PWA_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(PWA_DIR)), name="static")
+    app.mount("/trade/static", StaticFiles(directory=str(PWA_DIR / "static")), name="trade_static")
+    app.mount("/static", StaticFiles(directory=str(PWA_DIR / "static")), name="static")
 
 
 @app.get("/")
@@ -64,3 +65,13 @@ def serve_pwa_root():
         "docs": "/docs",
         "api": "/api/v1",
     }
+
+
+@app.get("/dapp.html")
+@app.get("/trade/dapp.html")
+def serve_pwa_dapp():
+    """Serve PWA dApp cockpit."""
+    dapp_file = PWA_DIR / "dapp.html"
+    if dapp_file.exists():
+        return FileResponse(dapp_file)
+    return {"error": "dapp.html not found"}
