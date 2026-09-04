@@ -1,130 +1,174 @@
 {
-  "artifact_id": "TRADEAID_HISTORICAL_DATA_SOURCE_REGISTRY",
+  "registry_id": "TRADEAID-HDSR-001",
   "version": "1.0.0",
   "created_at": "2026-09-04",
-  "evidence_state": "DESIGN_SPEC",
   "owner": "CRYPTOAID_TRADE_AI",
-  "component": "HistoricalDataSourceRegistry",
-  "purpose": "Catalogo verificato e provenance delle fonti dati storiche per BTC, ETH, POL/MATIC e Top-200 dinamica, con classificazione a tier di qualità e regole di consenso multi-source.",
-  "invariants": [
-    "Nessun dato viene accettato senza provenance e licenza verificata",
-    "Dataset senza timestamps UTC espliciti vengono scartati (REJECT)",
-    "Divergenze di prezzo tra fonti sono registrate, non arbitrate a priori",
-    "Fonti con survivorship bias palese non possono essere usate per universi dinamici"
-  ],
-  "data_quality_tiers": {
-    "TIER_A": {
-      "definition": "Dati ad alta fedeltà tick-level o OHLCV 1m/5m/1h verificabili con hash/checksum, da fonti primarie o exchange ufficiali, senza interpolazioni nascoste.",
-      "audit_requirements": ["UTC timestamps", "volume verified in quote/base", "gap rate < 0.01%", "no retroactive adjustments"]
+  "purpose": "Catalogo delle fonti storiche verificabili per BTC, ETH, POL/MATIC e Dynamic Top-200. Nessuna fonte è data per scontata: ogni voce richiede probe di copertura prima dell'uso in produzione.",
+  "classification_legend": {
+    "TIER_A": "OHLCV giornaliero/intraday completo, provenance verificabile, license compatibile, timestamp UTC coerenti, corporate actions gestibili.",
+    "TIER_B": "Copertura buona ma con gap minori, metadati parziali, o license da confermare.",
+    "TIER_C": "Copertura frammentaria, granularità settimanale/mensile, o provenance non completamente riproducibile.",
+    "REJECT": "Non utilizzabile per replay quantitativo (no provenance, no timestamp, no license)."
+  },
+  "sources": [
+    {
+      "source_id": "SRC-COINGECKO-HIST",
+      "name": "CoinGecko Historical OHLCV (public endpoints + archive)",
+      "url": "https://www.coingecko.com/",
+      "type": "aggregator",
+      "coverage": {
+        "BTC": {"from": "2013-09", "tier": "TIER_A"},
+        "ETH": {"from": "2015-08", "tier": "TIER_A"},
+        "POL_MATIC": {"from": "2017-10", "tier": "TIER_A", "identity_note": "MATIC->POL migration 2024 requires canonical mapping"},
+        "TOP200_DAILY": {"from": "2019-01", "tier": "TIER_B", "note": "Prima del 2019 la copertura top-200 giornaliera è incompleta"}
+      },
+      "license": "requires commercial license for bulk redistribution; free tier for research",
+      "provenance": "aggregated from multiple exchanges",
+      "survivorship_handling": "delisted assets retained in /coins/{id}/history with status=delisted",
+      "corporate_actions": "partial (renames tracked, migrations require manual mapping)",
+      "risks": ["rate limits", "symbol collisions pre-2020", "no native OHLCV before 2017 for many alts"]
     },
-    "TIER_B": {
-      "definition": "Dati aggregati giornalieri/orari da aggregatori affidabili (CryptoDataDownload, CoinGecko Pro, archivi storici Kraken/Bitstamp) con documentata metodologia di aggregazione.",
-      "audit_requirements": ["daily continuity checked", "outlier detection applied", "gap rate < 0.1%"]
+    {
+      "source_id": "SRC-COINMARKETCAP-HIST",
+      "name": "CoinMarketCap Historical Snapshots (via Internet Archive + official API)",
+      "url": "https://coinmarketcap.com/ + https://web.archive.org/",
+      "type": "aggregator + web archive",
+      "coverage": {
+        "BTC": {"from": "2013-05", "tier": "TIER_A"},
+        "ETH": {"from": "2015-08", "tier": "TIER_A"},
+        "TOP200_DAILY": {"from": "2017-01", "tier": "TIER_B", "note": "Snapshot giornaliero ricostruibile via Wayback Machine con parsing"}
+      },
+      "license": "CMC API requires paid plan; Wayback Machine data is public but parsing-intensive",
+      "provenance": "exchange-aggregated, historical snapshots archived",
+      "survivorship_handling": "excellent via historical rank pages",
+      "risks": ["parsing fragile", "snapshot gaps", "rank definitions changed over time"]
     },
-    "TIER_C": {
-      "definition": "Dati storici pionieristici (es. MtGox 2010-2013, snapshot Wayback Machine CMC) con qualità frammentaria, utili per marker qualitativi di regime ma non per execution replay sub-giornaliero.",
-      "audit_requirements": ["explicit disclaimer required", "excluded from DEX slippage simulation"]
+    {
+      "source_id": "SRC-BTC-KAGGLE",
+      "name": "Bitcoin Historical Data (Kaggle, multiple datasets)",
+      "url": "https://www.kaggle.com/datasets?search=bitcoin",
+      "type": "community dataset",
+      "coverage": {
+        "BTC": {"from": "2010-07", "tier": "TIER_B", "note": "pre-2013 data has low liquidity and exchange concentration"}
+      },
+      "license": "varies per dataset, check individual",
+      "provenance": "must be verified per dataset; prefer MtGox+Bitstamp+Coinbase cross-validated",
+      "risks": ["not all datasets reproducible", "exchange-specific bias pre-2016"]
     },
-    "REJECT": {
-      "definition": "Dataset sintetici, con look-ahead, survivorship bias non corretto, simboli ambigui o licenze commerciali incompatibili."
+    {
+      "source_id": "SRC-CRYPTODATADOWNLOAD",
+      "name": "CryptoDataDownload (public exchange archives)",
+      "url": "https://www.cryptodatadownload.com/",
+      "type": "exchange raw archives",
+      "coverage": {
+        "BTC": {"from": "2011-01", "tier": "TIER_A", "multi_exchange": true},
+        "ETH": {"from": "2015-08", "tier": "TIER_A"},
+        "ALTS": {"from": "2017-01", "tier": "TIER_B"}
+      },
+      "license": "free for non-commercial; commercial requires check",
+      "provenance": "direct exchange CSV exports (Bitstamp, Coinbase, Kraken, Binance)",
+      "risks": ["manual download", "no unified schema", "symbol mapping required"]
+    },
+    {
+      "source_id": "SRC-BINANCE-DATA-VISION",
+      "name": "Binance Data Vision (public kline/trades archive)",
+      "url": "https://data.binance.vision/",
+      "type": "exchange raw archive",
+      "coverage": {
+        "BTC": {"from": "2017-08", "tier": "TIER_A"},
+        "ETH": {"from": "2017-08", "tier": "TIER_A"},
+        "ALTS": {"from": "2017-08", "tier": "TIER_A"}
+      },
+      "license": "public, free",
+      "provenance": "official Binance",
+      "risks": ["Binance-only bias pre-2020 for many alts", "no pre-2017 data"]
+    },
+    {
+      "source_id": "SRC-DUNE-ANALYTICS",
+      "name": "Dune Analytics (on-chain + DEX aggregated)",
+      "url": "https://dune.com/",
+      "type": "on-chain analytics",
+      "coverage": {
+        "ETH": {"from": "2015-08", "tier": "TIER_A"},
+        "POLYGON": {"from": "2021-09", "tier": "TIER_A"},
+        "DEX_VOLUMES": {"from": "2018-10", "tier": "TIER_B"}
+      },
+      "license": "free tier + paid; query results reusable with attribution",
+      "provenance": "on-chain decoded",
+      "risks": ["query cost", "not suitable for full top-200 OHLCV"]
+    },
+    {
+      "source_id": "SRC-THE-GRAPH",
+      "name": "The Graph (subgraphs for DeFi protocols)",
+      "url": "https://thegraph.com/",
+      "type": "on-chain indexing",
+      "coverage": {
+        "DEX_PRICES": {"from": "2018-11", "tier": "TIER_B"},
+        "LENDING_RATES": {"from": "2019-01", "tier": "TIER_B"}
+      },
+      "license": "varies per subgraph",
+      "risks": ["not a price oracle", "subgraph-specific"]
+    },
+    {
+      "source_id": "SRC-HUGGINGFACE-CRYPTO",
+      "name": "Hugging Face crypto datasets",
+      "url": "https://huggingface.co/datasets?search=crypto",
+      "type": "community",
+      "coverage": {
+        "BTC": {"from": "2013-01", "tier": "TIER_B"},
+        "NEWS_SENTIMENT": {"from": "2017-01", "tier": "TIER_C"}
+      },
+      "license": "varies per dataset",
+      "risks": ["provenance must be verified per dataset", "not for primary pricing"]
+    },
+    {
+      "source_id": "SRC-INTERNET-ARCHIVE",
+      "name": "Wayback Machine (exchange pages, CMC historical)",
+      "url": "https://web.archive.org/",
+      "type": "web archive",
+      "coverage": {
+        "CMC_RANKINGS": {"from": "2014-01", "tier": "TIER_C"},
+        "EXCHANGE_LISTINGS": {"from": "2013-01", "tier": "TIER_C"}
+      },
+      "license": "public",
+      "risks": ["parsing-intensive", "gaps", "no OHLCV direct"]
+    },
+    {
+      "source_id": "SRC-KAIKO",
+      "name": "Kaiko (institutional-grade crypto data)",
+      "url": "https://www.kaiko.com/",
+      "type": "institutional",
+      "coverage": {
+        "ALL": {"from": "2017-01", "tier": "TIER_A"}
+      },
+      "license": "commercial, expensive",
+      "risks": ["cost", "overkill for paper replay"]
+    },
+    {
+      "source_id": "SRC-GLASSNODE",
+      "name": "Glassnode (on-chain metrics, BTC-focused)",
+      "url": "https://glassnode.com/",
+      "type": "on-chain analytics",
+      "coverage": {
+        "BTC_ONCHAIN": {"from": "2015-01", "tier": "TIER_A"}
+      },
+      "license": "commercial for full access",
+      "risks": ["cost", "BTC-centric"]
     }
+  ],
+  "source_selection_policy": {
+    "primary_btc_pre_2017": ["SRC-CRYPTODATADOWNLOAD", "SRC-BTC-KAGGLE"],
+    "primary_btc_post_2017": ["SRC-BINANCE-DATA-VISION", "SRC-CRYPTODATADOWNLOAD"],
+    "primary_eth": ["SRC-BINANCE-DATA-VISION", "SRC-COINGECKO-HIST"],
+    "primary_top200_post_2019": ["SRC-COINGECKO-HIST"],
+    "primary_top200_pre_2019": ["SRC-COINMARKETCAP-HIST (Wayback)", "SRC-COINGECKO-HIST (partial)"],
+    "consensus_required": true,
+    "divergence_threshold_pct": 1.0
   },
-  "asset_registries_sources": {
-    "BTC": [
-      {
-        "era_id": "ERA-1_2010_2013",
-        "primary_provider": "CryptoDataDownload",
-        "archive_feed": "MtGox historical OHLCV daily",
-        "quality_tier": "TIER_C",
-        "granularity": "1d",
-        "license": "Public / Academic Research",
-        "known_divergence_flags": ["EARLY_EXCHANGE_ILLIQUIDITY", "MTGOX_PRE_COLLAPSE_PREMIUM"]
-      },
-      {
-        "era_id": "ERA-2_2013_2016",
-        "primary_provider": "Bitstamp / Coinbase / Kraken via CryptoDataDownload",
-        "secondary_provider": "CoinGecko API (from 2013-09)",
-        "quality_tier": "TIER_B",
-        "granularity": "1d, 1h",
-        "consensus_rule": "Volume-weighted median tra exchange primari",
-        "conflict_threshold_pct": 1.0
-      },
-      {
-        "era_id": "ERA-3_2017_present",
-        "primary_provider": "Binance Data Vision / Kraken Public Archives",
-        "secondary_provider": "CoinGecko Enterprise, CoinMarketCap Archives",
-        "quality_tier": "TIER_A",
-        "granularity": ["1m", "5m", "15m", "1h", "4h", "1d"],
-        "consensus_rule": "Cross-exchange consensus con flag di divergenza se spread > 0.50%"
-      }
-    ],
-    "ETH": [
-      {
-        "era_id": "ETH_GENESIS_2015_2017",
-        "primary_provider": "Kraken / Poloniex historical archives via CryptoDataDownload",
-        "quality_tier": "TIER_B",
-        "granularity": "1d, 1h",
-        "notes": "Include The DAO fork (2016-07) con separazione canonica ETH vs ETC"
-      },
-      {
-        "era_id": "ETH_MODERN_2017_present",
-        "primary_provider": "Binance Data Vision / Coinbase",
-        "quality_tier": "TIER_A",
-        "granularity": ["1m", "5m", "15m", "1h", "1d"]
-      }
-    ],
-    "POL_MATIC": [
-      {
-        "era_id": "MATIC_IEO_2019_2020",
-        "primary_provider": "Binance Data Vision (MATIC/USDT spot)",
-        "quality_tier": "TIER_A",
-        "symbol": "MATIC",
-        "chain": "Ethereum ERC20"
-      },
-      {
-        "era_id": "POLYGON_POS_2020_2024",
-        "primary_provider": "Binance Data Vision + QuickSwap V2/V3 On-Chain Data",
-        "quality_tier": "TIER_A",
-        "symbol": "MATIC",
-        "chain": "Polygon PoS native gas token"
-      },
-      {
-        "era_id": "POL_MIGRATION_2024_present",
-        "primary_provider": "Binance Data Vision (POL/USDT) + 0x Swap API v2 + QuickSwap",
-        "quality_tier": "TIER_A",
-        "symbol": "POL",
-        "chain": "Polygon 2.0 native token (1:1 migration effective 2024-09-04)",
-        "migration_rule": "Splicing continuo preservando history MATIC pre-migrazione con flag IDENTITY_MIGRATED"
-      }
-    ],
-    "TOP_200_UNIVERSE": [
-      {
-        "period": "2013_2019",
-        "primary_provider": "CoinMarketCap Historical Snapshots via Wayback Machine Scraper",
-        "secondary_provider": "CoinGecko historical",
-        "quality_tier": "TIER_C",
-        "granularity": "Weekly / Monthly",
-        "survivorship_safe": true,
-        "dead_project_inclusion": true
-      },
-      {
-        "period": "2020_present",
-        "primary_provider": "CoinGecko Pro Historical Market Cap API",
-        "secondary_provider": "CoinMarketCap API / DefiLlama",
-        "quality_tier": "TIER_B",
-        "granularity": "Daily",
-        "survivorship_safe": true,
-        "delisted_retained": true
-      }
-    ]
-  },
-  "consensus_divergence_protocol": {
-    "detection": "ABS(SourceA_Close - SourceB_Close) / MIN(SourceA_Close, SourceB_Close)",
-    "thresholds": {
-      "warning": 0.005,
-      "divergence_flag": 0.015,
-      "quarantine": 0.050
-    },
-    "action": "Registra data_flags ['MULTI_SOURCE_DIVERGENCE'] in curated layer senza alterare raw"
-  }
+  "probes_required_before_production": [
+    "Verify CoinGecko daily top-200 coverage completeness 2019-01 to 2026-09",
+    "Quantify Wayback Machine CMC snapshot density per month 2014-2018",
+    "Cross-validate BTC price 2013-2016 across MtGox/Bitstamp/Coinbase",
+    "Confirm POL/MATIC identity mapping dates across sources"
+  ]
 }

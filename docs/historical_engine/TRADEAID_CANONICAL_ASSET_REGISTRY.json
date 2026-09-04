@@ -1,18 +1,135 @@
 {
-  "artifact_id": "TRADEAID_CANONICAL_ASSET_REGISTRY",
+  "registry_id": "TRADEAID-CAR-001",
   "version": "1.0.0",
   "created_at": "2026-09-04",
-  "evidence_state": "DESIGN_SPEC",
   "owner": "CRYPTOAID_TRADE_AI",
-  "component": "CanonicalAssetRegistry",
-  "purpose": "Registro immutabile delle identità asset con canonical_asset_id univoco indipendente dal ticker. Traccia fork, rebrand, migrazioni di contratti, fallimenti e collassi (senza survivorship bias).",
-  "identity_rules": [
-    "Il simbolo di trading (ticker) NON è mai la chiave primaria (PK)",
-    "Ogni asset possiede un canonical_asset_id immutabile nel formato CANON_<GENESIS_CHAIN>_<HASH_OR_NAME>",
-    "Tutte le variazioni di simbolo nel tempo sono registrate come asset_identity_events con data di efficacia e ratio di conversione",
-    "Gli asset collassati o azzerati (es. LUNA/UST, FTT, CEL) rimangono perennemente censiti con status DEAD/DELISTED e non vengono rimossi dagli snapshot storici"
+  "purpose": "Canonical asset identity. Symbol is NOT a primary key. Handles renames, migrations, wrapped tokens, chain migrations, symbol collisions.",
+  "id_scheme": {
+    "canonical_id_format": "CA-{FAMILY}-{SEQUENCE}",
+    "family_codes": {
+      "L1": "Layer 1 native",
+      "L2": "Layer 2 native",
+      "ERC20": "Ethereum token",
+      "POLY": "Polygon token",
+      "STABLE": "Stablecoin",
+      "WRAPPED": "Wrapped/bridged representation",
+      "DERIV": "Derivative/synthetic"
+    },
+    "example": "CA-L1-0001 = BTC, CA-L1-0002 = ETH, CA-POLY-0014 = POL (ex MATIC)"
+  },
+  "assets": [
+    {
+      "canonical_id": "CA-L1-0001",
+      "family": "L1",
+      "current_symbol": "BTC",
+      "current_name": "Bitcoin",
+      "birth_date": "2009-01-03",
+      "first_market_data": "2010-07-17",
+      "first_reliable_market_data": "2013-01-01",
+      "chain": "bitcoin",
+      "status": "ACTIVE",
+      "identity_events": []
+    },
+    {
+      "canonical_id": "CA-L1-0002",
+      "family": "L1",
+      "current_symbol": "ETH",
+      "current_name": "Ethereum",
+      "birth_date": "2015-07-30",
+      "first_market_data": "2015-08-07",
+      "first_reliable_market_data": "2016-01-01",
+      "chain": "ethereum",
+      "status": "ACTIVE",
+      "identity_events": []
+    },
+    {
+      "canonical_id": "CA-POLY-0014",
+      "family": "POLY",
+      "current_symbol": "POL",
+      "current_name": "POL (ex MATIC)",
+      "birth_date": "2017-10-14",
+      "first_market_data": "2017-10-31",
+      "first_reliable_market_data": "2019-01-01",
+      "chain": "polygon",
+      "status": "ACTIVE",
+      "identity_events": [
+        {
+          "event_id": "EVT-001",
+          "event_type": "RENAME",
+          "effective_date": "2024-09-04",
+          "from_symbol": "MATIC",
+          "to_symbol": "POL",
+          "from_name": "Polygon",
+          "to_name": "POL (ex MATIC)",
+          "ratio": "1:1",
+          "canonical_id_unchanged": true,
+          "source": "Polygon official announcement"
+        },
+        {
+          "event_id": "EVT-002",
+          "event_type": "STAKE_MIGRATION",
+          "effective_date": "2024-10",
+          "description": "MATIC->POL stake migration on Polygon PoS",
+          "canonical_id_unchanged": true
+        }
+      ],
+      "symbol_aliases": ["MATIC", "POL"],
+      "lookup_table": {
+        "before_2024-09-04": "MATIC",
+        "from_2024-09-04": "POL"
+      }
+    },
+    {
+      "canonical_id": "CA-L1-0030",
+      "family": "L1",
+      "current_symbol": "LUNC",
+      "current_name": "Terra Classic (ex LUNA)",
+      "birth_date": "2019-04-24",
+      "first_market_data": "2019-07-26",
+      "first_reliable_market_data": "2020-01-01",
+      "chain": "terra-classic",
+      "status": "DELISTED",
+      "identity_events": [
+        {
+          "event_id": "EVT-010",
+          "event_type": "COLLAPSE_AND_RENAME",
+          "effective_date": "2022-05-28",
+          "from_symbol": "LUNA",
+          "to_symbol": "LUNC",
+          "ratio": "N/A",
+          "canonical_id_unchanged": true,
+          "note": "Legacy chain renamed to Terra Classic; new chain received token CA-L1-0031 (LUNA)"
+        }
+      ]
+    },
+    {
+      "canonical_id": "CA-ERC20-0088",
+      "family": "ERC20",
+      "current_symbol": "FTT",
+      "current_name": "FTX Token",
+      "birth_date": "2019-07-29",
+      "first_market_data": "2019-07-31",
+      "first_reliable_market_data": "2019-08-01",
+      "chain": "ethereum",
+      "status": "DEAD",
+      "identity_events": [
+        {
+          "event_id": "EVT-020",
+          "event_type": "PROJECT_COLLAPSE",
+          "effective_date": "2022-11-11",
+          "description": "FTX bankruptcy filing Chapter 11, delisted across Tier 1 venues"
+        }
+      ]
+    }
   ],
-  "asset_status_taxonomy": [
+  "identity_rules": {
+    "rename_is_same_canonical_id": true,
+    "wrapped_token_is_different_canonical_id": true,
+    "chain_migration_is_new_canonical_id_with_link": true,
+    "rebrand_with_new_token_is_new_canonical_id": true,
+    "dead_token_retains_canonical_id_with_status_DEAD": true
+  },
+  "status_lifecycle": [
     "BIRTH",
     "LISTED",
     "ACTIVE",
@@ -21,133 +138,11 @@
     "RENAMED",
     "DEAD"
   ],
-  "canonical_assets_sample_registry": [
-    {
-      "canonical_asset_id": "CANON_BTC_BITCOIN",
-      "family": "BITCOIN",
-      "current_symbol": "BTC",
-      "current_name": "Bitcoin",
-      "birth_date": "2009-01-03",
-      "first_market_data": "2010-07-17",
-      "first_reliable_market_data": "2013-04-28",
-      "chain": "Bitcoin",
-      "status": "ACTIVE",
-      "aliases": [{"symbol": "XBT", "valid_from": "2011-01-01", "valid_to": null}],
-      "events": []
-    },
-    {
-      "canonical_asset_id": "CANON_ETH_ETHEREUM",
-      "family": "ETHEREUM",
-      "current_symbol": "ETH",
-      "current_name": "Ethereum",
-      "birth_date": "2015-07-30",
-      "first_market_data": "2015-08-07",
-      "first_reliable_market_data": "2015-08-07",
-      "chain": "Ethereum",
-      "status": "ACTIVE",
-      "events": [
-        {
-          "event_type": "HARD_FORK",
-          "effective_date": "2016-07-20",
-          "description": "The DAO hard fork: ETH fork continue, ETC legacy preserved",
-          "new_canonical_id": "CANON_ETC_ETHEREUM_CLASSIC"
-        }
-      ]
-    },
-    {
-      "canonical_asset_id": "CANON_POLYGON_MATIC_POL",
-      "family": "POLYGON",
-      "current_symbol": "POL",
-      "current_name": "Polygon Ecosystem Token",
-      "birth_date": "2019-04-26",
-      "first_market_data": "2019-04-26",
-      "first_reliable_market_data": "2019-04-26",
-      "chain": "Polygon PoS",
-      "status": "ACTIVE",
-      "events": [
-        {
-          "event_type": "REBRAND",
-          "effective_date": "2021-02-09",
-          "from_name": "Matic Network",
-          "to_name": "Polygon",
-          "symbol_unchanged": true
-        },
-        {
-          "event_type": "TOKEN_MIGRATION",
-          "effective_date": "2024-09-04",
-          "from_symbol": "MATIC",
-          "to_symbol": "POL",
-          "ratio": "1:1",
-          "description": "Polygon 2.0 migration: MATIC upgraded to POL as native gas & staking token"
-        }
-      ]
-    },
-    {
-      "canonical_asset_id": "CANON_TERRA_LUNA_ORIGINAL",
-      "family": "TERRA",
-      "current_symbol": "LUNC",
-      "current_name": "Terra Classic",
-      "birth_date": "2019-04-24",
-      "first_market_data": "2019-07-26",
-      "chain": "Terra Classic",
-      "status": "DELISTED",
-      "events": [
-        {
-          "event_type": "COLLAPSE_AND_RENAME",
-          "effective_date": "2022-05-28",
-          "from_symbol": "LUNA",
-          "to_symbol": "LUNC",
-          "description": "Hyperinflation death spiral of UST/LUNA, hard fork creating Terra 2.0 (LUNA) and leaving legacy as LUNC",
-          "new_canonical_id": "CANON_TERRA_LUNA_V2"
-        }
-      ]
-    },
-    {
-      "canonical_asset_id": "CANON_FTX_FTT",
-      "family": "FTX",
-      "current_symbol": "FTT",
-      "current_name": "FTX Token",
-      "birth_date": "2019-07-29",
-      "first_market_data": "2019-07-31",
-      "chain": "Ethereum ERC20",
-      "status": "DEAD",
-      "events": [
-        {
-          "event_type": "EXCHANGE_COLLAPSE",
-          "effective_date": "2022-11-11",
-          "description": "FTX bankruptcy filing Chapter 11, delisted across Tier 1 exchanges"
-        }
-      ]
-    },
-    {
-      "canonical_asset_id": "CANON_RENDER_RNDR",
-      "family": "RENDER",
-      "current_symbol": "RENDER",
-      "current_name": "Render",
-      "birth_date": "2020-06-11",
-      "first_market_data": "2020-06-12",
-      "chain": "Solana (migrated from Ethereum)",
-      "status": "ACTIVE",
-      "events": [
-        {
-          "event_type": "CHAIN_AND_TICKER_MIGRATION",
-          "effective_date": "2023-11-02",
-          "from_symbol": "RNDR",
-          "to_symbol": "RENDER",
-          "from_chain": "Ethereum",
-          "to_chain": "Solana",
-          "ratio": "1:1"
-        }
-      ]
+  "lookup_by_symbol_at_date": {
+    "description": "Given (symbol, date), return canonical_id using identity_events timeline.",
+    "example": {
+      "input": {"symbol": "MATIC", "date": "2023-06-15"},
+      "output": "CA-POLY-0014"
     }
-  ],
-  "symbol_resolution_function": {
-    "signature": "resolve_canonical_asset_id(symbol: str, target_date: date) -> str",
-    "algorithm": [
-      "1. Query asset_symbol_aliases where symbol == input_symbol and (valid_from <= target_date or valid_from is null) and (valid_to >= target_date or valid_to is null)",
-      "2. If exact match found: return canonical_asset_id",
-      "3. If multiple matches: disambiguate through asset_identity_events timeline effective at target_date",
-      "4. If no match found: raise UnknownHistoricalAssetError(symbol, target_date)"
-    ]
   }
 }
