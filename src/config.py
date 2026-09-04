@@ -35,6 +35,7 @@ class Settings(BaseModel):
     # Dedicated Trading Wallet Signer (Server-side only, NEVER log or expose)
     trading_wallet_address: str | None = Field(default_factory=lambda: os.getenv("TRADING_WALLET_ADDRESS"))
     trading_wallet_private_key: str | None = Field(default_factory=lambda: os.getenv("TRADING_WALLET_PRIVATE_KEY"))
+    treasury_address: str = Field(default_factory=lambda: os.getenv("TREASURY_ADDRESS", "0x3C320B3a0917fF44BF6551CDdee44402AFcF250C"))
     
     # Database
     db_path: Path = DATA_DIR / "trade_ai.db"
