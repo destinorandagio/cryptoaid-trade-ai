@@ -1,6 +1,7 @@
 """FastAPI Application Entrypoint for CryptoAID Trade AI."""
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,8 +10,19 @@ from fastapi.staticfiles import StaticFiles
 
 from src.api.routes.v1 import router as v1_router
 from src.config import settings
+from src.learning.auto_learner import global_auto_learner as auto_learner
 
 PWA_DIR = Path(__file__).resolve().parent.parent / "pwa"
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Start H24 Auto-Learning Engine
+    await auto_learner.start()
+    yield
+    # Shutdown: Stop Auto-Learning Engine
+    await auto_learner.stop()
+
 
 app = FastAPI(
     title="CryptoAID Trade AI",
@@ -18,7 +30,9 @@ app = FastAPI(
     description="AI Trading + Web3 Intelligence + Risk Intelligence + Multi-Agent Decision Engine",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
+
 
 # Enable CORS for local PWA testing and frontend clients
 app.add_middleware(

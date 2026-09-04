@@ -15,6 +15,7 @@ from src.data.digital_twins import DigitalTwinsManager
 from src.data.provider import CompositeMarketDataProvider
 from src.execution.models import OrderSide
 from src.execution.paper_engine import PaperExecutionEngine
+from src.learning.auto_learner import AutoLearnerEngine
 from src.learning.experience_matrix import ExperienceMatrix
 from src.learning.memory_weighting import ChampionChallengerSystem
 from src.performance.metrics import calculate_performance
@@ -36,9 +37,11 @@ execution_engine = PaperExecutionEngine(db=db, risk_engine=capital_engine, risk_
 gem_hunter = GemHunterEngine(db=db)
 twins_manager = DigitalTwinsManager(db=db)
 risk_agent_v1 = RiskAgentV1()
-strategy_selector = StrategySelector()
-experience_matrix = ExperienceMatrix(db_manager=db)
-champion_system = ChampionChallengerSystem(db_manager=db)
+from src.learning.auto_learner import global_auto_learner as auto_learner
+strategy_selector = auto_learner.strategy_selector
+experience_matrix = auto_learner.experience_matrix
+champion_system = auto_learner.champion_system
+
 
 
 class OrderRequest(BaseModel):
@@ -433,6 +436,28 @@ def evaluate_champion_promotion(
         return champion_system.evaluate_promotion(regime=regime, experience_matrix=experience_matrix, asset=asset)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to evaluate promotion: {str(e)}")
+
+
+@router.post("/learning/auto/step")
+async def trigger_auto_learning_step() -> dict[str, Any]:
+    """Manually trigger one autonomous learning, execution, and calibration cycle."""
+    try:
+        return await auto_learner.step()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to execute auto-learning step: {str(e)}")
+
+
+@router.get("/learning/auto/status")
+def get_auto_learning_status() -> dict[str, Any]:
+    """Get the runtime state of the H24 auto-learning pipeline."""
+    return {
+        "is_running": auto_learner.is_running,
+        "iteration_count": auto_learner.iteration_count,
+        "tick_interval_seconds": auto_learner.tick_interval_seconds,
+        "active_champion_bull": champion_system.get_champion("TRENDING_BULL"),
+        "matrix_stats": experience_matrix.get_matrix_stats(),
+    }
+
 
 
 
