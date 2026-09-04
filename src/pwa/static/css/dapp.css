@@ -25,27 +25,54 @@
     opacity: 0.65;
 }
 
-
+/* Universal Zero-Scrollbar and Tap Highlight Rules */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
 }
 
-body.dapp-body {
+*::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+}
+
+html, body {
     background-color: var(--brand-black);
     color: var(--text-main);
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    scroll-behavior: smooth;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+body.dapp-body {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
-    overflow-x: hidden;
+    overflow-x: hidden !important;
 }
 
-/* 9:16 Aspect Ratio Enforcer */
+/* ==========================================================================
+   VIEWPORT WRAPPER & RESPONSIVE CONTAINERS: 9:16 (MOBILE) vs 16:9 (TABLET & PC)
+   ========================================================================== */
+
 .viewport-wrapper {
     width: 100%;
     height: 100vh;
@@ -55,33 +82,82 @@ body.dapp-body {
     background: transparent;
     position: relative;
     z-index: 1;
+    overflow: hidden !important;
 }
 
+/* Base dApp Container */
 .dapp-container-9-16 {
-    width: 100%;
-    max-width: 440px; /* 9:16 optimal desktop width */
-    height: 100%;
-    max-height: 890px; /* 9:16 height */
     background-color: var(--bg-app);
     border: 1px solid var(--border-subtle);
-    border-radius: 28px;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: hidden !important;
     position: relative;
-    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 255, 178, 0.08);
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85), 0 0 40px rgba(255, 30, 56, 0.12);
 }
 
-/* On mobile devices: 100% full screen */
-@media (max-width: 500px) {
+/* MOBILE DEVICES (< 768px): STRICT 9:16 FORMAT (TOUCH FIRST, FULL-BLEED) */
+@media (max-width: 767px) {
     .viewport-wrapper {
         height: 100dvh;
+        width: 100vw;
+        padding: 0;
     }
     .dapp-container-9-16 {
-        max-width: 100%;
-        max-height: 100%;
+        width: 100%;
+        max-width: 480px;
+        height: 100dvh;
+        aspect-ratio: 9 / 16;
         border-radius: 0;
         border: none;
+        box-shadow: none;
+    }
+    .cockpit-grid-2col {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        width: 100%;
+    }
+    .cockpit-col-left,
+    .cockpit-col-right {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        width: 100%;
+    }
+}
+
+/* TABLETS & PC / DESKTOP (>= 768px): STRICT 16:9 WIDESCREEN COCKPIT */
+@media (min-width: 768px) {
+    .viewport-wrapper {
+        width: 100vw;
+        height: 100vh;
+        padding: 16px;
+        background: radial-gradient(circle at 50% 20%, rgba(255, 30, 56, 0.09) 0%, #030407 80%);
+    }
+    .dapp-container-9-16 {
+        /* Mathematically exact 16:9 widescreen ratio fitting any monitor/tablet */
+        aspect-ratio: 16 / 9;
+        width: min(96vw, calc(94vh * 16 / 9));
+        height: min(94vh, calc(96vw * 9 / 16));
+        max-width: 1540px;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 30, 56, 0.35);
+        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.9), 0 0 50px rgba(255, 30, 56, 0.14);
+    }
+    .cockpit-grid-2col {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 18px;
+        align-items: start;
+        width: 100%;
+    }
+    .cockpit-col-left,
+    .cockpit-col-right {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 0; /* Prevents overflow blowout in grid */
     }
 }
 
@@ -312,14 +388,26 @@ body.dapp-body {
     cursor: pointer;
 }
 
-/* Scroll Area */
+/* Scroll Area — Invisible Scrollbars, Pure Touch & Mouse Drag/Wheel */
 .cockpit-scroll-area {
     flex: 1;
-    overflow-y: auto;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+    overscroll-behavior-y: contain !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
     padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 16px;
+}
+.cockpit-scroll-area::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
 }
 .cockpit-scroll-area.blurred {
     filter: blur(6px);

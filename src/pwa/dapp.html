@@ -8,11 +8,162 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="static/css/dapp.css?v=gm11">
+    <link rel="stylesheet" href="static/css/dapp.css?v=20260904_zero_scroll">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="static/logo.png">
     <!-- Multi-Language i18n Manager -->
     <script src="static/js/i18n.js?v=gm11"></script>
+
+    <style>
+    /* ==========================================================================
+       CRITICAL ZERO-SCROLLBAR ENGINE & RESPONSIVE 9:16 vs 16:9 VIEWPORT RULES
+       Guarantees 100% invisible scrollbars on ALL browsers (Chrome, Safari, Firefox, Edge)
+       ========================================================================== */
+    *, *::before, *::after {
+        box-sizing: border-box;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+
+    ::-webkit-scrollbar,
+    *::-webkit-scrollbar,
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar,
+    div::-webkit-scrollbar,
+    section::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        max-width: 0 !important;
+        max-height: 0 !important;
+        background: transparent !important;
+        opacity: 0 !important;
+    }
+
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #020305 !important;
+        color: #ffffff;
+        overflow: hidden !important;
+        overflow-x: hidden !important;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .viewport-wrapper {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden !important;
+        position: relative;
+        z-index: 1;
+        background: transparent;
+    }
+
+    /* ==========================================================================
+       MOBILE VIEW (< 768px): STRICT 9:16 FORMAT (TOUCH-FIRST, ZERO SCROLLBARS)
+       ========================================================================== */
+    @media (max-width: 767px) {
+        .viewport-wrapper {
+            padding: 0 !important;
+        }
+        .dapp-container-9-16 {
+            width: 100% !important;
+            max-width: 480px !important;
+            height: 100dvh !important;
+            aspect-ratio: 9 / 16;
+            border-radius: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden !important;
+        }
+        .cockpit-grid-2col {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 14px !important;
+            width: 100% !important;
+        }
+        .cockpit-col-left,
+        .cockpit-col-right {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 14px !important;
+            width: 100% !important;
+        }
+    }
+
+    /* ==========================================================================
+       TABLET & PC (>= 768px): STRICT 16:9 WIDESCREEN COCKPIT (MOUSE WHEEL & DRAG)
+       ========================================================================== */
+    @media (min-width: 768px) {
+        .viewport-wrapper {
+            padding: 16px !important;
+            background: radial-gradient(circle at 50% 25%, rgba(255, 30, 56, 0.10) 0%, #030407 85%) !important;
+        }
+        .dapp-container-9-16 {
+            aspect-ratio: 16 / 9 !important;
+            width: min(96vw, calc(94vh * 16 / 9)) !important;
+            height: min(94vh, calc(96vw * 9 / 16)) !important;
+            max-width: 1540px !important;
+            border-radius: 24px !important;
+            border: 1px solid rgba(255, 30, 56, 0.4) !important;
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.95), 0 0 50px rgba(255, 30, 56, 0.16) !important;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden !important;
+            position: relative;
+        }
+        .cockpit-grid-2col {
+            display: grid !important;
+            grid-template-columns: 1.05fr 0.95fr !important;
+            gap: 18px !important;
+            align-items: start !important;
+            width: 100% !important;
+        }
+        .cockpit-col-left,
+        .cockpit-col-right {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 16px !important;
+            min-width: 0 !important;
+        }
+    }
+
+    /* SCROLL CONTAINER: ABSOLUTELY NO VISIBLE SCROLLBARS, SILKY TOUCH & MOUSE SCROLL */
+    .cockpit-scroll-area {
+        flex: 1 1 auto;
+        overflow-y: scroll !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y !important;
+        overscroll-behavior-y: contain !important;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+        padding: 16px !important;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .cockpit-scroll-area::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+
+    /* Prevent any horizontal overflow blowout inside cockpit cards */
+    .cockpit-scroll-area * {
+        max-width: 100%;
+    }
+    </style>
 </head>
 <body class="dapp-body">
     <!-- Matrix Red 01010101 Rain Effect Canvas (Upward & Slow) -->
@@ -437,8 +588,9 @@
                      SECTION 1: HEART (HOME PWA COCKPIT)
                      ======================================================= -->
                 <section id="tab-heart" class="tab-content active">
-                    
-                    <div class="predictive-heart-card">
+                    <div class="cockpit-grid-2col">
+                        <div class="cockpit-col-left">
+                            <div class="predictive-heart-card">
                         <div class="ph-top-bar">
                             <div class="ph-badge-title">
                                 <svg class="icon-svg sm svg-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
@@ -583,21 +735,23 @@
                             </div>
                         </div>
                     </div>
+                    </div> <!-- /cockpit-col-left -->
 
-                    <!-- =======================================================
-                         CENTRAL AUTOTRADE PRO ENGINE (1-CLICK AUTOPILOT)
-                         ======================================================= -->
+                    <div class="cockpit-col-right">
+                        <!-- =======================================================
+                             CENTRAL AUTOTRADE PRO ENGINE (1-CLICK AUTOPILOT)
+                             ======================================================= -->
 
-                    <!-- =======================================================
-                         3 DEDICATED PROTOCOL LEDGERS
-                         LEDGER 1: AUTOTRADE RUN (DEMO GAMIFICATA)
-                         LEDGER 2: PROP CHALLENGE (PROGRAMMA A TIER)
-                         LEDGER 3: TRADING CREDITS (TAC WALLET)
-                         ======================================================= -->
+                        <!-- =======================================================
+                             3 DEDICATED PROTOCOL LEDGERS
+                             LEDGER 1: AUTOTRADE RUN (DEMO GAMIFICATA)
+                             LEDGER 2: PROP CHALLENGE (PROGRAMMA A TIER)
+                             LEDGER 3: TRADING CREDITS (TAC WALLET)
+                             ======================================================= -->
 
-                    <!-- =======================================================
-                         LEDGER 1: AUTOTRADE RUN (DEMO GAMIFICATA)
-                         ======================================================= -->
+                        <!-- =======================================================
+                             LEDGER 1: AUTOTRADE RUN (DEMO GAMIFICATA)
+                             ======================================================= -->
                     <div class="ledger-section-card ledger-1" id="ledger-autotrade-run">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                             <div style="display:flex; align-items:center; gap:8px;">
@@ -871,11 +1025,12 @@
                                 <div class="prop-perk-pill">PRELIEVO MARGINE BASE: <span>NON RIMBORSABILE</span></div>
                             </div>
                         </div>
-                    </div>
+                    </div> <!-- /ledger-trading-credits -->
 
-
+                    <!-- AUTOPILOT CONSOLE & EXECUTION STREAM -->
+                    <div class="card-cockpit" id="cockpit-risk-card" style="margin-top:14px;">
                         <!-- Autopilot Risk Profile Selector -->
-                        <div style="margin-top:12px;">
+                        <div style="margin-top:4px;">
                             <span style="font-size:0.65rem; color:#71717a; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">AUTOPILOT RISK PROFILE:</span>
                             <div class="autotrade-mode-grid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;">
                                 <button class="autotrade-preset-btn" data-preset="SAFE" style="padding:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#ffffff; font-size:0.68rem; font-weight:700; cursor:pointer;">SAFE (1-2%)</button>
@@ -926,7 +1081,7 @@
 
 
                     <!-- GEM HUNTER RADAR (Polygon Microcap Discovery) -->
-                    <div class="card-cockpit" style="margin-top:12px; border:1px solid rgba(255,30,56,0.25);">
+                    <div class="card-cockpit" id="gem-radar-card" style="margin-top:12px; border:1px solid rgba(255,30,56,0.25);">
                         <div class="status-row">
                             <div class="status-indicator">
                                 <span class="pulse-beacon" style="background:#ff1e38; box-shadow:0 0 10px #ff1e38;"></span>
@@ -972,7 +1127,7 @@
                     </div>
 
                     <!-- Predictive Engine 16:9 Cinematic Video Banner -->
-                    <div class="media-card-16-9">
+                    <div class="media-card-16-9" id="predictive-video-card">
                         <div class="media-badge-overlay">
                             <span class="cred-tag-pulse"></span>
                             <span>PREDICTIVE ENGINE · 16:9 HUD</span>
@@ -984,8 +1139,9 @@
                         </div>
                     </div>
 
-
-                </section>
+                    </div> <!-- /cockpit-col-right -->
+                </div> <!-- /cockpit-grid-2col -->
+            </section>
 
                 <!-- =======================================================
                      SECTION 2: MARKETS (Polygon Live, Depth, Intelligence)
@@ -1539,6 +1695,71 @@
                     if (countEl) countEl.style.textShadow = '0 0 8px rgba(255, 255, 255, 0.45)';
                 }, 300);
             }, 2000);
+        })();
+
+        // Responsive 16:9 Desktop/Tablet vs 9:16 Mobile Column Balancer
+        function balanceCockpitColumns() {
+            const isDesktop = window.innerWidth >= 768;
+            const colLeft = document.querySelector('.cockpit-col-left');
+            const colRight = document.querySelector('.cockpit-col-right');
+            const gemCard = document.getElementById('gem-radar-card');
+            const videoCard = document.getElementById('predictive-video-card');
+            if (!colLeft || !colRight || !gemCard) return;
+
+            if (isDesktop) {
+                // On 16:9 Desktop/Tablet: Place Gem Radar and Video in Left Column under BTC Oscilloscope
+                // so Left Column (~1150px) and Right Column (~1150px) are perfectly balanced side-by-side!
+                if (!colLeft.contains(gemCard)) colLeft.appendChild(gemCard);
+                if (videoCard && !colLeft.contains(videoCard)) colLeft.appendChild(videoCard);
+            } else {
+                // On 9:16 Mobile: Place Gem Radar and Video in Right Column after Ledgers
+                // so user sees Heart -> BTC -> Ledger 1 -> Ledger 2 -> Ledger 3 -> Cockpit -> Gem Radar
+                if (!colRight.contains(gemCard)) colRight.appendChild(gemCard);
+                if (videoCard && !colRight.contains(videoCard)) colRight.appendChild(videoCard);
+            }
+
+            // Trigger canvas resizing
+            if (window.predictiveHeart) {
+                setTimeout(() => window.predictiveHeart.resize(), 60);
+            }
+            if (window.btcRealtime) {
+                setTimeout(() => window.btcRealtime.setupCanvas(), 60);
+            }
+        }
+        window.addEventListener('resize', balanceCockpitColumns);
+        document.addEventListener('DOMContentLoaded', balanceCockpitColumns);
+        setTimeout(balanceCockpitColumns, 100);
+
+        // PC Mouse Drag-to-Scroll + Smooth Wheel
+        (function initMouseDragScroll() {
+            const scrollContainer = document.getElementById('dapp-cockpit-view');
+            if (!scrollContainer) return;
+            let isDown = false;
+            let startY = 0;
+            let scrollTop = 0;
+
+            scrollContainer.addEventListener('mousedown', (e) => {
+                // Only trigger on primary click and outside interactive elements
+                if (e.button !== 0 || e.target.closest('button, select, input, a, .tab-btn, .autotrade-preset-btn, .ph-tf-btn, .prop-tier-card')) return;
+                isDown = true;
+                scrollContainer.style.cursor = 'grabbing';
+                startY = e.pageY - scrollContainer.offsetTop;
+                scrollTop = scrollContainer.scrollTop;
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (!isDown) return;
+                isDown = false;
+                if (scrollContainer) scrollContainer.style.cursor = '';
+            });
+
+            scrollContainer.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const y = e.pageY - scrollContainer.offsetTop;
+                const walk = (y - startY) * 1.3;
+                scrollContainer.scrollTop = scrollTop - walk;
+            });
         })();
     </script>
 
