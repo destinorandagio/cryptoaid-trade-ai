@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable
 from pydantic import BaseModel, Field
 
+from src.agents.strategy_switcher import StrategySwitchingEngine
 from src.config import settings
 from src.data.base import TickerData
 from src.data.provider import CompositeMarketDataProvider
@@ -35,12 +36,14 @@ class GuardianPosition(BaseModel):
     break_even_activated: bool = False
     opened_at: str
     order_id: str
+    strategy: str = "scalping"
+    account_id: str = "paper_balanced"
 
 
 class PositionGuardian:
     """
     Persistent 24/7 Position Guardian.
-    Lifecycle: MARKET UPDATE -> POSITION STATE -> SL/TP/TRAILING CHECK -> RISK CHECK ->
+    Lifecycle: MARKET UPDATE -> POSITION STATE -> STRATEGY SWITCH -> SL/TP/TRAILING CHECK -> RISK CHECK ->
                EXIT QUOTE -> SIMULATE -> SIGN -> SWAP BACK TO USDT -> RECEIPT -> ACCOUNTING
     """
 
@@ -51,12 +54,14 @@ class PositionGuardian:
         router: SmartExecutionRouter | None = None,
         signer: DedicatedWalletSigner | None = None,
         on_exit_callback: Callable[[dict[str, Any]], None] | None = None,
+        strategy_switcher: StrategySwitchingEngine | None = None,
     ) -> None:
         self.db = db or DatabaseManager()
         self.market_provider = market_provider or CompositeMarketDataProvider()
         self.router = router or SmartExecutionRouter()
         self.signer = signer or DedicatedWalletSigner()
         self.on_exit_callback = on_exit_callback
+        self.switcher = strategy_switcher or StrategySwitchingEngine(db=self.db)
         self.active_positions: dict[str, GuardianPosition] = {}
         self.restore_positions()
 
@@ -81,6 +86,8 @@ class PositionGuardian:
                 break_even_activated=False,
                 opened_at=p.get("opened_at", datetime.now(timezone.utc).isoformat()),
                 order_id=p.get("order_id", ""),
+                strategy=p.get("strategy", "scalping"),
+                account_id=p.get("account_id", "paper_balanced"),
             )
             self.active_positions[pos_id] = g_pos
             restored += 1
@@ -105,13 +112,23 @@ class PositionGuardian:
             break_even_activated=False,
             opened_at=pos_data.get("opened_at", datetime.now(timezone.utc).isoformat()),
             order_id=pos_data.get("order_id", ""),
+            strategy=pos_data.get("strategy", "scalping"),
+            account_id=pos_data.get("account_id", "paper_balanced"),
         )
         self.active_positions[pos_id] = g_pos
-        logger.info("Position Guardian now tracking %s position on %s", g_pos.side, g_pos.asset)
+        logger.info("Position Guardian now tracking %s position on %s [%s]", g_pos.side, g_pos.asset, g_pos.strategy)
 
-    def evaluate_positions(self, market_prices: dict[str, float] | None = None) -> list[dict[str, Any]]:
+    def evaluate_positions(
+        self,
+        market_prices: dict[str, float] | None = None,
+        market_regime: str = "TRENDING",
+        predicted_moves: dict[str, float] | None = None,
+    ) -> list[dict[str, Any]]:
         """
-        Evaluate all open positions against SL, TP, Trailing Stop, Break-Even, and 5% Emergency Ceiling.
+        Evaluate all open positions against:
+        1. Dynamic Strategy Transition (SCALP -> MOMENTUM -> TREND)
+        2. Disciplined Invalidation Cut (-0.40% on failed prediction)
+        3. Break-Even lock, Trailing Stop, Hard Emergency Ceiling (5%)
         Triggers execution swap back to USDT for any triggered position.
         """
         closed_events: list[dict[str, Any]] = []
@@ -166,12 +183,39 @@ class PositionGuardian:
             elif pos.tp and curr_price >= pos.tp:
                 exit_reason = f"Take Profit Target Achieved (+{pnl_pct*100:.2f}%)"
 
+            # Dynamic Strategy Transition or Disciplined Invalidation Cut (if position is still open)
+            if not exit_reason:
+                predicted_move = (predicted_moves or {}).get(pos.asset, 0.0)
+                switch_res = self.switcher.evaluate_position(
+                    pos_id=pos.id,
+                    asset=pos.asset,
+                    current_strategy=pos.strategy,
+                    entry_price=pos.entry_price,
+                    current_price=curr_price,
+                    side=pos.side,
+                    pnl_pct=pnl_pct * 100.0,
+                    market_regime=market_regime,
+                    predicted_move_pct=predicted_move,
+                    account_id=pos.account_id,
+                )
+                if switch_res.should_exit:
+                    exit_reason = f"Strategy Switch Exit: {switch_res.reason} ({pnl_pct*100:.2f}%)"
+                elif switch_res.switched:
+                    pos.strategy = switch_res.to_strategy
+                    if switch_res.new_sl is not None:
+                        pos.sl = max(pos.sl or 0.0, switch_res.new_sl)
+                    if switch_res.new_tp is not None:
+                        pos.tp = switch_res.new_tp
+                    logger.info("Position %s transitioned to %s: %s", pos.id, switch_res.to_strategy, switch_res.reason)
+
             if exit_reason:
                 event = self._execute_exit_swap(pos, curr_price, exit_reason)
                 closed_events.append(event)
                 self.active_positions.pop(pos_id, None)
 
+
         return closed_events
+
 
     def emergency_close_all(self, reason: str = "Kill Switch Activated") -> list[dict[str, Any]]:
         """Force immediate closing swap back to USDT for all active positions."""

@@ -479,3 +479,133 @@ class DatabaseManager:
             )
             return [dict(r) for r in cursor.fetchall()]
 
+    # Strategy Switching Audit Trail
+    def record_strategy_switch(self, switch_data: dict[str, Any]) -> str:
+        sid = switch_data.get("id") or str(uuid.uuid4())
+        record = {
+            "id": sid,
+            "position_id": switch_data["position_id"],
+            "account_id": switch_data.get("account_id", "paper_balanced"),
+            "asset": switch_data["asset"],
+            "from_strategy": switch_data["from_strategy"],
+            "to_strategy": switch_data["to_strategy"],
+            "reason": switch_data["reason"],
+            "pnl_pct_at_switch": float(switch_data["pnl_pct_at_switch"]),
+            "entry_price": float(switch_data["entry_price"]),
+            "current_price": float(switch_data["current_price"]),
+            "new_sl": float(switch_data["new_sl"]) if switch_data.get("new_sl") is not None else None,
+            "new_tp": float(switch_data["new_tp"]) if switch_data.get("new_tp") is not None else None,
+            "switched_at": switch_data.get("switched_at", datetime.now(timezone.utc).isoformat()),
+        }
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO strategy_switches (
+                    id, position_id, account_id, asset, from_strategy, to_strategy,
+                    reason, pnl_pct_at_switch, entry_price, current_price, new_sl, new_tp, switched_at
+                ) VALUES (
+                    :id, :position_id, :account_id, :asset, :from_strategy, :to_strategy,
+                    :reason, :pnl_pct_at_switch, :entry_price, :current_price, :new_sl, :new_tp, :switched_at
+                )
+                """,
+                record,
+            )
+            conn.commit()
+        return sid
+
+    def get_strategy_switches(self, position_id: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            if position_id:
+                cursor.execute(
+                    "SELECT * FROM strategy_switches WHERE position_id = ? ORDER BY switched_at DESC LIMIT ?",
+                    (position_id, limit),
+                )
+            else:
+                cursor.execute("SELECT * FROM strategy_switches ORDER BY switched_at DESC LIMIT ?", (limit,))
+            return [dict(r) for r in cursor.fetchall()]
+
+    # Gem Hunter Radar & Candidates
+    def upsert_gem_candidate(self, gem: dict[str, Any]) -> str:
+        gid = gem.get("id") or str(uuid.uuid4())
+        record = {
+            "id": gid,
+            "token_address": gem["token_address"].lower(),
+            "symbol": gem["symbol"].upper(),
+            "name": gem["name"],
+            "score": float(gem.get("score", 0.0)),
+            "classification": gem.get("classification", "WATCH"),
+            "stage": gem.get("stage", "DISCOVERED"),
+            "liquidity_usd": float(gem.get("liquidity_usd", 0.0)),
+            "volume_24h": float(gem.get("volume_24h", 0.0)),
+            "holder_count": int(gem.get("holder_count", 0)),
+            "honeypot_safe": int(gem.get("honeypot_safe", 1)),
+            "metrics_json": json.dumps(gem.get("metrics", {})),
+            "discovered_at": gem.get("discovered_at", datetime.now(timezone.utc).isoformat()),
+            "last_updated": datetime.now(timezone.utc).isoformat(),
+        }
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT OR REPLACE INTO gem_candidates (
+                    id, token_address, symbol, name, score, classification, stage,
+                    liquidity_usd, volume_24h, holder_count, honeypot_safe, metrics_json,
+                    discovered_at, last_updated
+                ) VALUES (
+                    :id, :token_address, :symbol, :name, :score, :classification, :stage,
+                    :liquidity_usd, :volume_24h, :holder_count, :honeypot_safe, :metrics_json,
+                    :discovered_at, :last_updated
+                )
+                """,
+                record,
+            )
+            conn.commit()
+        return gid
+
+    def get_gem_candidates(self, min_score: float = 0.0, limit: int = 50) -> list[dict[str, Any]]:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM gem_candidates WHERE score >= ? ORDER BY score DESC, liquidity_usd DESC LIMIT ?",
+                (min_score, limit),
+            )
+            return [dict(r) for r in cursor.fetchall()]
+
+    # 5 Digital Twins Event Logging
+    def record_digital_twin_event(self, twin_type: str, event_type: str, payload: dict[str, Any]) -> str:
+        eid = str(uuid.uuid4())
+        record = {
+            "id": eid,
+            "twin_type": twin_type.upper(),
+            "event_type": event_type.upper(),
+            "payload_json": json.dumps(payload),
+            "recorded_at": datetime.now(timezone.utc).isoformat(),
+        }
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO digital_twin_events (id, twin_type, event_type, payload_json, recorded_at) VALUES (:id, :twin_type, :event_type, :payload_json, :recorded_at)",
+                record,
+            )
+            conn.commit()
+        return eid
+
+    def get_digital_twin_events(self, twin_type: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            if twin_type:
+                cursor.execute("SELECT * FROM digital_twin_events WHERE twin_type = ? ORDER BY recorded_at DESC LIMIT ?", (twin_type.upper(), limit))
+            else:
+                cursor.execute("SELECT * FROM digital_twin_events ORDER BY recorded_at DESC LIMIT ?", (limit,))
+            return [dict(r) for r in cursor.fetchall()]
+
+    # Multi-Portfolio Account Helpers
+    def get_all_paper_accounts(self) -> list[dict[str, Any]]:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM paper_accounts ORDER BY id ASC")
+            return [dict(r) for r in cursor.fetchall()]
+
+

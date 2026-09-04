@@ -343,3 +343,23 @@ class PaperExecutionEngine:
             "exit_price": current_price,
             "reason": reason,
         }
+
+    def get_all_portfolios_summary(self) -> dict[str, Any]:
+        """Return real-time state for the 3 parallel portfolios + Gem fund."""
+        accounts = ["paper_safe", "paper_balanced", "paper_turbo", "gem_paper_fund"]
+        summaries = {}
+        for acc_id in accounts:
+            state = self.get_portfolio_state(acc_id)
+            summaries[acc_id] = {
+                "account_id": acc_id,
+                "tier_name": acc_id.replace("paper_", "").upper(),
+                "cash_balance": state.cash_balance,
+                "total_equity": state.total_equity,
+                "unrealized_pnl": state.unrealized_pnl,
+                "daily_realized_pnl": state.daily_realized_pnl,
+                "drawdown_pct": state.current_drawdown_pct,
+                "active_positions_count": state.active_positions_count,
+                "is_paper": True,
+            }
+        return summaries
+

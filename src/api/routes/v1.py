@@ -6,12 +6,14 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from src.agents.base import SignalType
+from src.agents.gem_hunter import GemHunterEngine
 from src.agents.meta_agent import MetaAgent, MetaDecision
+from src.agents.predictive_heart import PredictiveHeartEngine
 from src.config import settings
+from src.data.digital_twins import DigitalTwinsManager
 from src.data.provider import CompositeMarketDataProvider
 from src.execution.models import OrderSide
 from src.execution.paper_engine import PaperExecutionEngine
-from src.agents.predictive_heart import PredictiveHeartEngine
 from src.performance.metrics import calculate_performance
 from src.risk.capital_protection import CapitalProtectionEngine
 from src.risk.cryptoaid_gate import CryptoAidRiskGate
@@ -27,6 +29,8 @@ predictive_heart = PredictiveHeartEngine(market_provider=market_provider, db=db)
 risk_gate = CryptoAidRiskGate()
 capital_engine = CapitalProtectionEngine()
 execution_engine = PaperExecutionEngine(db=db, risk_engine=capital_engine, risk_gate=risk_gate)
+gem_hunter = GemHunterEngine(db=db)
+twins_manager = DigitalTwinsManager(db=db)
 
 
 class OrderRequest(BaseModel):
@@ -323,5 +327,45 @@ def evaluate_heart_predictions() -> dict[str, Any]:
         return predictive_heart.evaluate_pending_forecasts()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to evaluate predictions: {str(e)}")
+
+
+# =========================================================================
+# PAPER MULTI-PORTFOLIO & GEM HUNTER & TWINS ROUTES
+# =========================================================================
+@router.get("/paper/portfolios")
+def get_paper_portfolios() -> dict[str, Any]:
+    """Return real-time state for the 3 parallel portfolios (SAFE, BALANCED, TURBO) + GEM FUND."""
+    try:
+        return execution_engine.get_all_portfolios_summary()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get paper portfolios: {str(e)}")
+
+
+@router.get("/gems/radar")
+def get_gems_radar(limit: int = Query(10, ge=1, le=50)) -> list[dict[str, Any]]:
+    """Get active gem candidates discovered on Polygon with empirical Gem Scores."""
+    try:
+        return gem_hunter.scan_radar(limit=limit)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to scan gem radar: {str(e)}")
+
+
+@router.get("/twins/status")
+def get_twins_status() -> dict[str, Any]:
+    """Get synchronization and health status for all 5 interconnected Digital Twins."""
+    try:
+        return twins_manager.get_twins_status()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get digital twins status: {str(e)}")
+
+
+@router.get("/strategies/switches")
+def get_strategy_switches(limit: int = Query(20, ge=1, le=100)) -> list[dict[str, Any]]:
+    """Get recent dynamic strategy switching events from the audit ledger."""
+    try:
+        return db.get_strategy_switches(limit=limit)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get strategy switches: {str(e)}")
+
 
 

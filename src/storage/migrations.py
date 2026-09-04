@@ -333,6 +333,69 @@ CREATE INDEX IF NOT EXISTS idx_forecasts_uncalibrated ON predictive_heart_foreca
 CREATE INDEX IF NOT EXISTS idx_forecasts_asset ON predictive_heart_forecasts (asset, timeframe);
 """
 
+MIGRATION_V4 = """
+-- Strategy Switching Audit Trail
+CREATE TABLE IF NOT EXISTS strategy_switches (
+    id TEXT PRIMARY KEY,
+    position_id TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    asset TEXT NOT NULL,
+    from_strategy TEXT NOT NULL,
+    to_strategy TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    pnl_pct_at_switch REAL NOT NULL,
+    entry_price REAL NOT NULL,
+    current_price REAL NOT NULL,
+    new_sl REAL,
+    new_tp REAL,
+    switched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_strat_switches_pos ON strategy_switches (position_id);
+CREATE INDEX IF NOT EXISTS idx_strat_switches_acc ON strategy_switches (account_id);
+
+-- Gem Hunter Radar & Lifecycle
+CREATE TABLE IF NOT EXISTS gem_candidates (
+    id TEXT PRIMARY KEY,
+    token_address TEXT NOT NULL UNIQUE,
+    symbol TEXT NOT NULL,
+    name TEXT NOT NULL,
+    score REAL NOT NULL,
+    classification TEXT NOT NULL, -- 'WATCH', 'EMERGING', 'HIGH_POTENTIAL', 'EXTREME_SPECULATION', 'REJECT'
+    stage TEXT NOT NULL DEFAULT 'DISCOVERED', -- 'DISCOVERED', 'WATCH', 'QUALIFIED', 'PAPER_ENTRY', 'MOMENTUM', 'TREND', 'EXITED'
+    liquidity_usd REAL NOT NULL,
+    volume_24h REAL NOT NULL,
+    holder_count INTEGER NOT NULL,
+    honeypot_safe INTEGER DEFAULT 1,
+    metrics_json TEXT,
+    discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_gem_score ON gem_candidates (score, classification);
+
+-- 5 Interconnected Digital Twins Event Log
+CREATE TABLE IF NOT EXISTS digital_twin_events (
+    id TEXT PRIMARY KEY,
+    twin_type TEXT NOT NULL, -- 'MARKET', 'PREDICTION', 'STRATEGY', 'POSITION', 'GEM'
+    event_type TEXT NOT NULL,
+    payload_json TEXT NOT NULL,
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_twin_type ON digital_twin_events (twin_type, recorded_at);
+
+-- Initialize the 4 parallel paper accounts (1000 USDT each)
+INSERT OR IGNORE INTO users (id, username, role) VALUES ('paper_master', 'TradeAID Paper Master', 'system');
+
+INSERT OR IGNORE INTO paper_accounts (id, user_id, currency, initial_balance, cash_balance, equity, realized_pnl, peak_equity)
+VALUES
+    ('paper_safe', 'paper_master', 'USDT', 1000.0, 1000.0, 1000.0, 0.0, 1000.0),
+    ('paper_balanced', 'paper_master', 'USDT', 1000.0, 1000.0, 1000.0, 0.0, 1000.0),
+    ('paper_turbo', 'paper_master', 'USDT', 1000.0, 1000.0, 1000.0, 0.0, 1000.0),
+    ('gem_paper_fund', 'paper_master', 'USDT', 1000.0, 1000.0, 1000.0, 0.0, 1000.0);
+"""
+
 
 def apply_migrations(db_path: Path | str) -> None:
     """Run migrations to ensure all database tables are up to date."""
@@ -364,6 +427,14 @@ def apply_migrations(db_path: Path | str) -> None:
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (3)")
             conn.commit()
             logger.info("Database migration V3 applied successfully.")
+
+        if current_version < 4:
+            logger.info("Applying database migration V4 (Strategy Switches, Gem Hunter & 4 Paper Funds)...")
+            cursor.executescript(MIGRATION_V4)
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (4)")
+            conn.commit()
+            logger.info("Database migration V4 applied successfully.")
     finally:
         conn.close()
+
 
