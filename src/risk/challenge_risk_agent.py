@@ -9,9 +9,150 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any
+from enum import Enum
+from typing import Any, Optional, List, Tuple
+import numpy as np
+import pandas as pd
 
 logger = logging.getLogger("trade_ai.challenge_risk_agent")
+
+
+# ============================================================
+# CONFIGURAZIONE E COSTANTI TIERS
+# ============================================================
+
+class TradeDirection(Enum):
+    LONG = "LONG"
+    SHORT = "SHORT"
+
+
+@dataclass
+class TierConfig:
+    name: str
+    nominal_capital: float
+    max_daily_dd_pct: float  # Es. 0.05 per 5%
+    max_total_dd_pct: float  # Es. 0.10 per 10%
+    phase1_target_pct: float # Es. 0.08 per 8%
+    min_trading_days: int
+
+
+TIER_STARTER = TierConfig(
+    name="STARTER",
+    nominal_capital=10000.0,
+    max_daily_dd_pct=0.05,
+    max_total_dd_pct=0.10,
+    phase1_target_pct=0.08,
+    min_trading_days=5,
+)
+
+TIER_PRO = TierConfig(
+    name="PRO",
+    nominal_capital=50000.0,
+    max_daily_dd_pct=0.05,
+    max_total_dd_pct=0.10,
+    phase1_target_pct=0.08,
+    min_trading_days=5,
+)
+
+TIER_ELITE = TierConfig(
+    name="ELITE",
+    nominal_capital=100000.0,
+    max_daily_dd_pct=0.05,
+    max_total_dd_pct=0.10,
+    phase1_target_pct=0.08,
+    min_trading_days=5,
+)
+
+TIER_BLACK = TierConfig(
+    name="BLACK",
+    nominal_capital=150000.0,
+    max_daily_dd_pct=0.05,
+    max_total_dd_pct=0.10,
+    phase1_target_pct=0.08,
+    min_trading_days=5,
+)
+
+
+# ============================================================
+# 1. CHALLENGE STATE MANAGER
+# ============================================================
+
+class ChallengeState:
+    """
+    Mantiene lo stato finanziario in tempo reale della challenge.
+    """
+    def __init__(self, tier_config: TierConfig):
+        self.config = tier_config
+        self.starting_balance = tier_config.nominal_capital
+        self.current_equity = tier_config.nominal_capital
+
+        # Tracking Drawdown
+        self.high_water_mark = tier_config.nominal_capital
+        self.daily_start_equity = tier_config.nominal_capital # Reset a mezzanotte UTC
+
+        # Storico per analisi
+        self.daily_snapshots: list[float] = []
+
+    def update_equity(self, new_equity: float):
+        self.current_equity = new_equity
+        if new_equity > self.high_water_mark:
+            self.high_water_mark = new_equity
+
+    def reset_daily_tracking(self):
+        """Da chiamare ogni giorno a 00:00 UTC"""
+        self.daily_start_equity = self.current_equity
+        self.daily_snapshots.append(self.current_equity)
+
+    @property
+    def total_dd_usd(self) -> float:
+        return self.high_water_mark - self.current_equity
+
+    @property
+    def total_dd_pct(self) -> float:
+        return self.total_dd_usd / self.starting_balance if self.starting_balance > 0 else 0.0
+
+    @property
+    def daily_dd_usd(self) -> float:
+        loss = self.daily_start_equity - self.current_equity
+        return max(0.0, loss)
+
+    @property
+    def daily_dd_pct(self) -> float:
+        return self.daily_dd_usd / self.daily_start_equity if self.daily_start_equity > 0 else 0.0
+
+    def check_violations(self) -> str | None:
+        if self.total_dd_pct >= self.config.max_total_dd_pct:
+            return "TOTAL_DD_EXCEEDED"
+        if self.daily_dd_pct >= self.config.max_daily_dd_pct:
+            return "DAILY_DD_EXCEEDED"
+        return None
+
+
+# ============================================================
+# 2. RISK METRICS ENGINE
+# ============================================================
+
+class RiskMetrics:
+    """
+    Calcola ATR, Correlazioni e Volatilità per il sizing.
+    """
+    @staticmethod
+    def calculate_atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> float:
+        """Calcola l'Average True Range"""
+        tr1 = high - low
+        tr2 = (high - close.shift()).abs()
+        tr3 = (low - close.shift()).abs()
+        tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+        res = tr.rolling(window=period).mean().iloc[-1]
+        return float(res) if pd.notna(res) else float(tr.mean())
+
+    @staticmethod
+    def calculate_correlation(asset_returns: pd.Series, portfolio_returns: pd.Series) -> float:
+        """Calcola correlazione rolling a 30 periodi"""
+        if len(asset_returns) < 30 or len(portfolio_returns) < 30:
+            return 0.0
+        corr = asset_returns.tail(30).corr(portfolio_returns.tail(30))
+        return float(corr) if pd.notna(corr) else 0.0
 
 
 @dataclass
@@ -55,7 +196,7 @@ class ChallengeRiskDecision:
 
 class ChallengeRiskAgent:
     """
-    Institutional Prop Risk Guardian for TradeAID Option A Challenges.
+    Decide SE entrare e QUANTO comprare/vendere basandosi sui vincoli Prop.
     """
 
     TARGET_PROFIT_PCT = 8.0          # +8% target
@@ -71,9 +212,114 @@ class ChallengeRiskAgent:
         MacroEvent(name="FOMC Rate Decision", timestamp_utc=1788633600.0, window_minutes=10),
     ]
 
-    def __init__(self, tier_fee_usdt: float = 100.0, virtual_capital: float = 100000.0):
-        self.tier_fee_usdt = tier_fee_usdt
-        self.virtual_capital = virtual_capital
+    def __init__(
+        self,
+        tier_or_state: ChallengeState | TierConfig | None = None,
+        tier_fee_usdt: float = 100.0,
+        virtual_capital: float = 100000.0,
+    ):
+        if isinstance(tier_or_state, ChallengeState):
+            self.state = tier_or_state
+            self.virtual_capital = tier_or_state.starting_balance
+            self.tier_fee_usdt = tier_fee_usdt
+        elif isinstance(tier_or_state, TierConfig):
+            self.state = ChallengeState(tier_or_state)
+            self.virtual_capital = tier_or_state.nominal_capital
+            self.tier_fee_usdt = tier_fee_usdt
+        else:
+            self.tier_fee_usdt = tier_fee_usdt
+            self.virtual_capital = virtual_capital
+            cfg = TierConfig(
+                name="CUSTOM",
+                nominal_capital=virtual_capital,
+                max_daily_dd_pct=0.05,
+                max_total_dd_pct=0.10,
+                phase1_target_pct=0.08,
+                min_trading_days=5,
+            )
+            self.state = ChallengeState(cfg)
+
+        self.metrics = RiskMetrics()
+        self.risk_per_trade_pct = 0.005 # 0.5% risk per trade
+        self.atr_multiplier_sl = 2.0    # Stop Loss distance = 2 * ATR
+        self.max_correlation_threshold = 0.7
+
+    def evaluate_trade(
+        self,
+        signal_direction: TradeDirection | str,
+        entry_price: float,
+        asset_historical_data: pd.DataFrame, # Deve contenere 'high', 'low', 'close'
+        current_portfolio_exposure: dict[str, float] | None = None,
+        target_asset_id: str = "BTC",
+    ) -> dict[str, Any]:
+        """
+        Restituisce un dizionario con decisione, size e motivazione basata su ATR e vincoli Prop.
+        """
+        if current_portfolio_exposure is None:
+            current_portfolio_exposure = {}
+
+        dir_enum = signal_direction if isinstance(signal_direction, TradeDirection) else TradeDirection(str(signal_direction).upper())
+
+        # 1. CHECK VIOLATIONS (Hard Stop)
+        violation = self.state.check_violations()
+        if violation:
+            return {"action": "VETO", "reason": f"Challenge Violation: {violation}"}
+
+        # 2. CHECK DAILY HEADROOM (Safety Buffer)
+        daily_limit_usd = self.state.daily_start_equity * self.state.config.max_daily_dd_pct
+        daily_headroom = daily_limit_usd - self.state.daily_dd_usd
+
+        # Se abbiamo già perso il 4% oggi, blocchiamo nuove entrate (Buffer di sicurezza)
+        if self.state.daily_dd_pct > 0.04:
+            return {"action": "VETO", "reason": "Daily DD approaching limit (>4%)"}
+
+        # 3. CALCULATE VOLATILITY & STOP LOSS
+        atr = self.metrics.calculate_atr(
+            asset_historical_data['high'],
+            asset_historical_data['low'],
+            asset_historical_data['close'],
+        )
+
+        sl_distance_price = atr * self.atr_multiplier_sl
+        if sl_distance_price <= 0:
+            return {"action": "VETO", "reason": "Invalid ATR Data"}
+
+        # 4. CALCULATE POSITION SIZE
+        risk_amount_usd = self.state.current_equity * self.risk_per_trade_pct
+
+        # La size non deve mai consumare più del 50% dell'headroom giornaliero residuo
+        max_risk_by_headroom = daily_headroom * 0.5
+        effective_risk_cap = min(risk_amount_usd, max_risk_by_headroom)
+
+        position_size_units = effective_risk_cap / sl_distance_price
+
+        # Controllo minimo di liquidità/size
+        if position_size_units * entry_price < 100: # Min trade size $100
+            return {"action": "VETO", "reason": "Position size too small"}
+
+        # 5. CHECK CORRELATION (Exposure Cap)
+        total_correlated_exposure = 0.0
+        for asset_id, exposure in current_portfolio_exposure.items():
+            corr_factor = 0.8 if asset_id != target_asset_id else 1.0
+            total_correlated_exposure += (exposure * corr_factor)
+
+        new_exposure = position_size_units * entry_price
+        if (total_correlated_exposure + new_exposure) > (self.state.current_equity * 0.20):
+            return {"action": "VETO", "reason": "Max Correlated Exposure Exceeded"}
+
+        # 6. APPROVAL
+        stop_loss_price = entry_price - sl_distance_price if dir_enum == TradeDirection.LONG else entry_price + sl_distance_price
+        take_profit_price = entry_price + (sl_distance_price * 1.5) if dir_enum == TradeDirection.LONG else entry_price - (sl_distance_price * 1.5)
+
+        return {
+            "action": "APPROVED",
+            "size_units": round(position_size_units, 4),
+            "stop_loss": round(stop_loss_price, 2),
+            "take_profit": round(take_profit_price, 2),
+            "risk_usd": round(effective_risk_cap, 2),
+            "atr_used": round(atr, 2),
+        }
+
 
     def is_news_window_active(self, current_timestamp: float | None = None) -> tuple[bool, str | None]:
         """Checks if current time is within +-5 min of a major macro event."""

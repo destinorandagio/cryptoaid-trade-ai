@@ -247,3 +247,79 @@ def test_spec_v1_circuit_breakers():
     assert cb4["allowed"] is False
     assert cb4["action"] == "SURVIVAL_MODE_RESTRICTION"
 
+
+def test_challenge_state_and_evaluate_trade_user_example():
+    import numpy as np
+    import pandas as pd
+    from src.risk.challenge_risk_agent import ChallengeState, ChallengeRiskAgent, TradeDirection, TIER_PRO
+
+    # Setup Initial State & Agent
+    agent_state = ChallengeState(TIER_PRO)
+    risk_agent = ChallengeRiskAgent(agent_state)
+
+    # Simulated Market Data (BTC)
+    np.random.seed(42)
+    mock_data = pd.DataFrame({
+        'high': [65000.0 + np.random.rand() * 1000 for _ in range(20)],
+        'low': [64000.0 + np.random.rand() * 1000 for _ in range(20)],
+        'close': [64500.0 + np.random.rand() * 1000 for _ in range(20)],
+    })
+
+    # Trade Evaluation 1: Fresh account
+    decision1 = risk_agent.evaluate_trade(
+        signal_direction=TradeDirection.LONG,
+        entry_price=65000.0,
+        asset_historical_data=mock_data,
+        current_portfolio_exposure={},
+        target_asset_id="BTC",
+    )
+    assert decision1["action"] == "APPROVED"
+    assert decision1["size_units"] > 0.0
+    assert decision1["stop_loss"] < 65000.0
+    assert decision1["take_profit"] > 65000.0
+    assert decision1["risk_usd"] > 0.0
+    assert decision1["atr_used"] > 0.0
+
+    # Simulate equity loss: $500 drop
+    agent_state.update_equity(49500.0)
+    assert agent_state.daily_dd_usd == 500.0
+    assert round(agent_state.daily_dd_pct, 4) == round(500.0 / 50000.0, 4)
+
+    # Trade Evaluation 2: With existing portfolio exposure of $5,000, 
+    # new exposure ~$8,000 pushes total correlated exposure > 20% ($9,900), triggering VETO!
+    decision2 = risk_agent.evaluate_trade(
+        signal_direction=TradeDirection.SHORT,
+        entry_price=64800.0,
+        asset_historical_data=mock_data,
+        current_portfolio_exposure={"BTC": 5000.0},
+        target_asset_id="ETH",
+    )
+    assert decision2["action"] == "VETO"
+    assert decision2["reason"] == "Max Correlated Exposure Exceeded"
+
+    # Trade Evaluation 2B: With smaller prior exposure of $1,000, trade is APPROVED
+    decision2b = risk_agent.evaluate_trade(
+        signal_direction=TradeDirection.SHORT,
+        entry_price=64800.0,
+        asset_historical_data=mock_data,
+        current_portfolio_exposure={"BTC": 1000.0},
+        target_asset_id="ETH",
+    )
+    assert decision2b["action"] == "APPROVED"
+    assert decision2b["stop_loss"] > 64800.0
+    assert decision2b["take_profit"] < 64800.0
+
+    # Trade Evaluation 3: Day loss > 4% triggers safety buffer VETO
+    agent_state.update_equity(47800.0)  # Loss of $2,200 (> 4% of 50k = $2,000)
+    decision3 = risk_agent.evaluate_trade(
+        signal_direction=TradeDirection.LONG,
+        entry_price=65000.0,
+        asset_historical_data=mock_data,
+        current_portfolio_exposure={},
+        target_asset_id="BTC",
+    )
+    assert decision3["action"] == "VETO"
+    assert "Daily DD approaching limit" in decision3["reason"]
+
+
+
