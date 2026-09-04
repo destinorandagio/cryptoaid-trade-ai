@@ -581,6 +581,174 @@ INSERT OR IGNORE INTO autotrade_reward_pool (id, balance_pol, total_funded_pol, 
 VALUES (1, 500.0, 500.0, 0.0, 0);
 """
 
+MIGRATION_V10 = """
+-- TRADEAID PROP DATABASE SCHEMA V1.0 (Dual Auth + 3 Ledgers)
+CREATE TABLE IF NOT EXISTS prop_users (
+    user_id TEXT PRIMARY KEY,
+    wallet_address TEXT UNIQUE,
+    sic_id TEXT UNIQUE,
+    email TEXT,
+    telegram_id INTEGER,
+    auth_method TEXT NOT NULL DEFAULT 'WALLET',
+    kyc_status TEXT NOT NULL DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_prop_users_wallet ON prop_users(wallet_address);
+CREATE INDEX IF NOT EXISTS idx_prop_users_sic_id ON prop_users(sic_id);
+
+CREATE TABLE IF NOT EXISTS user_financial_profile (
+    user_id TEXT PRIMARY KEY,
+    trading_credit_balance REAL NOT NULL DEFAULT 0.00,
+    withdrawable_reward_balance REAL NOT NULL DEFAULT 0.00,
+    total_fees_paid REAL NOT NULL DEFAULT 0.00,
+    last_challenge_tier TEXT,
+    status TEXT NOT NULL DEFAULT 'ACTIVE',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES prop_users(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS challenge_tiers (
+    tier_id INTEGER PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    fee_usdt REAL NOT NULL,
+    nominal_capital REAL NOT NULL,
+    phase1_target_pct REAL NOT NULL DEFAULT 8.00,
+    phase2_target_pct REAL NOT NULL DEFAULT 5.00,
+    max_daily_dd_pct REAL NOT NULL DEFAULT 5.00,
+    max_total_dd_pct REAL NOT NULL DEFAULT 10.00,
+    min_trading_days INTEGER NOT NULL DEFAULT 5,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT OR REPLACE INTO challenge_tiers (tier_id, name, fee_usdt, nominal_capital, phase1_target_pct, phase2_target_pct, max_daily_dd_pct, max_total_dd_pct, min_trading_days, is_active)
+VALUES
+    (1, 'STARTER', 50.00, 10000.00, 8.00, 5.00, 5.00, 10.00, 5, 1),
+    (2, 'PRO', 100.00, 50000.00, 8.00, 5.00, 5.00, 10.00, 5, 1),
+    (3, 'ELITE', 500.00, 100000.00, 8.00, 5.00, 5.00, 10.00, 5, 1),
+    (4, 'BLACK', 1500.00, 150000.00, 8.00, 5.00, 5.00, 10.00, 5, 1);
+
+CREATE TABLE IF NOT EXISTS prop_challenges_v1 (
+    challenge_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    tier_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PHASE_1_QUALIFICATION',
+    starting_balance REAL NOT NULL,
+    current_balance REAL NOT NULL,
+    high_water_mark REAL NOT NULL,
+    phase1_start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    phase1_end_date TIMESTAMP,
+    phase2_start_date TIMESTAMP,
+    phase2_end_date TIMESTAMP,
+    violation_type TEXT,
+    violated_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES prop_users(user_id),
+    FOREIGN KEY(tier_id) REFERENCES challenge_tiers(tier_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_challenges_v1_user ON prop_challenges_v1(user_id);
+CREATE INDEX IF NOT EXISTS idx_challenges_v1_status ON prop_challenges_v1(status);
+
+CREATE TABLE IF NOT EXISTS challenge_daily_snapshots (
+    snapshot_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    challenge_id TEXT NOT NULL,
+    snapshot_date TEXT NOT NULL,
+    start_of_day_balance REAL NOT NULL,
+    end_of_day_balance REAL NOT NULL,
+    daily_pnl REAL NOT NULL,
+    daily_dd_pct REAL NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(challenge_id, snapshot_date),
+    FOREIGN KEY(challenge_id) REFERENCES prop_challenges_v1(challenge_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_snapshots_v1_challenge ON challenge_daily_snapshots(challenge_id);
+CREATE INDEX IF NOT EXISTS idx_snapshots_v1_date ON challenge_daily_snapshots(snapshot_date);
+
+CREATE TABLE IF NOT EXISTS challenge_trades (
+    trade_id TEXT PRIMARY KEY,
+    challenge_id TEXT NOT NULL,
+    asset_canonical_id TEXT NOT NULL,
+    direction TEXT NOT NULL,
+    entry_price REAL NOT NULL,
+    exit_price REAL,
+    quantity REAL NOT NULL,
+    leverage_used INTEGER NOT NULL DEFAULT 1,
+    pnl_usdt REAL,
+    pnl_pct REAL,
+    opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    closed_at TIMESTAMP,
+    strategy_id TEXT,
+    ai_confidence REAL,
+    FOREIGN KEY(challenge_id) REFERENCES prop_challenges_v1(challenge_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_trades_v1_challenge ON challenge_trades(challenge_id);
+
+CREATE TABLE IF NOT EXISTS ledger_trading_credits (
+    transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    challenge_id TEXT,
+    amount REAL NOT NULL,
+    type TEXT NOT NULL,
+    balance_after REAL NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES prop_users(user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_tac_v1_user ON ledger_trading_credits(user_id);
+
+CREATE TABLE IF NOT EXISTS ledger_withdrawable_rewards (
+    transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    amount REAL NOT NULL,
+    type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'LOCKED',
+    locked_until TIMESTAMP,
+    withdrawn_at TIMESTAMP,
+    tx_hash TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES prop_users(user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rewards_v1_user ON ledger_withdrawable_rewards(user_id);
+
+CREATE TABLE IF NOT EXISTS reward_pools (
+    pool_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    month INTEGER NOT NULL,
+    year INTEGER NOT NULL,
+    total_budget_usdt REAL NOT NULL,
+    distributed_usdt REAL NOT NULL DEFAULT 0.00,
+    status TEXT NOT NULL DEFAULT 'OPEN',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(month, year)
+);
+
+CREATE TABLE IF NOT EXISTS monthly_leaderboard (
+    leaderboard_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    challenge_id TEXT,
+    pool_id INTEGER NOT NULL,
+    total_return_pct REAL NOT NULL,
+    consistency_score REAL NOT NULL,
+    reward_amount REAL NOT NULL DEFAULT 0.00,
+    rank INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, pool_id),
+    FOREIGN KEY(user_id) REFERENCES prop_users(user_id),
+    FOREIGN KEY(pool_id) REFERENCES reward_pools(pool_id)
+);
+
+-- Seed Initial Reward Pool if none exists
+INSERT OR IGNORE INTO reward_pools (pool_id, month, year, total_budget_usdt, distributed_usdt, status)
+VALUES (1, 9, 2026, 10000.00, 0.00, 'OPEN');
+"""
+
 
 def apply_migrations(db_path: Path | str) -> None:
     """Run migrations to ensure all database tables are up to date."""
@@ -654,8 +822,16 @@ def apply_migrations(db_path: Path | str) -> None:
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (9)")
             conn.commit()
             logger.info("Database migration V9 applied successfully.")
+
+        if current_version < 10:
+            logger.info("Applying database migration V10 (TradeAID Prop Schema V1.0 & Dual Auth)...")
+            cursor.executescript(MIGRATION_V10)
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (10)")
+            conn.commit()
+            logger.info("Database migration V10 applied successfully.")
     finally:
         conn.close()
+
 
 
 

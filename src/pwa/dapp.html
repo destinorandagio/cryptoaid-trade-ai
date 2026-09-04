@@ -202,10 +202,16 @@
                         </select>
                     </div>
 
-                    <button id="btn-connect-wallet" class="btn-connect-wallet">
-                        <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="13" rx="2"></rect><path d="M20 12h-4a2 2 0 0 0-2 2v0a2 2 0 0 0 2 2h4"></path><path d="M6 6V4a2 2 0 0 1 2-2h10"></path></svg>
-                        <span data-i18n="connect_wallet">Connect Wallet</span>
-                    </button>
+                    <div class="auth-header-wrap" style="display:flex; align-items:center; gap:6px;">
+                        <div id="auth-identity-pill" style="display:none; align-items:center; gap:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); padding:4px 8px; border-radius:8px; cursor:pointer;" onclick="openDualAuthModal()">
+                            <span id="auth-wallet-txt" style="color:#38bdf8; font-family:'JetBrains Mono',monospace; font-size:0.68rem; font-weight:700;">0x...</span>
+                            <span id="auth-sic-badge" style="background:rgba(245,158,11,0.25); color:#fbbf24; border:1px solid rgba(245,158,11,0.45); padding:1px 5px; border-radius:4px; font-size:0.58rem; font-weight:800; font-family:'JetBrains Mono',monospace;">SIC-ID</span>
+                        </div>
+                        <button id="btn-connect-wallet" class="btn-connect-wallet" onclick="openDualAuthModal()">
+                            <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="13" rx="2"></rect><path d="M20 12h-4a2 2 0 0 0-2 2v0a2 2 0 0 0 2 2h4"></path><path d="M6 6V4a2 2 0 0 1 2-2h10"></path></svg>
+                            <span id="auth-btn-label" data-i18n="connect_wallet">Connect / SIC-ID</span>
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -259,6 +265,62 @@
                 <span data-i18n="chain_warning">Wrong Network: Detected network different from Polygon POS (137).</span>
                 <button id="btn-switch-polygon" class="btn-switch-chain" data-i18n="btn_switch_polygon">Switch to Polygon</button>
             </div>
+
+            <!-- DUAL AUTHENTICATION MODAL (WALLETCONNECT + SIC-ID FEDERATION) -->
+            <div id="modal-dual-auth" class="preventivo-overlay hidden">
+                <div class="preventivo-modal" style="max-width:440px; text-align:left;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div class="preventivo-icon" style="margin:0; width:34px; height:34px;">
+                                <svg class="icon-svg sm svg-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                            </div>
+                            <h3 style="margin:0; font-size:1.05rem;">AUTHENTICATION GATEWAY</h3>
+                        </div>
+                        <button class="btn-cancel-preventivo" style="margin:0; padding:4px 8px; font-size:0.75rem;" onclick="closeDualAuthModal()">✕</button>
+                    </div>
+
+                    <!-- TABS: WEB3 vs SIC-ID -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:14px;">
+                        <button id="tab-auth-wallet" class="tab-btn active" style="padding:7px 10px; font-size:0.72rem; justify-content:center;" onclick="switchAuthTab('wallet')">
+                            🦊 WEB3 WALLET
+                        </button>
+                        <button id="tab-auth-sic" class="tab-btn" style="padding:7px 10px; font-size:0.72rem; justify-content:center;" onclick="switchAuthTab('sic')">
+                            🧬 SIC-ID FEDERATION
+                        </button>
+                    </div>
+
+                    <!-- PANEL 1: WEB3 -->
+                    <div id="auth-panel-wallet" class="auth-panel">
+                        <p style="font-size:0.75rem; color:#a1a1aa; margin-bottom:12px;">
+                            Connect your Polygon Web3 wallet (MetaMask, WalletConnect, Coinbase Wallet) to manage on-chain challenge activations and payouts.
+                        </p>
+                        <button id="btn-modal-walletconnect" class="btn-hero-autotrade" style="width:100%; padding:10px 14px; font-size:0.85rem;" onclick="connectWeb3Wallet()">
+                            CONNECT WALLET (POLYGON)
+                        </button>
+                    </div>
+
+                    <!-- PANEL 2: SIC-ID -->
+                    <div id="auth-panel-sic" class="auth-panel" style="display:none;">
+                        <p style="font-size:0.72rem; color:#a1a1aa; margin-bottom:10px;">
+                            Authenticate with your canonical <strong>81+ SIC-ID Digital Twin</strong> identifier (12 Crockford/Base32 alphanumeric characters).
+                        </p>
+                        <label style="font-size:0.68rem; color:#71717a; display:block; margin-bottom:4px;">SIC-ID IDENTIFIER</label>
+                        <div style="display:flex; gap:6px; margin-bottom:8px;">
+                            <input type="text" id="input-sic-id" placeholder="SIC-ID-B5PVYYLVJRK9" style="flex:1; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:8px 10px; color:#ffffff; font-family:'JetBrains Mono',monospace; font-size:0.8rem; text-transform:uppercase;" />
+                            <button class="ph-ctrl-btn" style="padding:0 10px; font-size:0.65rem;" onclick="generateRandomSicId()">AUTO-TWIN</button>
+                        </div>
+                        <button class="btn-hero-autotrade" style="width:100%; padding:10px 14px; font-size:0.85rem; background:linear-gradient(135deg, #d97706, #b45309);" onclick="loginWithSicId()">
+                            AUTHENTICATE VIA SIC-ID
+                        </button>
+                        <div id="sic-auth-error" style="display:none; color:#ef4444; font-size:0.68rem; margin-top:6px; font-family:'JetBrains Mono',monospace;"></div>
+                    </div>
+
+                    <div style="margin-top:14px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.08); font-size:0.62rem; color:#71717a; font-family:'JetBrains Mono',monospace;">
+                        BLOCKCHAIN+ SIC-ID PROTOCOL V1.0 · NON-CUSTODIAL FEDERATED IDENTITY
+                    </div>
+                </div>
+            </div>
+
 
             <!-- ON-CHAIN PAYWALL MODAL (100 USDT DAO QUOTA ACCESS) -->
             <div id="modal-onchain-paywall" class="paywall-overlay hidden">
@@ -852,24 +914,29 @@
                             </span>
                         </div>
 
-                        <!-- 3-TIER SELECTOR (50K / 100K / 150K) -->
-                        <div class="prop-tier-selector" style="margin-top:10px;">
-                            <div class="prop-tier-btn" data-tier="50K" id="tier-btn-50k">
+                        <!-- 4-TIER SELECTOR (STARTER / PRO / ELITE / BLACK) -->
+                        <div class="prop-tier-selector" style="margin-top:10px; display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;">
+                            <div class="prop-tier-btn" data-tier="STARTER" id="tier-btn-starter" onclick="window.dapp && window.dapp.switchPropTier('STARTER')">
                                 <span class="t-title">STARTER</span>
-                                <span class="t-size">$50,000 · 1000x LEV</span>
-                                <span class="t-fee">50 USDT FEE · 80% PAYOUT</span>
+                                <span class="t-size">$10K · 1000x</span>
+                                <span class="t-fee">50 USDT FEE</span>
                             </div>
-                            <div class="prop-tier-btn active" data-tier="100K" id="tier-btn-100k">
-                                <span class="t-badge">MOST POPULAR</span>
+                            <div class="prop-tier-btn active" data-tier="PRO" id="tier-btn-pro" onclick="window.dapp && window.dapp.switchPropTier('PRO')">
+                                <span class="t-badge">POPULAR</span>
                                 <span class="t-title">PRO</span>
-                                <span class="t-size">$100,000 · 1000x LEV</span>
-                                <span class="t-fee">100 USDT FEE · 80% PAYOUT</span>
+                                <span class="t-size">$50K · 1000x</span>
+                                <span class="t-fee">100 USDT FEE</span>
                             </div>
-                            <div class="prop-tier-btn" data-tier="150K" id="tier-btn-150k">
-                                <span class="t-badge" style="background:#8b5cf6; color:#fff;">ELITE</span>
+                            <div class="prop-tier-btn" data-tier="ELITE" id="tier-btn-elite" onclick="window.dapp && window.dapp.switchPropTier('ELITE')">
                                 <span class="t-title">ELITE</span>
-                                <span class="t-size">$150,000 · 100x LEV</span>
-                                <span class="t-fee">1,500 USDT FEE · 80% PAYOUT</span>
+                                <span class="t-size">$100K · 1000x</span>
+                                <span class="t-fee">500 USDT FEE</span>
+                            </div>
+                            <div class="prop-tier-btn" data-tier="BLACK" id="tier-btn-black" onclick="window.dapp && window.dapp.switchPropTier('BLACK')">
+                                <span class="t-badge" style="background:#8b5cf6; color:#fff;">TOP</span>
+                                <span class="t-title">BLACK</span>
+                                <span class="t-size">$150K · 100x</span>
+                                <span class="t-fee">1,500 USDT FEE</span>
                             </div>
                         </div>
 
@@ -1761,6 +1828,129 @@
                 scrollContainer.scrollTop = scrollTop - walk;
             });
         })();
+
+        // =========================================================================
+        // DUAL AUTHENTICATION SYSTEM (WEB3 WALLET + SIC-ID FEDERATION)
+        // =========================================================================
+        window.openDualAuthModal = function() {
+            const m = document.getElementById('modal-dual-auth');
+            if (m) m.classList.remove('hidden');
+        };
+
+        window.closeDualAuthModal = function() {
+            const m = document.getElementById('modal-dual-auth');
+            if (m) m.classList.add('hidden');
+        };
+
+        window.switchAuthTab = function(tab) {
+            const tabWallet = document.getElementById('tab-auth-wallet');
+            const tabSic = document.getElementById('tab-auth-sic');
+            const panelWallet = document.getElementById('auth-panel-wallet');
+            const panelSic = document.getElementById('auth-panel-sic');
+            if (tab === 'wallet') {
+                if (tabWallet) tabWallet.classList.add('active');
+                if (tabSic) tabSic.classList.remove('active');
+                if (panelWallet) panelWallet.style.display = 'block';
+                if (panelSic) panelSic.style.display = 'none';
+            } else {
+                if (tabSic) tabSic.classList.add('active');
+                if (tabWallet) tabWallet.classList.remove('active');
+                if (panelSic) panelSic.style.display = 'block';
+                if (panelWallet) panelWallet.style.display = 'none';
+            }
+        };
+
+        window.generateRandomSicId = function() {
+            const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+            let token = "";
+            for (let i = 0; i < 12; i++) {
+                token += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+            }
+            const input = document.getElementById('input-sic-id');
+            if (input) input.value = `SIC-ID-${token}`;
+        };
+
+        window.loginWithSicId = async function() {
+            const input = document.getElementById('input-sic-id');
+            const errEl = document.getElementById('sic-auth-error');
+            const val = input ? input.value.trim().toUpperCase() : '';
+            if (!val || !val.match(/^SIC-ID-[A-Z0-9]{12}$/)) {
+                if (errEl) {
+                    errEl.textContent = "Formato non valido. Deve essere SIC-ID-XXXXXXXXXXXX (12 caratteri)";
+                    errEl.style.display = "block";
+                }
+                return;
+            }
+            if (errEl) errEl.style.display = "none";
+
+            try {
+                const resp = await fetch("/api/v1/auth/session", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ sic_id: val })
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    localStorage.setItem("tradeaid_user_id", data.user.user_id);
+                    localStorage.setItem("tradeaid_sic_id", data.user.sic_id);
+                    if (data.user.wallet_address) {
+                        localStorage.setItem("tradeaid_wallet", data.user.wallet_address);
+                    }
+                }
+            } catch (e) {
+                console.warn("Auth API offline, persisting local SIC-ID session:", e);
+            }
+
+            localStorage.setItem("tradeaid_sic_id", val);
+            updateAuthIdentityDisplay(val, localStorage.getItem("tradeaid_wallet"));
+            closeDualAuthModal();
+        };
+
+        window.connectWeb3Wallet = async function() {
+            if (window.dapp && window.dapp.connectWallet) {
+                await window.dapp.connectWallet();
+                const wallet = window.dapp.account;
+                if (wallet) {
+                    let sicId = localStorage.getItem("tradeaid_sic_id");
+                    if (!sicId) {
+                        const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+                        let token = "";
+                        for (let i = 0; i < 12; i++) token += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                        sicId = `SIC-ID-${token}`;
+                        localStorage.setItem("tradeaid_sic_id", sicId);
+                    }
+                    updateAuthIdentityDisplay(sicId, wallet);
+                }
+            }
+            closeDualAuthModal();
+        };
+
+        function updateAuthIdentityDisplay(sicId, wallet) {
+            const pill = document.getElementById('auth-identity-pill');
+            const btnConnect = document.getElementById('btn-connect-wallet');
+            const walletTxt = document.getElementById('auth-wallet-txt');
+            const sicBadge = document.getElementById('auth-sic-badge');
+
+            if (pill) pill.style.display = 'flex';
+            if (btnConnect) btnConnect.style.display = 'none';
+
+            if (walletTxt) {
+                walletTxt.textContent = wallet ? `${wallet.slice(0, 6)}...${wallet.slice(-4)}` : 'WALLET PENDING';
+            }
+            if (sicBadge) {
+                sicBadge.textContent = sicId ? `${sicId.slice(0, 10)}...` : 'SIC-ID';
+                sicBadge.title = sicId || 'Canonical SIC-ID';
+            }
+        }
+
+        // Auto-restore session on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedSic = localStorage.getItem("tradeaid_sic_id");
+            const savedWallet = localStorage.getItem("tradeaid_wallet");
+            if (savedSic || savedWallet) {
+                updateAuthIdentityDisplay(savedSic, savedWallet);
+            }
+        });
     </script>
 
 </body>

@@ -1108,6 +1108,485 @@ class DatabaseManager:
             )
             conn.commit()
 
+    # =========================================================================
+    # PROP DATABASE SCHEMA V1.0 — DUAL AUTH (WALLET + SIC-ID) & 3-LEDGER SYSTEM
+    # =========================================================================
+
+    @staticmethod
+    def is_valid_sic_id(sic_id: str | None) -> bool:
+        """Validate if a string matches canonical SIC-ID format: SIC-ID-XXXXXXXXXXXX."""
+        import re
+        if not sic_id or not isinstance(sic_id, str):
+            return False
+        return bool(re.match(r"^SIC-ID-[A-Z0-9]{12}$", sic_id.strip().upper()))
+
+    @staticmethod
+    def generate_sic_id() -> str:
+        """Generate a canonical 12-char Crockford/Base32 SIC-ID."""
+        import secrets
+        alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+        token = "".join(secrets.choice(alphabet) for _ in range(12))
+        return f"SIC-ID-{token}"
+
+    def get_or_create_prop_user(
+        self,
+        wallet_address: str | None = None,
+        sic_id: str | None = None,
+        email: str | None = None,
+        telegram_id: int | None = None,
+    ) -> dict[str, Any]:
+        """Retrieve or create user supporting dual authentication (WalletConnect or SIC-ID)."""
+        norm_wallet = wallet_address.strip().lower() if wallet_address else None
+        norm_sic = sic_id.strip().upper() if sic_id else None
+
+        if not norm_wallet and not norm_sic:
+            raise ValueError("Must provide either wallet_address or sic_id")
+
+        if norm_sic and not self.is_valid_sic_id(norm_sic):
+            raise ValueError(f"Invalid SIC-ID format '{norm_sic}'. Must be SIC-ID-XXXXXXXXXXXX (12 chars)")
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            user = None
+            if norm_wallet:
+                cursor.execute("SELECT * FROM prop_users WHERE LOWER(wallet_address) = ?", (norm_wallet,))
+                user = cursor.fetchone()
+            if not user and norm_sic:
+                cursor.execute("SELECT * FROM prop_users WHERE UPPER(sic_id) = ?", (norm_sic,))
+                user = cursor.fetchone()
+
+            if user:
+                # Update complementary field if now available
+                user_dict = dict(user)
+                needs_update = False
+                new_wallet = user_dict.get("wallet_address") or norm_wallet
+                new_sic = user_dict.get("sic_id") or norm_sic
+                auth_method = "HYBRID" if (new_wallet and new_sic) else ("SIC_ID" if new_sic else "WALLET")
+
+                if norm_wallet and not user_dict.get("wallet_address"):
+                    needs_update = True
+                if norm_sic and not user_dict.get("sic_id"):
+                    needs_update = True
+
+                if needs_update:
+                    cursor.execute(
+                        """
+                        UPDATE prop_users
+                        SET wallet_address = ?, sic_id = ?, auth_method = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE user_id = ?
+                        """,
+                        (new_wallet, new_sic, auth_method, user_dict["user_id"]),
+                    )
+                    conn.commit()
+                    user_dict["wallet_address"] = new_wallet
+                    user_dict["sic_id"] = new_sic
+                    user_dict["auth_method"] = auth_method
+
+                return user_dict
+
+            # Create new user
+            new_id = str(uuid.uuid4())
+            if not norm_sic and norm_wallet:
+                # Optionally provision a linked SIC-ID digital twin
+                norm_sic = self.generate_sic_id()
+                auth_method = "HYBRID"
+            elif norm_sic and not norm_wallet:
+                auth_method = "SIC_ID"
+            else:
+                auth_method = "HYBRID"
+
+            cursor.execute(
+                """
+                INSERT INTO prop_users (user_id, wallet_address, sic_id, email, telegram_id, auth_method, kyc_status)
+                VALUES (?, ?, ?, ?, ?, ?, 'PENDING')
+                """,
+                (new_id, norm_wallet, norm_sic, email, telegram_id, auth_method),
+            )
+            # Create user financial profile
+            cursor.execute(
+                """
+                INSERT INTO user_financial_profile (user_id, trading_credit_balance, withdrawable_reward_balance, total_fees_paid, status)
+                VALUES (?, 0.00, 0.00, 0.00, 'ACTIVE')
+                """,
+                (new_id,),
+            )
+            conn.commit()
+
+            cursor.execute("SELECT * FROM prop_users WHERE user_id = ?", (new_id,))
+            return dict(cursor.fetchone())
+
+    def link_wallet_and_sic_id(self, user_id: str, wallet_address: str, sic_id: str) -> dict[str, Any]:
+        """Pair an active Web3 wallet address with a SIC-ID digital twin."""
+        norm_wallet = wallet_address.strip().lower()
+        norm_sic = sic_id.strip().upper()
+        if not self.is_valid_sic_id(norm_sic):
+            raise ValueError(f"Invalid SIC-ID format '{norm_sic}'. Must be SIC-ID-XXXXXXXXXXXX")
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE prop_users
+                SET wallet_address = ?, sic_id = ?, auth_method = 'HYBRID', updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ?
+                """,
+                (norm_wallet, norm_sic, user_id),
+            )
+            conn.commit()
+            cursor.execute("SELECT * FROM prop_users WHERE user_id = ?", (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                raise ValueError(f"User {user_id} not found")
+            return dict(row)
+
+    def get_prop_user(self, identifier: str) -> dict[str, Any] | None:
+        """Find user by UUID, wallet address, or SIC-ID."""
+        ident = identifier.strip()
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT * FROM prop_users
+                WHERE user_id = ? OR LOWER(wallet_address) = LOWER(?) OR UPPER(sic_id) = UPPER(?)
+                """,
+                (ident, ident, ident),
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def get_user_financial_profile(self, user_id: str) -> dict[str, Any]:
+        """Get the cached financial profile for a user."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM user_financial_profile WHERE user_id = ?", (user_id,))
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+            # Provision if missing
+            cursor.execute(
+                "INSERT OR IGNORE INTO user_financial_profile (user_id, trading_credit_balance, withdrawable_reward_balance, total_fees_paid) VALUES (?, 0.0, 0.0, 0.0)",
+                (user_id,),
+            )
+            conn.commit()
+            cursor.execute("SELECT * FROM user_financial_profile WHERE user_id = ?", (user_id,))
+            return dict(cursor.fetchone())
+
+    # Challenge Tiers
+    def get_challenge_tiers(self) -> list[dict[str, Any]]:
+        """Return all active Prop Challenge Tiers."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM challenge_tiers WHERE is_active = 1 ORDER BY tier_id ASC")
+            return [dict(r) for r in cursor.fetchall()]
+
+    def get_challenge_tier(self, tier_identifier: int | str) -> dict[str, Any] | None:
+        """Retrieve tier by ID or canonical name (STARTER, PRO, ELITE, BLACK)."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            if isinstance(tier_identifier, int) or (isinstance(tier_identifier, str) and tier_identifier.isdigit()):
+                cursor.execute("SELECT * FROM challenge_tiers WHERE tier_id = ?", (int(tier_identifier),))
+            else:
+                cursor.execute("SELECT * FROM challenge_tiers WHERE UPPER(name) = UPPER(?)", (str(tier_identifier).strip(),))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    # Challenges & Daily Snapshots
+    def create_prop_challenge_v1(self, user_id: str, tier_id: int) -> dict[str, Any]:
+        """Create a new challenge instance conforming to Schema V1.0."""
+        tier = self.get_challenge_tier(tier_id)
+        if not tier:
+            raise ValueError(f"Tier {tier_id} not found")
+
+        challenge_id = str(uuid.uuid4())
+        nominal = float(tier["nominal_capital"])
+        fee = float(tier["fee_usdt"])
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO prop_challenges_v1 (
+                    challenge_id, user_id, tier_id, status,
+                    starting_balance, current_balance, high_water_mark
+                ) VALUES (?, ?, ?, 'PHASE_1_QUALIFICATION', ?, ?, ?)
+                """,
+                (challenge_id, user_id, tier["tier_id"], nominal, nominal, nominal),
+            )
+            # Update user profile last_challenge_tier and total fees
+            cursor.execute(
+                """
+                UPDATE user_financial_profile
+                SET total_fees_paid = total_fees_paid + ?,
+                    last_challenge_tier = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ?
+                """,
+                (fee, tier["name"], user_id),
+            )
+            conn.commit()
+
+            cursor.execute("SELECT * FROM prop_challenges_v1 WHERE challenge_id = ?", (challenge_id,))
+            res = dict(cursor.fetchone())
+            res["tier"] = tier
+            return res
+
+    def get_prop_challenge_v1(self, challenge_id: str) -> dict[str, Any] | None:
+        """Fetch challenge record with tier details."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM prop_challenges_v1 WHERE challenge_id = ?", (challenge_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            res = dict(row)
+            cursor.execute("SELECT * FROM challenge_tiers WHERE tier_id = ?", (res["tier_id"],))
+            tier_row = cursor.fetchone()
+            res["tier"] = dict(tier_row) if tier_row else None
+            return res
+
+    def record_prop_daily_snapshot(
+        self,
+        challenge_id: str,
+        snapshot_date: str,
+        start_of_day_balance: float,
+        end_of_day_balance: float,
+        daily_pnl: float,
+        daily_dd_pct: float,
+    ) -> dict[str, Any]:
+        """Record midnight UTC snapshot for daily drawdown enforcement."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT OR REPLACE INTO challenge_daily_snapshots (
+                    challenge_id, snapshot_date, start_of_day_balance, end_of_day_balance, daily_pnl, daily_dd_pct
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (challenge_id, snapshot_date, start_of_day_balance, end_of_day_balance, daily_pnl, daily_dd_pct),
+            )
+            conn.commit()
+            cursor.execute(
+                "SELECT * FROM challenge_daily_snapshots WHERE challenge_id = ? AND snapshot_date = ?",
+                (challenge_id, snapshot_date),
+            )
+            return dict(cursor.fetchone())
+
+    def record_prop_trade(
+        self,
+        challenge_id: str,
+        asset_canonical_id: str,
+        direction: str,
+        entry_price: float,
+        quantity: float,
+        exit_price: float | None = None,
+        pnl_usdt: float | None = None,
+        pnl_pct: float | None = None,
+        strategy_id: str | None = None,
+        ai_confidence: float | None = None,
+    ) -> dict[str, Any]:
+        """Record a simulated paper trade under the challenge."""
+        trade_id = str(uuid.uuid4())
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO challenge_trades (
+                    trade_id, challenge_id, asset_canonical_id, direction,
+                    entry_price, exit_price, quantity, pnl_usdt, pnl_pct, strategy_id, ai_confidence
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    trade_id,
+                    challenge_id,
+                    asset_canonical_id,
+                    direction.upper(),
+                    entry_price,
+                    exit_price,
+                    quantity,
+                    pnl_usdt,
+                    pnl_pct,
+                    strategy_id,
+                    ai_confidence,
+                ),
+            )
+            conn.commit()
+            cursor.execute("SELECT * FROM challenge_trades WHERE trade_id = ?", (trade_id,))
+            return dict(cursor.fetchone())
+
+    # Ledgers & Second Chance TAC
+    def record_trading_credit_entry(
+        self,
+        user_id: str,
+        amount: float,
+        credit_type: str,
+        description: str | None = None,
+        challenge_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Record immutable ledger entry for Trading Credits (TAC) and update cached profile balance."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT trading_credit_balance FROM user_financial_profile WHERE user_id = ?", (user_id,))
+            row = cursor.fetchone()
+            current_bal = float(row["trading_credit_balance"]) if row else 0.0
+            new_bal = current_bal + amount
+
+            cursor.execute(
+                """
+                INSERT INTO ledger_trading_credits (user_id, challenge_id, amount, type, balance_after, description)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (user_id, challenge_id, amount, credit_type, new_bal, description),
+            )
+            tx_id = cursor.lastrowid
+
+            cursor.execute(
+                "UPDATE user_financial_profile SET trading_credit_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
+                (new_bal, user_id),
+            )
+            conn.commit()
+
+            return {
+                "transaction_id": tx_id,
+                "user_id": user_id,
+                "amount": amount,
+                "type": credit_type,
+                "balance_after": new_bal,
+                "description": description,
+            }
+
+    def record_withdrawable_reward_entry(
+        self,
+        user_id: str,
+        amount: float,
+        reward_type: str,
+        tx_hash: str | None = None,
+        status: str = "LOCKED",
+    ) -> dict[str, Any]:
+        """Record immutable ledger entry for Withdrawable Rewards."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO ledger_withdrawable_rewards (user_id, amount, type, status, tx_hash)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (user_id, amount, reward_type, status, tx_hash),
+            )
+            tx_id = cursor.lastrowid
+
+            if status in ("UNLOCKED", "LOCKED"):
+                cursor.execute(
+                    "UPDATE user_financial_profile SET withdrawable_reward_balance = withdrawable_reward_balance + ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
+                    (amount, user_id),
+                )
+            conn.commit()
+
+            return {
+                "transaction_id": tx_id,
+                "user_id": user_id,
+                "amount": amount,
+                "type": reward_type,
+                "status": status,
+                "tx_hash": tx_hash,
+            }
+
+    def get_user_3_ledgers(self, identifier: str) -> dict[str, Any]:
+        """Return consolidated report across all 3 ledgers for a user."""
+        user = self.get_prop_user(identifier)
+        if not user:
+            raise ValueError(f"User '{identifier}' not found")
+        user_id = user["user_id"]
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            # 1. Ledger 1: Prop Virtual Equity (Active Challenges)
+            cursor.execute(
+                """
+                SELECT c.*, t.name as tier_name, t.nominal_capital
+                FROM prop_challenges_v1 c
+                JOIN challenge_tiers t ON c.tier_id = t.tier_id
+                WHERE c.user_id = ?
+                ORDER BY c.created_at DESC
+                """,
+                (user_id,),
+            )
+            challenges = [dict(r) for r in cursor.fetchall()]
+
+            # 2. Ledger 2: Trading Credits TAC
+            cursor.execute(
+                "SELECT * FROM ledger_trading_credits WHERE user_id = ? ORDER BY transaction_id DESC",
+                (user_id,),
+            )
+            tac_ledger = [dict(r) for r in cursor.fetchall()]
+
+            # 3. Ledger 3: Withdrawable Rewards
+            cursor.execute(
+                "SELECT * FROM ledger_withdrawable_rewards WHERE user_id = ? ORDER BY transaction_id DESC",
+                (user_id,),
+            )
+            reward_ledger = [dict(r) for r in cursor.fetchall()]
+
+            profile = self.get_user_financial_profile(user_id)
+
+            return {
+                "user": user,
+                "profile": profile,
+                "ledger_1_prop_equity": {
+                    "description": "Virtual Paper Trading Balance & Challenges",
+                    "total_active_challenges": len([c for c in challenges if c["status"] not in ("FAILED", "CANCELLED")]),
+                    "challenges": challenges,
+                },
+                "ledger_2_trading_credits": {
+                    "description": "Non-Withdrawable Margin Credits (TAC) from Failed Challenge Fees",
+                    "balance_tac": profile["trading_credit_balance"],
+                    "history": tac_ledger,
+                },
+                "ledger_3_withdrawable_rewards": {
+                    "description": "Real Approved Payouts & Leaderboard Rewards",
+                    "balance_usdt": profile["withdrawable_reward_balance"],
+                    "history": reward_ledger,
+                },
+            }
+
+    def get_current_reward_pool(self) -> dict[str, Any]:
+        """Fetch current open monthly reward pool."""
+        now = datetime.now(timezone.utc)
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM reward_pools WHERE month = ? AND year = ?", (now.month, now.year))
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+            # Create if missing
+            cursor.execute(
+                "INSERT INTO reward_pools (month, year, total_budget_usdt, distributed_usdt, status) VALUES (?, ?, 10000.00, 0.00, 'OPEN')",
+                (now.month, now.year),
+            )
+            conn.commit()
+            cursor.execute("SELECT * FROM reward_pools WHERE month = ? AND year = ?", (now.month, now.year))
+            return dict(cursor.fetchone())
+
+    def get_monthly_leaderboard_v1(self, pool_id: int | None = None) -> list[dict[str, Any]]:
+        """Fetch current monthly leaderboard."""
+        if not pool_id:
+            pool = self.get_current_reward_pool()
+            pool_id = pool["pool_id"]
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT l.*, u.wallet_address, u.sic_id, u.auth_method
+                FROM monthly_leaderboard l
+                JOIN prop_users u ON l.user_id = u.user_id
+                WHERE l.pool_id = ?
+                ORDER BY l.rank ASC
+                """,
+                (pool_id,),
+            )
+            return [dict(r) for r in cursor.fetchall()]
+
+
 
 
 
