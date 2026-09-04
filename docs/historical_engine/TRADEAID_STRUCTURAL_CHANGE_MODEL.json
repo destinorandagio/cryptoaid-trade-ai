@@ -1,0 +1,106 @@
+{
+  "artifact_id": "TRADEAID_STRUCTURAL_CHANGE_MODEL",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "StructuralChangeDetector",
+  "purpose": "Identificare cambiamenti strutturali nel mercato crypto che riducono la validità di analog storici. Un analog strutturalmente incompatibile riceve peso inferiore.",
+  "structural_eras": [
+    {
+      "era_id": "STRUCT-0",
+      "name": "PRE_DERIVATIVES",
+      "date_range": "2010-2016-04",
+      "characteristics": ["spot only", "no perpetual futures", "low leverage availability"],
+      "compatibility_with_2026": "LOW"
+    },
+    {
+      "era_id": "STRUCT-1",
+      "name": "DERIVATIVES_INTRODUCTION",
+      "date_range": "2016-05 / 2018-02",
+      "characteristics": ["BitMEX perpetuals launch", "leverage increases", "liquidation cascades possible"],
+      "compatibility_with_2026": "MEDIUM"
+    },
+    {
+      "era_id": "STRUCT-2",
+      "name": "STABLECOIN_ERA",
+      "date_range": "2018-03 / 2020-01",
+      "characteristics": ["USDT dominance", "stablecoin arbitrage", "new liquidity pools"],
+      "compatibility_with_2026": "MEDIUM"
+    },
+    {
+      "era_id": "STRUCT-3",
+      "name": "DEFI_SUMMER_AND_INSTITUTIONAL",
+      "date_range": "2020-02 / 2023-12",
+      "characteristics": ["DeFi growth", "MicroStrategy", "institutional entry", "DEX maturity"],
+      "compatibility_with_2026": "HIGH"
+    },
+    {
+      "era_id": "STRUCT-4",
+      "name": "ETF_ERA",
+      "date_range": "2024-01 / present",
+      "characteristics": ["US spot BTC ETF", "institutional flows", "potential volatility reduction"],
+      "compatibility_with_2026": "HIGHEST"
+    }
+  ],
+  "compatibility_weight_function": {
+    "same_era": 1.0,
+    "adjacent_era": 0.7,
+    "two_eras_apart": 0.4,
+    "three_or_more_eras_apart": 0.2,
+    "configurable": true,
+    "must_be_calibrated_oos": true
+  },
+  "change_detection_signals": [
+    {
+      "signal": "derivatives_volume_share",
+      "description": "% di volume totale da futures/perpetuals",
+      "threshold_change": "> 20% shift in 6 months = structural change"
+    },
+    {
+      "signal": "stablecoin_market_cap_share",
+      "description": "% di market cap totale in stablecoin",
+      "threshold_change": "> 10% shift in 12 months"
+    },
+    {
+      "signal": "institutional_flow_presence",
+      "description": "ETF flows, corporate treasury adoption",
+      "threshold_change": "new regime when sustained > 6 months"
+    },
+    {
+      "signal": "dex_cex_volume_ratio",
+      "description": "DEX volume / CEX volume",
+      "threshold_change": "> 2x shift"
+    },
+    {
+      "signal": "btc_dominance_regime",
+      "description": "BTC dominance mean level",
+      "threshold_change": "> 15% shift sustained"
+    }
+  ],
+  "output_contract": {
+    "current_structural_era": "enum",
+    "era_start_date": "date",
+    "compatibility_matrix": {
+      "era_pair": "compatibility_weight"
+    },
+    "active_structural_changes": [
+      {
+        "signal": "string",
+        "detected_at": "date",
+        "magnitude": "float",
+        "status": "EMERGING|CONFIRMED|FADING"
+      }
+    ]
+  },
+  "integration_with_analog_engine": {
+    "rule": "analog_weight *= compatibility_weight(current_era, analog_era)",
+    "rule_2": "if compatibility_weight < 0.3, flag analog as STRUCTURALLY_INCOMPATIBLE"
+  },
+  "qa_tests": [
+    "TEST-SC-01: era boundaries non si sovrappongono",
+    "TEST-SC-02: compatibility_weight in [0, 1]",
+    "TEST-SC-03: change detection signals computabili con dati <= T"
+  ],
+  "depends_on": ["BTC_MASTER_HISTORY_SPEC", "HISTORICAL_TOP200_SPEC"]
+}

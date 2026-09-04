@@ -1,0 +1,76 @@
+{
+  "artifact_id": "TRADEAID_MEMORY_WEIGHTING_MODEL",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "MemoryWeightingModel",
+  "purpose": "Combinare evidence da HISTORICAL_REPLAY, FORWARD_PAPER_SHADOW e LIVE in un score finale per la strategia. Pesi configurabili, ottimizzati OOS.",
+  "invariants": [
+    "Nessun layer può dominare completamente (max weight < 0.8)",
+    "Recency decay applicato a tutti i layer",
+    "Source label mai mescolate senza pesi espliciti",
+    "RiskAgent veto ha priorità su qualsiasi weighting"
+  ],
+  "weight_parameters": {
+    "HISTORICAL_WEIGHT": {"default": 0.3, "range": [0.1, 0.5]},
+    "FORWARD_PAPER_WEIGHT": {"default": 0.4, "range": [0.2, 0.6]},
+    "LIVE_WEIGHT": {"default": 0.3, "range": [0.0, 0.5]},
+    "RECENCY_DECAY_HALF_LIFE_DAYS": {"default": 90, "range": [30, 365]},
+    "SIMILARITY_WEIGHT": {"default": 0.6, "range": [0.3, 0.9]},
+    "STRUCTURAL_COMPATIBILITY_WEIGHT": {"default": 0.7, "range": [0.3, 1.0]}
+  },
+  "scoring_formula": {
+    "strategy_score": "sum over sources: weight_source * recency_decay * similarity_weight * structural_compatibility * strategy_performance_metric",
+    "recency_decay": "exp(-ln(2) * days_ago / RECENCY_DECAY_HALF_LIFE_DAYS)",
+    "normalization": "divide by sum of weights to get [0,1] score"
+  },
+  "auto_evolution_boundary": {
+    "can_autonomously_update": [
+      "strategy scores",
+      "strategy ranking",
+      "confidence within approved range",
+      "allocation within risk limits",
+      "analog weights within range",
+      "candidate parameters within approved ranges"
+    ],
+    "cannot_autonomously_update": [
+      "remove RiskAgent",
+      "increase hard risk limits",
+      "modify wallet security",
+      "promote arbitrary code to live",
+      "ignore kill switch",
+      "change weight_parameters outside approved ranges"
+    ]
+  },
+  "online_learning_protocol": {
+    "daily": [
+      "append forward observations da paper/live",
+      "update rolling performance metrics",
+      "recompute strategy scores",
+      "recompute analog weights"
+    ],
+    "weekly": [
+      "validate calibration",
+      "check for regime change",
+      "re-rank strategies"
+    ],
+    "monthly": [
+      "re-optimize weight_parameters OOS",
+      "review structural compatibility matrix",
+      "version memory snapshot"
+    ]
+  },
+  "memory_versioning": {
+    "rule": "ogni cambiamento significativo incrementa memory_version",
+    "snapshot_contents": ["weights", "strategy_scores", "analog_weights", "calibration_metrics", "timestamp"],
+    "rollback": "possible to previous version if degradation detected"
+  },
+  "qa_tests": [
+    "TEST-MW-01: sum of weights == 1 (after normalization)",
+    "TEST-MW-02: strategy score in [0, 1]",
+    "TEST-MW-03: recency_decay in (0, 1]",
+    "TEST-MW-04: RiskAgent veto overrides any score"
+  ],
+  "depends_on": ["EXPERIENCE_MATRIX_SPEC", "STRUCTURAL_CHANGE_MODEL"]
+}

@@ -1,0 +1,78 @@
+{
+  "artifact_id": "TRADEAID_MULTI_HORIZON_ANALOG_SPEC",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "MultiHorizonAnalogEngine",
+  "purpose": "Lo stato corrente può assomigliare al passato su un orizzonte ma non su un altro. Produrre analog separati per orizzonte di previsione.",
+  "invariants": [
+    "Ogni orizzonte ha il proprio set di top-K analogs",
+    "Un analog può apparire in più orizzonti con confidence diverse",
+    "Forward outcomes sono misurati solo dopo selezione (no look-ahead)"
+  ],
+  "horizon_definitions": [
+    {"horizon_id": "H_1D", "forward_days": 1, "feature_windows": ["24h", "72h", "7d"]},
+    {"horizon_id": "H_7D", "forward_days": 7, "feature_windows": ["72h", "7d", "14d", "30d"]},
+    {"horizon_id": "H_30D", "forward_days": 30, "feature_windows": ["7d", "14d", "30d", "90d"]},
+    {"horizon_id": "H_90D", "forward_days": 90, "feature_windows": ["30d", "90d", "180d", "365d"]}
+  ],
+  "output_schema_per_horizon": {
+    "horizon_id": "string",
+    "query_timestamp": "datetime UTC",
+    "top_k_analogs": [
+      {
+        "analog_id": "uuid",
+        "historical_timestamp": "datetime UTC",
+        "similarity_score": "float",
+        "similarity_method": "string",
+        "feature_similarities": {"feature_name": "float"},
+        "feature_differences": {"feature_name": "float"},
+        "regime_match": "boolean",
+        "liquidity_match": "enum (HIGH|MEDIUM|LOW)",
+        "structural_compatibility": "enum (SAME_ERA|ADJACENT_ERA|DIFFERENT_ERA)",
+        "data_quality": "TIER_A|TIER_B|TIER_C",
+        "confidence": "float [0,1]",
+        "forward_outcomes": {
+          "return_nd": "float",
+          "max_drawdown_nd": "float",
+          "volatility_nd": "float",
+          "btc_regime_sequence": ["enum"]
+        }
+      }
+    ],
+    "ensemble_forecast": {
+      "expected_return_distribution": {
+        "mean": "float",
+        "p5": "float",
+        "p25": "float",
+        "p50": "float",
+        "p75": "float",
+        "p95": "float"
+      },
+      "probability_bull_continuation": "float",
+      "probability_range": "float",
+      "probability_bear_continuation": "float",
+      "probability_reversal": "float",
+      "expected_drawdown_p95": "float",
+      "supporting_analog_count": "int",
+      "confidence": "float"
+    },
+    "novelty_flag": {
+      "is_novel": "boolean",
+      "max_similarity_score": "float",
+      "threshold": "float"
+    }
+  },
+  "aggregation_across_horizons": {
+    "consensus_direction": "se majority of horizons agree on direction -> higher confidence",
+    "conflict_handling": "se horizons disagree -> flag HORIZON_CONFLICT, reduce position size"
+  },
+  "qa_tests": [
+    "TEST-MHA-01: analog timestamp < query timestamp",
+    "TEST-MHA-02: forward_outcomes misurati solo dopo analog timestamp",
+    "TEST-MHA-03: confidence in [0,1]",
+    "TEST-MHA-04: probabilities sum to ~1"
+  ],
+  "depends_on": ["PATTERN_SIMILARITY_SPEC", "ANALOG_ENGINE"]
+}

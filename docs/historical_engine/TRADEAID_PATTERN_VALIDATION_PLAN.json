@@ -1,0 +1,74 @@
+{
+  "artifact_id": "TRADEAID_PATTERN_VALIDATION_PLAN",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "PatternValidationPlan",
+  "purpose": "Piano di validazione rigorosa per HistoricalAnalogEngine e pattern discovery. Domanda fondamentale: predice qualcosa meglio delle baseline?",
+  "baselines": [
+    {"name": "RANDOM", "description": "segnale casuale con stessa frequenza di trading"},
+    {"name": "UNCONDITIONAL_HISTORICAL", "description": "distribuzione incondizionata dei return storici"},
+    {"name": "BTC_MOMENTUM", "description": "semplice momentum su BTC (buy if return_30d > 0)"},
+    {"name": "SIMPLE_REGIME", "description": "buy if BTC regime == BULL else NO_TRADE"},
+    {"name": "BUY_AND_HOLD", "description": "compra BTC e hold"},
+    {"name": "ALWAYS_NO_TRADE", "description": "baseline di capitale preservato"}
+  ],
+  "validation_protocol": {
+    "step_1_in_sample": "sviluppo pattern e parametri su training set (es. 2013-2020)",
+    "step_2_validation_set": " tuning su validation set (es. 2021-2023)",
+    "step_3_oos_test": "test finale su OOS set (es. 2024-2026) mai toccato prima",
+    "step_4_walk_forward": "espandere window e ripetere per robustezza",
+    "step_5_multiple_hypothesis_correction": "Bonferroni o FDR control se testati molti pattern"
+  },
+  "metrics": [
+    {"name": "Brier_score", "target": "< 0.25"},
+    {"name": "log_loss", "target": "minimize"},
+    {"name": "calibration_error", "target": "< 0.05"},
+    {"name": "directional_accuracy", "target": "> 55%"},
+    {"name": "return_rank_correlation", "target": "> 0.1"},
+    {"name": "net_expectancy_after_cost", "target": "> 0"},
+    {"name": "profit_factor", "target": "> 1.2"},
+    {"name": "max_drawdown", "target": "< 0.25"},
+    {"name": "sharpe_ratio", "target": "> 0.5"}
+  ],
+  "data_snooping_controls": [
+    "CROSS-VALIDATION_TEMPORAL": "walk-forward only; mai random shuffle",
+    "MULTIPLE_TESTING_CORRECTION": "Bonferroni/FDR su famiglia di test",
+    "DEFERRED_TEST_SET": "OOS finale mai usato in sviluppo",
+    "PATTERN_REGISTRATION": "ogni pattern testato viene registrato con timestamp",
+    "EXPERIMENTAL_TAG": "pattern senza OOS valido tagged EXPERIMENTAL"
+  ],
+  "promotion_criteria": {
+    "from_EXPERIMENTAL_to_CANDIDATE": [
+      "OOS performance significativa vs baseline",
+      "sample_size >= 30",
+      "profit_factor > 1.2",
+      "max_drawdown < 0.25",
+      "calibration OK"
+    ],
+    "from_CANDIDATE_to_SHADOW": [
+      "forward paper shadow >= 30 giorni",
+      "performance confermata in shadow",
+      "no degradation vs OOS"
+    ],
+    "from_SHADOW_to_FORWARD_PAPER": [
+      "shadow performance stabile",
+      "risk metrics within limits",
+      "approval from governance"
+    ],
+    "from_FORWARD_PAPER_to_TINY_LIVE": [
+      "forward paper >= 60 giorni",
+      "performance confermata",
+      "execution test su piccolo capitale",
+      "kill switch testato"
+    ]
+  },
+  "qa_tests": [
+    "TEST-VAL-01: OOS set mai usato in training/validation",
+    "TEST-VAL-02: multiple testing correction applicato",
+    "TEST-VAL-03: pattern registration timestamp verificabile",
+    "TEST-VAL-04: promotion criteria tutti soddisfatti prima di avanzamento"
+  ],
+  "depends_on": ["ANALOG_ENGINE", "PATTERN_SIMILARITY_SPEC", "EXPERIENCE_MATRIX_SPEC"]
+}

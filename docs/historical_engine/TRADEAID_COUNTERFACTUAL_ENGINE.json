@@ -1,0 +1,57 @@
+{
+  "artifact_id": "TRADEAID_COUNTERFACTUAL_ENGINE",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "CounterfactualEngine",
+  "purpose": "Per ogni decisione, registrare cosa sarebbe successo con strategie alternative e con NO_TRADE. Non per riscrivere il passato, ma per apprendere quale decisione sarebbe stata migliore dati disponibili a T.",
+  "invariants": [
+    "Counterfactual usa solo informazioni disponibili a T",
+    "No look-ahead nella generazione delle alternative",
+    "Best ex-post NON diventa la decisione simulata",
+    "Counterfactual è marked come tale; non si mescola con actual"
+  ],
+  "counterfactual_record_schema": {
+    "counterfactual_id": "uuid",
+    "parent_experience_id": "uuid",
+    "timestamp": "datetime UTC",
+    "alternative_type": "OTHER_ELIGIBLE_STRATEGY|NO_TRADE|DIFFERENT_SIZING|DIFFERENT_ENTRY",
+    "alternative_strategy_id": "string|null",
+    "alternative_action": "enum",
+    "alternative_position_size_pct": "float|null",
+    "alternative_entry_price": "float|null",
+    "counterfactual_outcomes": {
+      "return_1h": "float|null",
+      "return_4h": "float|null",
+      "return_1d": "float|null",
+      "return_3d": "float|null",
+      "return_7d": "float|null",
+      "return_14d": "float|null",
+      "return_30d": "float|null",
+      "mfe": "float|null",
+      "mae": "float|null",
+      "realized_pnl": "float|null"
+    },
+    "would_have_been_better": "boolean (computed after horizon closes)",
+    "delta_vs_actual_pnl": "float|null"
+  },
+  "alternative_generation_rules": {
+    "eligible_strategies_at_T": "tutte le strategie che avrebbero generato un segnale a T con dati disponibili a T",
+    "no_trade_alternative": "sempre generato come baseline",
+    "sizing_alternatives": ["half_size", "double_size_within_risk_limits"],
+    "entry_alternatives": ["limit_order_at_support", "market_order_at_T_close"]
+  },
+  "learning_output": {
+    "strategy_ranking_by_state": "per market_state_hash, classifica strategie per net_expectancy counterfactual",
+    "missed_opportunity_rate": "frazione di NO_TRADE che sarebbero stati profittevoli",
+    "good_no_trade_rate": "frazione di NO_TRADE che avrebbero evitato perdite",
+    "decision_regret_distribution": "quanto peggio sarebbe stato scegliere alternativa migliore"
+  },
+  "qa_tests": [
+    "TEST-CF-01: counterfactual_outcomes computabili solo con dati <= T",
+    "TEST-CF-02: parent_experience_id reference valido",
+    "TEST-CF-03: would_have_been_better calcolato solo dopo chiusura orizzonte"
+  ],
+  "depends_on": ["EXPERIENCE_MATRIX_SPEC", "HISTORICAL_REPLAY"]
+}

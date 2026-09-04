@@ -1,0 +1,67 @@
+{
+  "data_contracts_continuation": [
+    {
+      "contract_id": "CANONICAL_ASSET_REGISTRY",
+      "schema": "QWEN_ASSET_IDENTITY_001.json → canonical_asset_schema",
+      "producer": "AssetIdentityBuilder",
+      "consumer": ["HistoricalReplay", "Top200Snapshot", "AnalogEngine", "ExperienceMatrix"]
+    },
+    {
+      "contract_id": "MARKET_STATE_VECTOR",
+      "schema": "QWEN_MARKET_STATE_VECTOR_001.json → market_state_vector_schema_v1",
+      "producer": "MarketStateBuilder",
+      "consumer": ["AnalogEngine", "TrendScenarioEngine", "StrategySelector", "ExperienceMatrix"]
+    },
+    {
+      "contract_id": "TOP200_SNAPSHOT",
+      "schema": "QWEN_TOP200_SOURCE_MATRIX_001.json → reconstruction_algorithm_v1.step_5_final_output",
+      "producer": "Top200SnapshotBuilder",
+      "consumer": ["MarketStateBuilder", "HistoricalReplay"]
+    },
+    {
+      "contract_id": "BTC_MASTER_HISTORY",
+      "schema": "QWEN_BTC_HISTORY_SOURCE_MATRIX_001.json → recommended_btc_master_pipeline",
+      "producer": "BtcMasterHistoryBuilder",
+      "consumer": ["MarketStateBuilder", "HistoricalReplay", "BtcCycleClassifier"]
+    },
+    {
+      "contract_id": "EXPERIENCE_RECORD",
+      "schema": "TRADEAID_EXPERIENCE_MATRIX_SPEC.json (prodotto in STREAM B)",
+      "producer": "HistoricalReplay",
+      "consumer": ["StrategySelector", "AnalogEngine", "MemoryWeighting"]
+    }
+  ],
+  "tests_required": [
+    "TEST-IDENTITY-01: symbol_at_date resolution per POL/MATIC 2023 vs 2025",
+    "TEST-IDENTITY-02: dead asset retained in 2022 top-200 snapshot",
+    "TEST-REPLAY-01: no look-ahead assertion at 1000 random timestamps",
+    "TEST-REPLAY-02: checkpoint resume produces identical P&L",
+    "TEST-ANALOG-01: analog candidates all have timestamp < T",
+    "TEST-ANALOG-02: calibration Brier score vs baseline",
+    "TEST-STATE-01: all features computable with data <= T"
+  ],
+  "acceptance_criteria": [
+    "AC-01: Historical replay runs end-to-end on MODE_A (BTC_ONLY) 2013-2026",
+    "AC-02: MODE_C (DYNAMIC_TOP200) runs 2020-2026 with TIER_A/B snapshots",
+    "AC-03: Analog engine returns top-K with confidence scores",
+    "AC-04: No look-ahead violation in 100% of test timestamps",
+    "AC-05: All artifacts versioned and traceable to raw sources"
+  ],
+  "unresolved_questions": [
+    "UQ-01: CoinGecko commercial license cost as of 2026-09",
+    "UQ-02: Best similarity method for analog engine (requires OOS backtest)",
+    "UQ-03: Optimal top-K for analog ensemble (requires OOS backtest)",
+    "UQ-04: Structural change weight decay function (requires calibration)",
+    "UQ-05: Cost model for pre-2017 execution (data scarce)"
+  ],
+  "dependencies": [
+    "Python 3.11+",
+    "PostgreSQL 15+ (primary store)",
+    "DuckDB (analytical queries)",
+    "pandas, numpy, scipy, scikit-learn",
+    "tsfresh (time-series features, optional)",
+    "FAISS or Annoy (approximate NN for analog search)",
+    "Dagster or Prefect (orchestration, optional)",
+    "S3-compatible storage (raw data lake)"
+  ]
+}

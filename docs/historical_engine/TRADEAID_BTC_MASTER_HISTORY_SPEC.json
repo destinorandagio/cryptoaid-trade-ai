@@ -1,0 +1,101 @@
+{
+  "artifact_id": "TRADEAID_BTC_MASTER_HISTORY_SPEC",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "BtcMasterHistoryBuilder",
+  "purpose": "Costruire la fonte canonica BTC OHLCV + derived features, con quality tier per era e multi-source consensus dove disponibile.",
+  "invariants": [
+    "RAW layer è immutabile",
+    "CURATED layer è versionato",
+    "Ogni osservazione ha source_id + quality_tier",
+    "Divergenze multi-source sono registrate, non nascoste",
+    "No interpolazione di dati mancanti senza flag DATA_INTERPOLATED"
+  ],
+  "era_pipeline": {
+    "ERA-1_2010_2013": {
+      "primary_source": "CryptoDataDownload (MtGox historical)",
+      "secondary_source": "Kaggle verified datasets",
+      "granularity": "1d only",
+      "quality_tier": "TIER_C",
+      "usage": "qualitative markers only; not for strategy replay"
+    },
+    "ERA-2_2013_2016": {
+      "primary_source": "CryptoDataDownload (Bitstamp + Coinbase + Kraken)",
+      "secondary_source": "CoinGecko (from 2013-09)",
+      "granularity": "1d",
+      "quality_tier": "TIER_B",
+      "consensus_method": "volume_weighted_median",
+      "conflict_threshold_pct": 1.0,
+      "usage": "replay with explicit TIER_B flag"
+    },
+    "ERA-3_2017_present": {
+      "primary_source": "Binance Data Vision",
+      "secondary_source": "CryptoDataDownload, CoinGecko",
+      "granularity": ["1m", "5m", "15m", "1h", "4h", "1d"],
+      "quality_tier": "TIER_A",
+      "consensus_method": "median_with_divergence_flag",
+      "usage": "full replay"
+    }
+  },
+  "raw_schema": {
+    "timestamp": "datetime UTC",
+    "interval": "enum (1m|5m|15m|1h|4h|1d)",
+    "open": "float",
+    "high": "float",
+    "low": "float",
+    "close": "float",
+    "volume_btc": "float",
+    "volume_usd": "float|null",
+    "source_id": "string",
+    "source_tier": "TIER_A|TIER_B|TIER_C",
+    "era_id": "ERA-1|ERA-2|ERA-3"
+  },
+  "curated_schema": {
+    "timestamp": "datetime UTC",
+    "interval": "enum",
+    "open": "float",
+    "high": "float",
+    "low": "float",
+    "close": "float",
+    "volume_usd": "float|null",
+    "consensus_source_count": "int",
+    "consensus_divergence_pct": "float|null",
+    "quality_tier": "TIER_A|TIER_B|TIER_C",
+    "era_id": "ERA-1|ERA-2|ERA-3",
+    "data_flags": ["string"]
+  },
+  "derived_features": [
+    {"name": "return_1d", "formula": "(close_t - close_{t-1}) / close_{t-1}"},
+    {"name": "volatility_7d", "formula": "std(return_1d[-7:]) * sqrt(365)"},
+    {"name": "volatility_30d", "formula": "std(return_1d[-30:]) * sqrt(365)"},
+    {"name": "atr_14d", "formula": "Wilder ATR 14"},
+    {"name": "rsi_14d", "formula": "Wilder RSI 14"},
+    {"name": "sma_50", "formula": "mean(close[-50:])"},
+    {"name": "sma_200", "formula": "mean(close[-200:])"},
+    {"name": "price_vs_sma200_pct", "formula": "(close - sma_200) / sma_200"},
+    {"name": "drawdown_from_ath", "formula": "(close - max(close[:t])) / max(close[:t])"},
+    {"name": "drawdown_from_local_high_90d", "formula": "(close - max(close[-90:])) / max(close[-90:])"},
+    {"name": "momentum_14d", "formula": "(close - close[-14]) / close[-14]"},
+    {"name": "momentum_30d", "formula": "(close - close[-30]) / close[-30]"},
+    {"name": "momentum_90d", "formula": "(close - close[-90]) / close[-90]"}
+  ],
+  "qa_tests": [
+    "TEST-BTC-01: no duplicate timestamp per interval",
+    "TEST-BTC-02: no negative price",
+    "TEST-BTC-03: no zero price after 2010",
+    "TEST-BTC-04: high >= low per candle",
+    "TEST-BTC-05: high >= open and close; low <= open and close",
+    "TEST-BTC-06: no future timestamp",
+    "TEST-BTC-07: volume >= 0",
+    "TEST-BTC-08: continuity check (no gap > 7d in daily series without flag)",
+    "TEST-BTC-09: divergence < 1% where multiple sources overlap"
+  ],
+  "versioning_policy": {
+    "raw": "append-only; corrections as new dataset_version",
+    "curated": "recomputable from raw; versioned by pipeline_version",
+    "features": "versioned by feature_version; never modified in place"
+  },
+  "depends_on": ["HIST_DATA_DISCOVERY", "BTC_HISTORY_SOURCE_MATRIX"]
+}

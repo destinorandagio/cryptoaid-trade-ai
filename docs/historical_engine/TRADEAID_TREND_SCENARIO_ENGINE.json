@@ -1,0 +1,83 @@
+{
+  "artifact_id": "TRADEAID_TREND_SCENARIO_ENGINE",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "TrendScenarioEngine",
+  "purpose": "Produrre scenari condizionali probabilistici, non previsioni certe. Output: distribuzione di scenari con probabilità, supporto storico, invalidation.",
+  "invariants": [
+    "Mai output CERTAIN_UP o CERTAIN_DOWN",
+    "Ogni scenario ha historical_support con sample_size",
+    "Ogni scenario ha invalidation_condition",
+    "Probabilità somme a ~1"
+  ],
+  "scenario_taxonomy": [
+    "BULL_CONTINUATION",
+    "RANGE_BOUND",
+    "REVERSAL_DOWN",
+    "VOLATILITY_EXPANSION_UP",
+    "VOLATILITY_EXPANSION_DOWN",
+    "BEAR_CONTINUATION",
+    "UNKNOWN"
+  ],
+  "scenario_record_schema": {
+    "scenario_id": "uuid",
+    "query_timestamp": "datetime UTC",
+    "horizon": "enum (1D|7D|30D|90D)",
+    "scenarios": [
+      {
+        "scenario_name": "enum",
+        "probability_estimate": "float [0,1]",
+        "historical_support": {
+          "supporting_analog_count": "int",
+          "sample_size": "int",
+          "era_distribution": {"era_id": "count"}
+        },
+        "expected_return_distribution": {
+          "mean": "float",
+          "p5": "float",
+          "p25": "float",
+          "p50": "float",
+          "p75": "float",
+          "p95": "float"
+        },
+        "expected_drawdown_distribution": {
+          "p50": "float",
+          "p95": "float"
+        },
+        "invalidation_condition": "string",
+        "invalidation_monitor": {
+          "metric": "string",
+          "threshold": "float",
+          "current_value": "float",
+          "is_invalidated": "boolean"
+        }
+      }
+    ],
+    "overall_confidence": "float [0,1]",
+    "novel_state_flag": "boolean",
+    "dominant_scenario": "enum",
+    "dominant_scenario_probability": "float"
+  },
+  "scenario_probability_estimation_method": {
+    "step_1": "ottenere top-K analogs da MultiHorizonAnalogEngine",
+    "step_2": "per ogni analog, classificare outcome reale in scenario taxonomy",
+    "step_3": "pesare per analog confidence + structural compatibility",
+    "step_4": "calcolare probabilità come weighted frequency",
+    "step_5": "se sample_size < 5, aumentare probabilità di UNKNOWN"
+  },
+  "calibration_requirement": {
+    "metric": "Brier score",
+    "target": "< 0.25 (better than random)",
+    "measurement": "rolling OOS su forward paper",
+    "if_fails": "flag SCENARIO_ENGINE_UNCALIBRATED; reduce position size"
+  },
+  "qa_tests": [
+    "TEST-TSE-01: sum(probabilities) in [0.95, 1.05]",
+    "TEST-TSE-02: ogni probability in [0, 1]",
+    "TEST-TSE-03: sample_size >= 1 per scenario non-UNKNOWN",
+    "TEST-TSE-04: invalidation_monitor metric computabile a T"
+  ],
+  "depends_on": ["MULTI_HORIZON_ANALOG_SPEC", "STRUCTURAL_CHANGE_MODEL"]
+}

@@ -1,0 +1,119 @@
+{
+  "artifact_id": "TRADEAID_EXPERIENCE_MATRIX_SPEC",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "ExperienceMatrix",
+  "purpose": "Memoria principale di TRADEAID. Registra distribuzioni di outcome per ogni combinazione di stato di mercato, strategia e azione. Non solo media P&L.",
+  "invariants": [
+    "Ogni record è immutabile dopo chiusura orizzonte",
+    "Ogni record ha source_label: HISTORICAL_REPLAY | FORWARD_PAPER | LIVE",
+    "No mescolanza di metriche tra source_label",
+    "Versioning obbligatorio su dataset, features, strategy, cost_model"
+  ],
+  "matrix_dimensions": [
+    "btc_cycle_phase",
+    "btc_regime",
+    "market_breadth_regime",
+    "asset_class",
+    "btc_correlation_bucket (HIGH|MEDIUM|LOW|DECOUPLING)",
+    "volatility_bucket (LOW|MEDIUM|HIGH|EXTREME)",
+    "liquidity_bucket (LOW|MEDIUM|HIGH)",
+    "strategy_id",
+    "action (BUY|SELL|HOLD|NO_TRADE)"
+  ],
+  "experience_record_schema": {
+    "experience_id": "uuid",
+    "source_label": "HISTORICAL_REPLAY|FORWARD_PAPER_SHADOW|LIVE",
+    "timestamp": "datetime UTC",
+    "dataset_version": "string",
+    "feature_version": "string",
+    "strategy_version": "string",
+    "cost_model_version": "string",
+    "market_state_vector_id": "uuid",
+    "btc_cycle_phase": "enum",
+    "btc_regime": "enum",
+    "market_breadth_regime": "enum",
+    "asset_canonical_id": "string",
+    "asset_rank_at_t": "int|null",
+    "asset_class": "enum",
+    "btc_correlation_bucket": "enum",
+    "volatility_bucket": "enum",
+    "liquidity_bucket": "enum",
+    "strategy_id": "string",
+    "action": "enum",
+    "confidence": "float [0,1]",
+    "position_size_pct": "float [0,1]",
+    "entry_price": "float|null",
+    "expected_return": "float",
+    "expected_risk": "float",
+    "expected_cost": "float",
+    "actual_cost": "float|null",
+    "outcomes": {
+      "return_1h": "float|null",
+      "return_4h": "float|null",
+      "return_1d": "float|null",
+      "return_3d": "float|null",
+      "return_7d": "float|null",
+      "return_14d": "float|null",
+      "return_30d": "float|null",
+      "max_favorable_excursion": "float|null",
+      "max_adverse_excursion": "float|null",
+      "realized_pnl": "float|null",
+      "realized_pnl_pct": "float|null"
+    },
+    "counterfactual_ids": ["uuid"],
+    "error_attribution": "enum|null (MARKET_REGIME_ERROR|PATTERN_MATCH_ERROR|STRATEGY_SELECTION_ERROR|ENTRY_ERROR|EXIT_ERROR|SIZING_ERROR|EXECUTION_COST_ERROR|RISK_VETO_ERROR|UNPREDICTABLE_EVENT)",
+    "created_at": "datetime",
+    "closed_at": "datetime|null"
+  },
+  "no_trade_record_schema": {
+    "experience_id": "uuid",
+    "source_label": "enum",
+    "timestamp": "datetime UTC",
+    "market_state_vector_id": "uuid",
+    "strategy_id": "string",
+    "action": "NO_TRADE",
+    "reason": "string",
+    "counterfactual_outcomes": {
+      "what_would_have_happened_1d": "float|null",
+      "what_would_have_happened_7d": "float|null",
+      "what_would_have_happened_30d": "float|null"
+    },
+    "classification": "GOOD_NO_TRADE|MISSED_OPPORTUNITY"
+  },
+  "aggregation_queries": [
+    {
+      "name": "strategy_experience_by_regime",
+      "group_by": ["strategy_id", "btc_regime", "btc_cycle_phase"],
+      "metrics": ["sample_size", "net_expectancy", "win_rate", "profit_factor", "max_drawdown", "mfe_mean", "mae_mean", "stability_score"]
+    },
+    {
+      "name": "strategy_experience_by_analog_cluster",
+      "group_by": ["strategy_id", "analog_cluster_id"],
+      "metrics": ["sample_size", "net_expectancy", "win_rate", "profit_factor", "stability_score"]
+    },
+    {
+      "name": "outcome_distribution_by_state",
+      "group_by": ["market_state_vector_hash"],
+      "metrics": ["return_percentiles_5_25_50_75_95", "drawdown_percentiles", "volatility_mean"]
+    }
+  ],
+  "promotion_rules": {
+    "min_sample_size": 30,
+    "min_net_expectancy": "> 0 after cost",
+    "min_profit_factor": "> 1.2",
+    "max_drawdown": "< 0.25",
+    "stability_score": "> 0.6",
+    "oos_validation": "required",
+    "all_rules_must_pass": true
+  },
+  "qa_tests": [
+    "TEST-EXP-01: source_label coerente con contesto di generazione",
+    "TEST-EXP-02: no outcome populated before horizon closes",
+    "TEST-EXP-03: experience_id unique",
+    "TEST-EXP-04: counterfactual_ids reference valid records"
+  ],
+  "depends_on": ["MARKET_STATE_VECTOR", "BTC_CYCLE_MODEL", "HISTORICAL_REPLAY"]
+}

@@ -1,0 +1,83 @@
+{
+  "artifact_id": "TRADEAID_PATTERN_SIMILARITY_SPEC",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "PatternSimilarityEngine",
+  "purpose": "Definire come si misura la similarità tra pattern di mercato. Pattern non è una candela: è traiettoria multi-feature su finestre multiple.",
+  "pattern_representation": {
+    "window_sizes": ["24h", "72h", "7d", "14d", "30d", "90d", "180d", "365d"],
+    "feature_set_per_window": [
+      "return_trajectory (normalized)",
+      "volatility_trajectory",
+      "drawdown_trajectory",
+      "breadth_trajectory",
+      "btc_dominance_trajectory",
+      "correlation_regime_trajectory"
+    ],
+    "normalization": "z-score within era OR min-max within window; must be specified per run"
+  },
+  "similarity_methods": [
+    {
+      "method": "euclidean",
+      "formula": "sqrt(sum((x_i - y_i)^2))",
+      "requires_normalization": true,
+      "complexity": "O(d)"
+    },
+    {
+      "method": "mahalanobis",
+      "formula": "sqrt((x-y)^T S^-1 (x-y))",
+      "requires_normalization": false,
+      "requires_covariance_estimation": true,
+      "complexity": "O(d^3)"
+    },
+    {
+      "method": "cosine",
+      "formula": "1 - (x·y / (||x|| ||y||))",
+      "requires_normalization": false,
+      "complexity": "O(d)"
+    },
+    {
+      "method": "dtw",
+      "description": "Dynamic Time Warping per traiettorie temporali",
+      "requires_normalization": true,
+      "complexity": "O(T^2)",
+      "use_case": "confronto traiettorie con shift temporali"
+    },
+    {
+      "method": "weighted_ensemble",
+      "description": "combinazione di più metodi con pesi appresi OOS",
+      "weights_learning": "true"
+    }
+  ],
+  "pattern_window_engine": {
+    "extraction_algorithm": {
+      "for_each_window_size": "extract feature trajectory over past window_size",
+      "output": "pattern_vector = concat(all_windows)",
+      "dimension": "sum(window_size_in_steps * features_per_step)"
+    }
+  },
+  "comparison_protocol": {
+    "step_1": "estrarre pattern_vector per current_state T",
+    "step_2": "per ogni T_hist < T, estrarre pattern_vector_hist",
+    "step_3": "calcolare similarity con ogni metodo",
+    "step_4": "rank per metodo",
+    "step_5": "ensemble rank (Borda o weighted avg)",
+    "step_6": "top-K selection",
+    "step_7": "quality assessment (vedi ANALOG_ENGINE)"
+  },
+  "benchmark_protocol": {
+    "purpose": "determinare empiricamente quale metodo funziona meglio OOS",
+    "protocol": "walk-forward con expanding window",
+    "metrics": ["Brier score", "directional accuracy", "return rank correlation", "calibration error"],
+    "selection_rule": "miglior metodo su OOS; se nessuno batte baseline, usare ensemble"
+  },
+  "qa_tests": [
+    "TEST-SIM-01: similarity >= 0 per metodi non negativi",
+    "TEST-SIM-02: similarity(x, x) == 0 per distance; == 1 per cosine similarity",
+    "TEST-SIM-03: symmetry similarity(x, y) == similarity(y, x)",
+    "TEST-SIM-04: no NaN/Inf in output"
+  ],
+  "depends_on": ["MARKET_STATE_VECTOR"]
+}

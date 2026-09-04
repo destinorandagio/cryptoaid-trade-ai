@@ -1,0 +1,110 @@
+{
+  "artifact_id": "TRADEAID_HISTORICAL_TOP200_SPEC",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "HistoricalTop200Engine",
+  "purpose": "Specifica operativa per ricostruzione point-in-time della Top-200 crypto per ogni timestamp storico. Elimina survivorship bias.",
+  "invariants": [
+    "TOP200(t) contiene solo asset esistenti e classificabili a t",
+    "Asset morti/delisted restano negli snapshot del periodo in cui erano vivi",
+    "Rank è univoco per snapshot (no duplicati)",
+    "Market cap usa definizione point-in-time (documentare eventuali cambi metodologia)",
+    "Nessun asset del futuro appare in snapshot passati"
+  ],
+  "input_contracts": [
+    {"name": "canonical_asset_registry", "source": "QWEN_ASSET_IDENTITY_001"},
+    {"name": "historical_market_cap_sources", "source": "QWEN_HIST_DATA_DISCOVERY_001"},
+    {"name": "dead_asset_registry", "source": "QWEN_ASSET_IDENTITY_001 → status=DEAD entries"}
+  ],
+  "output_contract": {
+    "snapshot_schema": {
+      "snapshot_date": "date (UTC)",
+      "snapshot_quality": "TIER_A|TIER_B|TIER_C",
+      "source_count": "int",
+      "methodology_version": "string",
+      "assets": [
+        {
+          "rank": "int [1..200]",
+          "canonical_asset_id": "string",
+          "symbol_at_date": "string",
+          "name_at_date": "string",
+          "market_cap_usd": "float|null",
+          "price_usd": "float|null",
+          "volume_24h_usd": "float|null",
+          "available_supply": "float|null",
+          "chain": "string|null",
+          "status_at_date": "ACTIVE|DELISTED|DEAD|MIGRATED|RENAMED",
+          "data_quality": "TIER_A|TIER_B|TIER_C",
+          "source_ids": ["string"]
+        }
+      ]
+    }
+  },
+  "reconstruction_pipeline": [
+    {
+      "step": 1,
+      "name": "source_harvest",
+      "description": "Raccoglie snapshot grezzi da tutte le fonti disponibili per data T",
+      "operations": ["query_coingecko", "query_cmc_wayback", "query_exchange_archives"],
+      "output": "raw_harvest[T]"
+    },
+    {
+      "step": 2,
+      "name": "identity_resolution",
+      "description": "Mappa ogni (symbol, date) a canonical_asset_id",
+      "operations": ["lookup_symbol_aliases", "apply_identity_events_timeline"],
+      "output": "identity_resolved[T]"
+    },
+    {
+      "step": 3,
+      "name": "rank_reconciliation",
+      "description": "Riconcilia rank multipli da fonti diverse; media pesata per source quality",
+      "operations": ["median_rank", "conflict_detection", "quality_weighted_vote"],
+      "output": "reconciled_rank[T]"
+    },
+    {
+      "step": 4,
+      "name": "dead_asset_inclusion",
+      "description": "Include asset ora morti che a T erano vivi e in top-200",
+      "operations": ["cross_reference_dead_registry", "restore_if_ranked_at_T"],
+      "output": "survivorship_corrected[T]"
+    },
+    {
+      "step": 5,
+      "name": "quality_scoring",
+      "description": "Assegna snapshot_quality + per-asset data_quality",
+      "metrics": ["source_count", "rank_completeness", "market_cap_coverage", "conflict_rate"],
+      "output": "quality_scored[T]"
+    },
+    {
+      "step": 6,
+      "name": "persistence",
+      "description": "Scrive in historical_top200_snapshot con versioning",
+      "output": "persisted_snapshot[T, version]"
+    }
+  ],
+  "granularity_policy": {
+    "target": "DAILY",
+    "fallback_2018_2019": "WEEKLY (if daily unavailable)",
+    "fallback_pre_2018": "MONTHLY (Wayback-dependent)",
+    "minimum_acceptable": "MONTHLY per qualsiasi periodo usato in replay"
+  },
+  "methodology_change_handling": {
+    "cmc_2018_04_change": {
+      "description": "CMC ha cambiato definizione market cap (circulating vs total)",
+      "handling": "registrare methodology_version per snapshot; non mescolare serie pre/post senza flag"
+    }
+  },
+  "qa_tests": [
+    "TEST-TOP200-01: rank uniqueness per snapshot",
+    "TEST-TOP200-02: no canonical_asset_id duplicato nello stesso snapshot",
+    "TEST-TOP200-03: no asset con first_market_data > snapshot_date",
+    "TEST-TOP200-04: dead asset presente negli snapshot del periodo di vita",
+    "TEST-TOP200-05: monotonicità rank per asset senza eventi di identity",
+    "TEST-TOP200-06: snapshot_quality coerente con source_count"
+  ],
+  "blockers": ["BLOCKER-001", "BLOCKER-002", "BLOCKER-003", "BLOCKER-004"],
+  "depends_on": ["ASSET_IDENTITY", "HIST_DATA_DISCOVERY"]
+}

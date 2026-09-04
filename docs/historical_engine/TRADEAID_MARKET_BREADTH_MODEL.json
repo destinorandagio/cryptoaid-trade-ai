@@ -1,0 +1,118 @@
+{
+  "artifact_id": "TRADEAID_MARKET_BREADTH_MODEL",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "MarketBreadthBuilder",
+  "purpose": "Costruire feature aggregate di breadth del mercato crypto per distinguere BTC-led market da alt expansion. Tutte le feature sono point-in-time safe.",
+  "invariants": [
+    "Ogni feature usa solo top-200 snapshot at T",
+    "No look-ahead su constituent list",
+    "Asset morti/delisted inclusi nel calcolo se vivi a T",
+    "NULL quando snapshot_quality insufficiente"
+  ],
+  "features_v1": [
+    {
+      "name": "pct_top200_above_sma50",
+      "formula": "count(asset.close > asset.sma50) / count(asset in top200)",
+      "range": "[0, 1]",
+      "interpretation": ">0.6 = broad strength; <0.4 = broad weakness"
+    },
+    {
+      "name": "pct_top200_positive_return_7d",
+      "formula": "count(asset.return_7d > 0) / count(asset in top200)",
+      "range": "[0, 1]"
+    },
+    {
+      "name": "pct_top200_outperforming_btc_7d",
+      "formula": "count(asset.return_7d > btc.return_7d) / count(asset in top200)",
+      "range": "[0, 1]",
+      "interpretation": ">0.5 = alt outperformance"
+    },
+    {
+      "name": "median_alt_return_7d",
+      "formula": "median(asset.return_7d for asset in top200 if asset != BTC)",
+      "unit": "float (decimal)"
+    },
+    {
+      "name": "median_alt_return_30d",
+      "formula": "median(asset.return_30d for asset in top200 if asset != BTC)",
+      "unit": "float (decimal)"
+    },
+    {
+      "name": "alt_dispersion_7d",
+      "formula": "std(asset.return_7d for asset in top200 if asset != BTC)",
+      "interpretation": "high = rotation/dispersion; low = consensus move"
+    },
+    {
+      "name": "market_breadth_index",
+      "formula": "0.4 * pct_above_sma50 + 0.3 * pct_positive_7d + 0.3 * pct_outperforming_btc",
+      "range": "[0, 1]"
+    },
+    {
+      "name": "market_cap_concentration_top10",
+      "formula": "sum(top10.market_cap) / sum(top200.market_cap)",
+      "range": "[0, 1]",
+      "interpretation": "high = concentrated (BTC/ETH dominance)"
+    },
+    {
+      "name": "btc_dominance",
+      "formula": "BTC.market_cap / sum(top200.market_cap)",
+      "range": "[0, 1]",
+      "data_note": "NULL pre-2018 se total market cap non disponibile"
+    },
+    {
+      "name": "btc_dominance_change_30d",
+      "formula": "btc_dominance_t - btc_dominance_{t-30}",
+      "interpretation": "positive = BTC gaining share; negative = alt expansion"
+    },
+    {
+      "name": "stablecoin_share",
+      "formula": "sum(stablecoin.market_cap) / sum(top200.market_cap)",
+      "data_note": "NULL pre-2018; stablecoin list from canonical registry"
+    }
+  ],
+  "market_regime_classification": {
+    "BTC_LED_MARKET": {
+      "conditions": [
+        "btc_dominance_change_30d > +0.02",
+        "pct_top200_outperforming_btc_7d < 0.4",
+        "market_cap_concentration_top10 > 0.7"
+      ]
+    },
+    "ALT_EXPANSION": {
+      "conditions": [
+        "btc_dominance_change_30d < -0.02",
+        "pct_top200_outperforming_btc_7d > 0.6",
+        "median_alt_return_7d > btc.return_7d"
+      ]
+    },
+    "BROAD_RALLY": {
+      "conditions": [
+        "market_breadth_index > 0.7",
+        "alt_dispersion_7d < 0.05",
+        "pct_top200_positive_return_7d > 0.8"
+      ]
+    },
+    "BROAD_WEAKNESS": {
+      "conditions": [
+        "market_breadth_index < 0.3",
+        "pct_top200_positive_return_7d < 0.2"
+      ]
+    },
+    "ROTATION": {
+      "conditions": [
+        "alt_dispersion_7d > 0.10",
+        "market_breadth_index in [0.4, 0.6]"
+      ]
+    }
+  },
+  "qa_tests": [
+    "TEST-BREADTH-01: tutte le feature in [0,1] dove atteso",
+    "TEST-BREADTH-02: NULL coerente con snapshot_quality",
+    "TEST-BREADTH-03: btc_dominance + top_alt_dominance <= 1",
+    "TEST-BREADTH-04: monotonicità su finestre mobili senza eventi"
+  ],
+  "depends_on": ["HISTORICAL_TOP200_SPEC", "BTC_MASTER_HISTORY_SPEC"]
+}

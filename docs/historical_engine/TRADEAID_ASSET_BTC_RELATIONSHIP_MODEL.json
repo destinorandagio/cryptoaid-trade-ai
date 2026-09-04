@@ -1,0 +1,108 @@
+{
+  "artifact_id": "TRADEAID_ASSET_BTC_RELATIONSHIP_MODEL",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "AssetBtcRelationshipBuilder",
+  "purpose": "Misurare empiricamente la dipendenza di ogni asset da BTC. La dipendenza è MEASURED, non ASSUMED.",
+  "invariants": [
+    "Ogni metrica è calcolata solo con dati <= T",
+    "Rolling windows usano solo history[:T]",
+    "Beta e correlazione sono NULL se dati insufficienti (min 30 obs)",
+    "Lead/lag test richiede almeno 90 obs"
+  ],
+  "metrics_v1": [
+    {
+      "name": "asset_btc_correlation_30d",
+      "formula": "pearson(asset.return_1d[-30:], btc.return_1d[-30:])",
+      "range": "[-1, 1]",
+      "min_obs": 30
+    },
+    {
+      "name": "asset_btc_correlation_90d",
+      "formula": "pearson(asset.return_1d[-90:], btc.return_1d[-90:])",
+      "range": "[-1, 1]",
+      "min_obs": 90
+    },
+    {
+      "name": "asset_beta_to_btc_30d",
+      "formula": "cov(asset.return_1d[-30:], btc.return_1d[-30:]) / var(btc.return_1d[-30:])",
+      "min_obs": 30
+    },
+    {
+      "name": "asset_beta_to_btc_90d",
+      "formula": "cov(asset.return_1d[-90:], btc.return_1d[-90:]) / var(btc.return_1d[-90:])",
+      "min_obs": 90
+    },
+    {
+      "name": "asset_downside_beta_90d",
+      "formula": "beta calcolato solo su giorni con btc.return_1d < 0",
+      "min_obs": 20 negative days in window"
+    },
+    {
+      "name": "asset_upside_beta_90d",
+      "formula": "beta calcolato solo su giorni con btc.return_1d > 0",
+      "min_obs": 20 positive days in window"
+    },
+    {
+      "name": "asset_relative_strength_vs_btc_30d",
+      "formula": "asset.return_30d - btc.return_30d",
+      "unit": "decimal"
+    },
+    {
+      "name": "asset_relative_strength_vs_btc_90d",
+      "formula": "asset.return_90d - btc.return_90d",
+      "unit": "decimal"
+    },
+    {
+      "name": "asset_alt_btc_return_ratio_30d",
+      "formula": "asset.return_30d / btc.return_30d if btc.return_30d != 0 else NULL",
+      "interpretation": ">1 = outperformance; <1 = underperformance"
+    }
+  ],
+  "lead_lag_engine": {
+    "purpose": "Testare se BTC precede movimenti di asset/classi di asset",
+    "method": [
+      "cross_correlation at lags [-10, +10] giorni",
+      "lagged_regression: asset.return_1d ~ btc.return_1d + btc.return_1d_lag1 + ... + btc.return_1d_lag5",
+      "granger_test (quando stazionarietà verificata)"
+    ],
+    "output_per_asset_class": {
+      "asset_class": "LARGE_CAP|MID_CAP|SMALL_CAP|STABLECOIN|DEFI|MEME",
+      "dominant_lag_days": "int",
+      "correlation_at_dominant_lag": "float",
+      "granger_p_value": "float|null",
+      "sample_size": "int",
+      "confidence": "HIGH|MEDIUM|LOW"
+    },
+    "interpretation_rules": [
+      "Se dominant_lag > 0 e p_value < 0.05: BTC leads asset class",
+      "Se dominant_lag == 0: synchronous",
+      "Se dominant_lag < 0: asset leads BTC (raro)"
+    ]
+  },
+  "correlation_regime_classifier": {
+    "HIGH_BTC_CORRELATION": "median(asset_btc_correlation_30d across top200) > 0.7",
+    "MEDIUM_BTC_CORRELATION": "median in [0.4, 0.7]",
+    "LOW_BTC_CORRELATION": "median in [0.2, 0.4]",
+    "DECOUPLING": "median < 0.2"
+  },
+  "alt_rotation_sequence_test": {
+    "hypothesis": "BTC -> LARGE_CAP -> MID_CAP -> SMALL_CAP",
+    "test_method": "cross-correlation matrix tra bucket returns su rolling 30d",
+    "output": {
+      "rotation_state": "BTC_LEAD|LARGE_LEAD|MID_LEAD|SMALL_LEAD|NO_ROTATION",
+      "confidence": "float",
+      "sample_size": "int"
+    },
+    "warning": "correlazione non implica causalità; output è descrittivo"
+  },
+  "qa_tests": [
+    "TEST-REL-01: correlation in [-1, 1]",
+    "TEST-REL-02: beta NULL se min_obs non raggiunto",
+    "TEST-REL-03: downside_beta + upside_beta non devono essere uguali per costruzione",
+    "TEST-REL-04: lead_lag sample_size coerente con window"
+  ],
+  "depends_on": ["BTC_MASTER_HISTORY_SPEC", "HISTORICAL_TOP200_SPEC"]
+}
