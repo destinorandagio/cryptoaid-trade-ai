@@ -103,3 +103,48 @@ def test_database_payout_and_tac_credits(tmp_path):
 
     payouts = db.get_user_prop_payouts(wallet)
     assert len(payouts) == 1
+
+
+def test_position_sizing_algorithm_50k_pro():
+    agent = ChallengeRiskAgent(tier_fee_usdt=100.0, virtual_capital=50000.0)
+
+    # 1. Standard condition: 50k balance, BTC at 60,000, ATR 600
+    res = agent.calculate_position_size(
+        current_balance=50000.0,
+        start_of_day_balance=50000.0,
+        entry_price=60000.0,
+        direction="LONG",
+        atr_14=600.0,
+        risk_per_trade_target_pct=0.75, # 0.75% = $375
+    )
+    assert res.can_execute is True
+    assert res.risk_usdt <= 375.0
+    assert res.stop_loss_price < 60000.0
+    assert res.take_profit_price > 60000.0
+    assert res.risk_reward_ratio >= 2.0
+    assert res.effective_leverage <= 10.0
+
+    # 2. Drawdown Danger Zone: Day loss is already $2,000 (4.0% > 3.0% threshold)
+    # Remaining budget is $500 ($2500 - $2000). Allowed risk should be halved and strictly budgeted
+    res_danger = agent.calculate_position_size(
+        current_balance=48000.0,
+        start_of_day_balance=50000.0,
+        entry_price=60000.0,
+        direction="LONG",
+        atr_14=600.0,
+    )
+    assert res_danger.can_execute is True
+    # Budget remaining is $500, divided by 3 is $166.67, then halved is ~$83.33
+    assert res_danger.risk_usdt < 100.0
+    assert res_danger.daily_dd_budget_remaining_usdt == 500.0
+
+    # 3. Daily Budget Exhausted: Day loss is $2,500 (5.0%)
+    res_exhausted = agent.calculate_position_size(
+        current_balance=47500.0,
+        start_of_day_balance=50000.0,
+        entry_price=60000.0,
+        direction="LONG",
+        atr_14=600.0,
+    )
+    assert res_exhausted.can_execute is False
+    assert "DAILY_DRAWDOWN_BUDGET_EXHAUSTED" in res_exhausted.rejection_reason

@@ -22,6 +22,24 @@ class MacroEvent:
 
 
 @dataclass
+class PositionSizingResult:
+    can_execute: bool
+    rejection_reason: str | None
+    quantity: float
+    nominal_value_usdt: float
+    effective_leverage: float
+    risk_usdt: float
+    risk_pct_balance: float
+    entry_price: float
+    stop_loss_price: float
+    take_profit_price: float
+    sl_distance_usdt: float
+    tp_distance_usdt: float
+    risk_reward_ratio: float
+    daily_dd_budget_remaining_usdt: float
+
+
+@dataclass
 class ChallengeRiskDecision:
     can_trade: bool
     position_size_multiplier: float  # 1.0 standard, 0.5 on weekends
@@ -195,4 +213,156 @@ class ChallengeRiskAgent:
             status="ACTIVE",
             tac_credits_awarded=0.0,
             withdrawable_payout_usdt=0.0,
+        )
+
+    def calculate_position_size(
+        self,
+        current_balance: float,
+        start_of_day_balance: float,
+        entry_price: float,
+        direction: str,  # 'LONG' or 'SHORT'
+        atr_14: float,
+        risk_per_trade_target_pct: float = 0.75,  # Standard 0.75% risk per trade
+        atr_multiplier: float = 1.8,
+        min_risk_reward_ratio: float = 2.0,
+        max_leverage: float = 10.0,
+        current_timestamp: float | None = None,
+    ) -> PositionSizingResult:
+        """
+        Calculates exact position size and dynamic SL/TP levels engineered to strictly
+        prevent breaching the 5.0% Daily Drawdown and 10.0% Total Drawdown limits.
+        """
+        # 1. Check macro news blackout
+        is_news, news_reason = self.is_news_window_active(current_timestamp)
+        if is_news:
+            return PositionSizingResult(
+                can_execute=False,
+                rejection_reason=news_reason,
+                quantity=0.0,
+                nominal_value_usdt=0.0,
+                effective_leverage=0.0,
+                risk_usdt=0.0,
+                risk_pct_balance=0.0,
+                entry_price=entry_price,
+                stop_loss_price=0.0,
+                take_profit_price=0.0,
+                sl_distance_usdt=0.0,
+                tp_distance_usdt=0.0,
+                risk_reward_ratio=0.0,
+                daily_dd_budget_remaining_usdt=0.0,
+            )
+
+        if current_balance <= 0 or entry_price <= 0:
+            return PositionSizingResult(
+                can_execute=False,
+                rejection_reason="INVALID_PRICE_OR_BALANCE",
+                quantity=0.0,
+                nominal_value_usdt=0.0,
+                effective_leverage=0.0,
+                risk_usdt=0.0,
+                risk_pct_balance=0.0,
+                entry_price=entry_price,
+                stop_loss_price=0.0,
+                take_profit_price=0.0,
+                sl_distance_usdt=0.0,
+                tp_distance_usdt=0.0,
+                risk_reward_ratio=0.0,
+                daily_dd_budget_remaining_usdt=0.0,
+            )
+
+        # 2. Drawdown headroom computation
+        max_daily_loss_usdt = start_of_day_balance * (self.MAX_DAILY_DD_PCT / 100.0)
+        current_day_loss_usdt = max(0.0, start_of_day_balance - current_balance)
+        daily_budget_remaining_usdt = max(0.0, max_daily_loss_usdt - current_day_loss_usdt)
+
+        if daily_budget_remaining_usdt <= 0.0:
+            return PositionSizingResult(
+                can_execute=False,
+                rejection_reason=f"DAILY_DRAWDOWN_BUDGET_EXHAUSTED (Loss: ${current_day_loss_usdt:.2f} >= Limit: ${max_daily_loss_usdt:.2f})",
+                quantity=0.0,
+                nominal_value_usdt=0.0,
+                effective_leverage=0.0,
+                risk_usdt=0.0,
+                risk_pct_balance=0.0,
+                entry_price=entry_price,
+                stop_loss_price=0.0,
+                take_profit_price=0.0,
+                sl_distance_usdt=0.0,
+                tp_distance_usdt=0.0,
+                risk_reward_ratio=0.0,
+                daily_dd_budget_remaining_usdt=0.0,
+            )
+
+        # 3. Base single-trade risk dollar allocation
+        # Maximum 0.75% of current equity, and never more than 1/3 of the remaining daily DD buffer
+        standard_trade_risk_usdt = current_balance * (risk_per_trade_target_pct / 100.0)
+        buffer_trade_risk_usdt = daily_budget_remaining_usdt / 3.0
+        allowed_risk_usdt = min(standard_trade_risk_usdt, buffer_trade_risk_usdt)
+
+        # 4. Volatility dampeners
+        # Weekend sizing: reduce risk budget by 50%
+        now_dt = datetime.fromtimestamp(current_timestamp, tz=timezone.utc) if current_timestamp else datetime.now(timezone.utc)
+        if self.is_weekend(now_dt):
+            allowed_risk_usdt *= 0.50
+
+        # Drawdown danger zone dampener (if daily loss > 3.0%)
+        current_daily_dd_pct = (current_day_loss_usdt / start_of_day_balance) * 100.0 if start_of_day_balance > 0 else 0.0
+        if current_daily_dd_pct >= 3.0:
+            allowed_risk_usdt *= 0.50  # Cut size by half in yellow caution zone
+
+        # 5. Dynamic Stop Loss distance (ATR-based with 0.8% floor)
+        min_sl_distance = entry_price * 0.008  # 0.8% minimum distance to avoid market noise
+        sl_distance = max(atr_14 * atr_multiplier, min_sl_distance)
+        tp_distance = sl_distance * min_risk_reward_ratio
+
+        direction_upper = direction.upper()
+        if direction_upper == "LONG":
+            sl_price = max(0.00000001, entry_price - sl_distance)
+            tp_price = entry_price + tp_distance
+        else:
+            sl_price = entry_price + sl_distance
+            tp_price = max(0.00000001, entry_price - tp_distance)
+
+        # 6. Sizing math: Quantity = Allowed Risk / SL Distance
+        quantity = allowed_risk_usdt / sl_distance
+        nominal_val = quantity * entry_price
+        effective_leverage = nominal_val / current_balance
+
+        # 7. Leverage clamp (e.g. 10x max)
+        if effective_leverage > max_leverage:
+            nominal_val = current_balance * max_leverage
+            quantity = nominal_val / entry_price
+            allowed_risk_usdt = quantity * sl_distance
+            effective_leverage = max_leverage
+
+        # 8. Consistency Rule Cap on Take Profit
+        # Single trade profit should never exceed 30% of total target profit in one swing
+        total_target_profit_usdt = self.virtual_capital * (self.TARGET_PROFIT_PCT / 100.0)
+        max_allowed_single_trade_tp_usdt = total_target_profit_usdt * self.MAX_SINGLE_DAY_PROFIT_RATIO
+        potential_profit_usdt = quantity * tp_distance
+
+        if potential_profit_usdt > max_allowed_single_trade_tp_usdt and potential_profit_usdt > 0:
+            scale_down = max_allowed_single_trade_tp_usdt / potential_profit_usdt
+            quantity *= scale_down
+            nominal_val = quantity * entry_price
+            allowed_risk_usdt = quantity * sl_distance
+            effective_leverage = nominal_val / current_balance
+
+        actual_risk_pct = (allowed_risk_usdt / current_balance) * 100.0 if current_balance > 0 else 0.0
+
+        return PositionSizingResult(
+            can_execute=True,
+            rejection_reason=None,
+            quantity=round(quantity, 8),
+            nominal_value_usdt=round(nominal_val, 2),
+            effective_leverage=round(effective_leverage, 2),
+            risk_usdt=round(allowed_risk_usdt, 2),
+            risk_pct_balance=round(actual_risk_pct, 3),
+            entry_price=round(entry_price, 4),
+            stop_loss_price=round(sl_price, 4),
+            take_profit_price=round(tp_price, 4),
+            sl_distance_usdt=round(sl_distance, 4),
+            tp_distance_usdt=round(tp_distance, 4),
+            risk_reward_ratio=round(tp_distance / sl_distance, 2) if sl_distance > 0 else 0.0,
+            daily_dd_budget_remaining_usdt=round(daily_budget_remaining_usdt, 2),
         )
