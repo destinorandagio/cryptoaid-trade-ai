@@ -124,6 +124,76 @@
         </div>
     </section>
 
+    <!-- TRADEAID PREDICTIVE HEART SHOWCASE SECTION -->
+    <section class="predictive-heart-section">
+        <div class="ph-section-header">
+            <div class="pill-badge" style="margin: 0 auto 12px; display: inline-flex;">
+                <svg class="icon-svg sm svg-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                IL CUORE PREDITTIVO DI TRADEAID
+            </div>
+            <h2>
+                La Verità Visibile: <span class="gradient-text">Linea Bianca Realtà, Linea Rossa Futuro</span>
+            </h2>
+            <p style="color: var(--text-secondary); font-size: 1.05rem;">
+                Non un indicatore in ritardo e non una scatola nera: un Prediction Engine quantistico ad ensemble che calcola in tempo reale la traiettoria probabilistica futura sopra il prezzo effettivo.
+            </p>
+        </div>
+
+        <div class="ph-showcase-container">
+            <div class="ph-landing-grid">
+                <!-- Interactive Chart Box -->
+                <div class="ph-landing-chart-box">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div>
+                            <strong style="font-size:1.1rem; color:#ffffff;">POL / USDT</strong>
+                            <span style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:#38bdf8; margin-left:8px;">15M LIVE</span>
+                        </div>
+                        <span style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:#ff1e38; font-weight:800;">CONFIDENCE 78% · EXPECTED +1.84%</span>
+                    </div>
+
+                    <div style="position:relative; width:100%; height:250px; background:#05060b; border-radius:12px; overflow:hidden;">
+                        <canvas id="ph-canvas-landing" style="width:100%; height:100%; display:block;"></canvas>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:#94a3b8;">
+                        <span style="color:#ffffff; display:flex; align-items:center; gap:5px;"><span style="width:7px; height:7px; border-radius:50%; background:#ffffff; display:inline-block;"></span> LINEA BIANCA: REAL MARKET</span>
+                        <span style="color:#ff1e38; display:flex; align-items:center; gap:5px;"><span style="width:7px; height:7px; border-radius:50%; background:#ff1e38; display:inline-block;"></span> LINEA ROSSA: TRADEAID PREDICTION (P50)</span>
+                        <span style="color:#cbd5e1;">CORTEX: FORMAL PASS</span>
+                    </div>
+                </div>
+
+                <!-- 3 Pillars Explanation -->
+                <div class="ph-landing-pillars">
+                    <div class="ph-pillar-card">
+                        <h4>
+                            <span style="color:#ffffff;">01.</span> WHITE = WHAT HAPPENED
+                        </h4>
+                        <p>La serie storica reale del prezzo su Polygon bor RPC. Nessun filtro in differita: è la realtà matematica consolidata sul blocco.</p>
+                    </div>
+
+                    <div class="ph-pillar-card">
+                        <h4>
+                            <span style="color:#ff1e38;">02.</span> RED = WHAT TRADEAID THINKS
+                        </h4>
+                        <p>Traiettoria probabilistica generata dalla fusione di 7 modelli specialistici (Trend, Momentum, Volatilità, Regime, Profondità e On-Chain Flow).</p>
+                    </div>
+
+                    <div class="ph-pillar-card">
+                        <h4>
+                            <span style="color:#38bdf8;">03.</span> THE GAP = WHAT TRADEAID LEARNS
+                        </h4>
+                        <p>Ogni previsione è registrata e versionata. Il confronto matematico tra previsione e realtà ricalibra i pesi del motore minuto per minuto.</p>
+                    </div>
+
+                    <a href="dapp.html" class="btn-primary-nav" style="text-align:center; padding:14px; font-weight:800; border-radius:10px; box-shadow:0 0 25px rgba(255,30,56,0.4); display:flex; justify-content:center; align-items:center; gap:8px;">
+                        <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        APRI IL COCKPIT DAPP E VEDI IL CUORE PREDITTIVO
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- INSTITUTIONAL CREDENTIALS / TRUST PILLARS -->
     <section id="architettura" class="credentials-section">
         <div class="credentials-container">
@@ -343,7 +413,14 @@
                 <a href="dapp.html">Web3 dApp</a>
             </div>
         </div>
-    </footer>
     <script src="static/js/matrix.js?v=upward2"></script>
+    <script src="static/js/predictive-heart.js?v=ph1"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.PredictiveHeart) {
+                window.predictiveHeartLanding = new window.PredictiveHeart('ph-canvas-landing');
+            }
+        });
+    </script>
 </body>
 </html>

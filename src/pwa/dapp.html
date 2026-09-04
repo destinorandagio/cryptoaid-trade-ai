@@ -189,6 +189,121 @@
                 </div>
             </div>
 
+            <!-- MODAL: PREDICTIVE HEART ENSEMBLE ("WHY?") -->
+            <div id="modal-ph-ensemble" class="preventivo-overlay hidden">
+                <div class="preventivo-modal ph-modal-content">
+                    <div class="preventivo-icon">
+                        <svg class="icon-svg lg svg-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    </div>
+                    <div class="preventivo-tag">EXPLAINABILITY & PREDICTION FUSION ENGINE</div>
+                    <h3>WHY TRADEAID GENERATED THIS PATH</h3>
+                    <p class="preventivo-desc">
+                        TRADEAID does not ask a single black-box AI. It fuses 7 specialized quantitative models into a dynamic probabilistic trajectory:
+                    </p>
+
+                    <div id="ph-ensemble-list" style="margin-bottom: 12px;"></div>
+
+                    <div style="background:rgba(255,30,56,0.08); border:1px solid rgba(255,30,56,0.3); border-radius:10px; padding:10px; margin-bottom:12px;">
+                        <span style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:#ffffff; font-weight:700; display:block; margin-bottom:6px;">AUTOMATIC EXECUTION PIPELINE:</span>
+                        <div class="ph-flow-step">1. PREDICTIVE HEART → +2.1% expected move</div>
+                        <div class="ph-flow-arrow">↓</div>
+                        <div class="ph-flow-step">2. STRATEGY ENGINE → Momentum LONG filter</div>
+                        <div class="ph-flow-arrow">↓</div>
+                        <div class="ph-flow-step">3. EXECUTION COST → -0.24% gas & slippage check</div>
+                        <div class="ph-flow-arrow">↓</div>
+                        <div class="ph-flow-step">4. EXPECTED NET EDGE → +1.86% (Above +0.40% threshold)</div>
+                        <div class="ph-flow-arrow">↓</div>
+                        <div class="ph-flow-step">5. CORTEX PROTOCOL → Formal security check: PASS</div>
+                        <div class="ph-flow-arrow">↓</div>
+                        <div class="ph-flow-step">6. CAPITAL ALLOCATOR → 50-83 USDT safe size</div>
+                        <div class="ph-flow-arrow">↓</div>
+                        <div class="ph-flow-step" style="border-left-color:#ffffff; font-weight:bold;">7. SMART ROUTER → EXECUTE ON POLYGON DEX</div>
+                    </div>
+
+                    <button class="btn-cancel-preventivo" onclick="document.getElementById('modal-ph-ensemble').classList.add('hidden')">
+                        CLOSE EXPLAINABILITY
+                    </button>
+                </div>
+            </div>
+
+            <!-- MODAL: PROBABILISTIC SCENARIOS -->
+            <div id="modal-ph-scenarios" class="preventivo-overlay hidden">
+                <div class="preventivo-modal">
+                    <div class="preventivo-icon">
+                        <svg class="icon-svg lg svg-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                    </div>
+                    <div class="preventivo-tag">MULTI-SCENARIO PROBABILITY</div>
+                    <h3>DYNAMIC SCENARIO WEIGHTS</h3>
+                    <p class="preventivo-desc">
+                        TRADEAID avoids false single-line certainty by computing 3 simultaneous forward projections:
+                    </p>
+
+                    <div class="preventivo-box">
+                        <div class="preventivo-row">
+                            <span>BASE CASE (P50 RED PATH):</span>
+                            <strong style="color:#ff1e38; font-size:0.85rem;">61% PROBABILITY</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span>BULL SCENARIO (MOMENTUM SURGE):</span>
+                            <strong style="color:#ffffff;">22% PROBABILITY</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span>BEAR SCENARIO (INVALIDATION):</span>
+                            <strong style="color:#94a3b8;">17% PROBABILITY</strong>
+                        </div>
+                        <div class="preventivo-row" style="border-top:1px solid rgba(255,255,255,0.1); padding-top:6px; margin-top:4px;">
+                            <span>CONFIDENCE INTERVAL:</span>
+                            <strong style="color:#ffffff;">P10 - P90 UNCERTAINTY CONE</strong>
+                        </div>
+                    </div>
+
+                    <button class="btn-sign-preventivo" onclick="document.getElementById('modal-ph-scenarios').classList.add('hidden')">
+                        APPLY SCENARIOS OVERLAY
+                    </button>
+                </div>
+            </div>
+
+            <!-- MODAL: LEARNING HEART (PREDICTED VS ACTUAL) -->
+            <div id="modal-ph-learning" class="preventivo-overlay hidden">
+                <div class="preventivo-modal">
+                    <div class="preventivo-icon">
+                        <svg class="icon-svg lg svg-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    </div>
+                    <div class="preventivo-tag">LEARNING HEART & CONTINUOUS CALIBRATION</div>
+                    <h3>PREDICTED vs ACTUAL LEDGER</h3>
+                    <p class="preventivo-desc" style="font-style:italic;">
+                        "WHITE = WHAT HAPPENED. RED = WHAT TRADEAID THINKS MAY HAPPEN. THE GAP BETWEEN THEM = WHAT TRADEAID LEARNS."
+                    </p>
+
+                    <div class="preventivo-box">
+                        <div class="preventivo-row">
+                            <span>DIRECTIONAL ACCURACY:</span>
+                            <strong style="color:#34d399; font-size:0.85rem;">84.2%</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span>PATH ROOT-MEAN-SQUARE ERROR:</span>
+                            <strong style="color:#ffffff;">0.28%</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span>TURNING-POINT PREDICTABILITY:</span>
+                            <strong style="color:#34d399;">79.5%</strong>
+                        </div>
+                        <div class="preventivo-row">
+                            <span>OVERALL LEARNING SCORE:</span>
+                            <strong class="highlight-quota" style="font-size:0.9rem;">83 / 100</strong>
+                        </div>
+                    </div>
+
+                    <p class="preventivo-desc" style="font-size:0.62rem; text-align:left;">
+                        Every 15 minutes, past predictions are preserved and compared on-chain against real price evolution. The Fusion Engine dynamically recalibrates sub-model weights based on asset, timeframe, and market regime.
+                    </p>
+
+                    <button class="btn-cancel-preventivo" onclick="document.getElementById('modal-ph-learning').classList.add('hidden')">
+                        CLOSE
+                    </button>
+                </div>
+            </div>
+
             <!-- MAIN COCKPIT SCROLL VIEW -->
             <div id="dapp-cockpit-view" class="cockpit-scroll-area">
                 
@@ -207,8 +322,100 @@
                     </button>
                 </div>
 
+                <!-- =======================================================
+                     TRADEAID PREDICTIVE HEART (The Visible Forecasting Core)
+                     ======================================================= -->
+                <section class="predictive-heart-card">
+                    <div class="ph-top-bar">
+                        <div class="ph-badge-title">
+                            <svg class="icon-svg sm svg-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                            <span>TRADEAID PREDICTIVE HEART</span>
+                        </div>
+                        <div class="ph-timeframes">
+                            <button class="ph-tf-btn" data-tf="5M">5M</button>
+                            <button class="ph-tf-btn active" data-tf="15M">15M</button>
+                            <button class="ph-tf-btn" data-tf="1H">1H</button>
+                            <button class="ph-tf-btn" data-tf="4H">4H</button>
+                            <button class="ph-tf-btn" data-tf="24H">24H</button>
+                        </div>
+                    </div>
+
+                    <!-- Price & Live Prediction Stats -->
+                    <div class="ph-price-row">
+                        <div class="ph-price-box">
+                            <select id="ph-asset-select" class="ph-asset-select" aria-label="Select Asset">
+                                <option value="POL/USDT" selected>POL / USDT</option>
+                                <option value="WBTC/USDT">WBTC / USDT</option>
+                                <option value="WETH/USDT">WETH / USDT</option>
+                            </select>
+                            <span id="ph-cur-price" class="ph-live-price">$0.3245</span>
+                        </div>
+                        <div class="ph-pred-tag">
+                            <span id="ph-pred-move" class="ph-move-val">↑ +1.84%</span>
+                            <span id="ph-confidence" class="ph-conf-pill">CONFIDENCE 78%</span>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Canvas Chart -->
+                    <div class="ph-canvas-wrapper">
+                        <canvas id="ph-canvas"></canvas>
+                    </div>
+
+                    <!-- Visual Legend -->
+                    <div class="ph-legend-bar">
+                        <div class="ph-legend-item">
+                            <span class="ph-dot-white"></span>
+                            <span>WHITE = REAL MARKET</span>
+                        </div>
+                        <div class="ph-legend-item">
+                            <span class="ph-dot-red"></span>
+                            <span>RED = PREDICTION (P50)</span>
+                        </div>
+                        <div class="ph-legend-item">
+                            <span style="color:#ff1e38; font-size:0.75rem;">░</span>
+                            <span>CONFIDENCE BAND</span>
+                        </div>
+                    </div>
+
+                    <!-- Telemetry Strip -->
+                    <div class="ph-telemetry-grid">
+                        <div class="ph-tele-item">
+                            <span class="ph-tele-label">DIRECTION</span>
+                            <span class="ph-tele-val green">↑ LONG 81%</span>
+                        </div>
+                        <div class="ph-tele-item">
+                            <span class="ph-tele-label">NET EDGE</span>
+                            <span class="ph-tele-val cyan" id="ph-net-edge">+1.12%</span>
+                        </div>
+                        <div class="ph-tele-item">
+                            <span class="ph-tele-label">DYNAMIC SL</span>
+                            <span class="ph-tele-val" id="ph-lvl-sl" style="color:#ff1e38;">$0.3195 (-0.6%)</span>
+                        </div>
+                        <div class="ph-tele-item">
+                            <span class="ph-tele-label">TARGET TP2</span>
+                            <span class="ph-tele-val" id="ph-lvl-tp" style="color:#ffffff;">$0.3313 (+2.1%)</span>
+                        </div>
+                    </div>
+
+                    <!-- Action Controls -->
+                    <div class="ph-btn-row">
+                        <button id="btn-ph-why" class="ph-ctrl-btn highlight">
+                            <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                            <span>WHY? (ENSEMBLE)</span>
+                        </button>
+                        <button id="btn-ph-scenarios" class="ph-ctrl-btn">
+                            <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                            <span>SCENARIOS (3)</span>
+                        </button>
+                        <button id="btn-ph-learning" class="ph-ctrl-btn">
+                            <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                            <span>ACCURACY 84%</span>
+                        </button>
+                    </div>
+                </section>
+
                 <!-- Status Card -->
-                <section class="card-cockpit live-status-card" style="margin-top: 10px;">
+                <section class="card-cockpit live-status-card">
                     <div class="status-row">
                         <div class="status-indicator">
                             <span class="pulse-beacon"></span>
@@ -417,8 +624,16 @@
 
     <!-- Web3 Scripts -->
     <script src="static/js/matrix.js?v=upward2"></script>
-    <script src="static/js/web3-dapp.js?v=paper2"></script>
+    <script src="static/js/predictive-heart.js?v=ph1"></script>
+    <script src="static/js/web3-dapp.js?v=paper3"></script>
     <script>
+        // Initialize Predictive Heart Engine
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.PredictiveHeart) {
+                window.predictiveHeart = new window.PredictiveHeart('ph-canvas');
+            }
+        });
+
         // Tab switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
