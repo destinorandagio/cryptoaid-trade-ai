@@ -2,9 +2,30 @@
 from src.risk.capital_protection import CapitalProtectionEngine, PortfolioRiskState
 from src.risk.cryptoaid_gate import CryptoAidRiskGate, RiskGateDecision
 
+from src.risk.challenge_risk_agent import (
+    ChallengeRiskAgent,
+    ChallengeState,
+    RiskMetrics,
+    TierConfig,
+    TradeDirection,
+    TIER_STARTER,
+    TIER_PRO,
+    TIER_ELITE,
+    TIER_BLACK,
+)
+
 __all__ = [
     "CryptoAidRiskGate",
     "RiskGateDecision",
     "CapitalProtectionEngine",
     "PortfolioRiskState",
+    "ChallengeRiskAgent",
+    "ChallengeState",
+    "RiskMetrics",
+    "TierConfig",
+    "TradeDirection",
+    "TIER_STARTER",
+    "TIER_PRO",
+    "TIER_ELITE",
+    "TIER_BLACK",
 ]

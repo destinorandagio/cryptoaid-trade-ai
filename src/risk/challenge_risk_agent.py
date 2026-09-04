@@ -782,3 +782,49 @@ class ChallengeRiskAgent:
             "size_multiplier": size_multiplier,
         }
 
+
+# ============================================================
+# ESEMPIO DI UTILIZZO (TEST UNITARIO / SIMULAZIONE DIRETTA)
+# ============================================================
+
+if __name__ == "__main__":
+    # Setup Iniziale
+    agent_state = ChallengeState(TIER_PRO)
+    risk_agent = ChallengeRiskAgent(agent_state)
+
+    # Simulazione Dati Mercato (BTC)
+    dates = pd.date_range(end=pd.Timestamp.now(), periods=20)
+    mock_data = pd.DataFrame({
+        "high": [65000 + np.random.rand() * 1000 for _ in range(20)],
+        "low": [64000 + np.random.rand() * 1000 for _ in range(20)],
+        "close": [64500 + np.random.rand() * 1000 for _ in range(20)],
+    })
+
+    # Simulazione Segnale AI
+    print("--- TRADE EVALUATION ---")
+    decision = risk_agent.evaluate_trade(
+        signal_direction=TradeDirection.LONG,
+        entry_price=65000.0,
+        asset_historical_data=mock_data,
+        current_portfolio_exposure={},  # Portfolio vuoto
+        target_asset_id="BTC",
+    )
+
+    print(decision)
+
+    # Simulazione Aggiornamento Equity dopo perdita
+    print("\n--- SIMULATING LOSS ---")
+    agent_state.update_equity(49500)  # Perdita di 500$
+    print(f"Daily DD: {agent_state.daily_dd_pct:.2%}")
+
+    # Secondo trade con equity ridotta
+    decision_2 = risk_agent.evaluate_trade(
+        signal_direction=TradeDirection.SHORT,
+        entry_price=64800.0,
+        asset_historical_data=mock_data,
+        current_portfolio_exposure={"BTC": 5000},  # Abbiamo già esposizione
+        target_asset_id="ETH",
+    )
+    print(decision_2)
+
+

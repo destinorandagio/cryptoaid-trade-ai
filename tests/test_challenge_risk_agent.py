@@ -322,4 +322,37 @@ def test_challenge_state_and_evaluate_trade_user_example():
     assert "Daily DD approaching limit" in decision3["reason"]
 
 
+def test_prop_evaluate_trade_and_reset_endpoints():
+    from fastapi.testclient import TestClient
+    from src.api.app import app
+
+    client = TestClient(app)
+
+    # 1. Test POST /api/v1/prop/evaluate-trade with PRO tier
+    payload = {
+        "tier_name": "PRO",
+        "signal_direction": "LONG",
+        "entry_price": 65000.0,
+        "target_asset_id": "BTC",
+        "current_portfolio_exposure": {},
+        "current_equity": 50000.0,
+    }
+    resp = client.post("/api/v1/prop/evaluate-trade", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["tier"] == "PRO"
+    assert data["nominal_capital"] == 50000.0
+    assert data["evaluation"]["action"] == "APPROVED"
+    assert data["evaluation"]["size_units"] > 0
+    assert data["evaluation"]["stop_loss"] < 65000.0
+
+    # 2. Test Daily Reset endpoint
+    reset_resp = client.post("/api/v1/prop/daily-reset", json={})
+    assert reset_resp.status_code == 200
+    reset_data = reset_resp.json()
+    assert reset_data["action"] == "DAILY_RESET_COMPLETED"
+    assert "date_utc" in reset_data
+
+
+
 
