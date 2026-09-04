@@ -512,6 +512,36 @@ CREATE INDEX IF NOT EXISTS idx_prop_status ON prop_challenges (status);
 """
 
 
+MIGRATION_V8 = """
+-- TradeAID Prop Option A Gamified Ecosystem (Payouts & TradeAid Credits TAC)
+CREATE TABLE IF NOT EXISTS prop_payouts (
+    id TEXT PRIMARY KEY,
+    challenge_id TEXT NOT NULL,
+    wallet TEXT NOT NULL,
+    amount_gross_usdt REAL NOT NULL,
+    amount_user_share_usdt REAL NOT NULL,
+    payout_share_pct REAL NOT NULL DEFAULT 80.0,
+    tx_hash TEXT,
+    status TEXT NOT NULL DEFAULT 'REQUESTED',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tac_credits_ledger (
+    id TEXT PRIMARY KEY,
+    wallet TEXT NOT NULL,
+    delta_tac REAL NOT NULL,
+    new_balance REAL NOT NULL,
+    reason TEXT NOT NULL,
+    ref_challenge_id TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_payouts_wallet ON prop_payouts (wallet);
+CREATE INDEX IF NOT EXISTS idx_tac_wallet ON tac_credits_ledger (wallet);
+"""
+
+
 def apply_migrations(db_path: Path | str) -> None:
     """Run migrations to ensure all database tables are up to date."""
     conn = sqlite3.connect(str(db_path))
@@ -570,6 +600,13 @@ def apply_migrations(db_path: Path | str) -> None:
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (7)")
             conn.commit()
             logger.info("Database migration V7 applied successfully.")
+
+        if current_version < 8:
+            logger.info("Applying database migration V8 (Prop Payouts & TAC Credits Ledger)...")
+            cursor.executescript(MIGRATION_V8)
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (8)")
+            conn.commit()
+            logger.info("Database migration V8 applied successfully.")
     finally:
         conn.close()
 

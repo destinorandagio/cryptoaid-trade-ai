@@ -817,6 +817,93 @@ class DatabaseManager:
             )
             return [dict(r) for r in cursor.fetchall()]
 
+    # =========================================================================
+    # Prop Option A: Payouts & TradeAid Credits (TAC) Wallet Operations
+    # =========================================================================
+
+    def record_prop_payout(
+        self,
+        challenge_id: str,
+        wallet: str,
+        amount_gross_usdt: float,
+        amount_user_share_usdt: float,
+        tx_hash: str | None = None,
+    ) -> dict[str, Any]:
+        payout_id = f"payout_{uuid.uuid4().hex[:12]}"
+        now_iso = datetime.now(timezone.utc).isoformat()
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO prop_payouts (
+                    id, challenge_id, wallet, amount_gross_usdt, amount_user_share_usdt,
+                    payout_share_pct, tx_hash, status, created_at
+                ) VALUES (?, ?, ?, ?, ?, 80.0, ?, 'REQUESTED', ?)
+                """,
+                (payout_id, challenge_id, wallet.lower(), amount_gross_usdt, amount_user_share_usdt, tx_hash, now_iso),
+            )
+            conn.commit()
+            cursor.execute("SELECT * FROM prop_payouts WHERE id = ?", (payout_id,))
+            return dict(cursor.fetchone())
+
+    def get_user_prop_payouts(self, wallet: str) -> list[dict[str, Any]]:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM prop_payouts WHERE wallet = ? ORDER BY created_at DESC",
+                (wallet.lower(),),
+            )
+            return [dict(r) for r in cursor.fetchall()]
+
+    def award_tac_credits(
+        self,
+        wallet: str,
+        delta_tac: float,
+        reason: str,
+        ref_challenge_id: str | None = None,
+    ) -> float:
+        """Award or deduct TradeAid Credits (TAC) in user's internal Second Chance wallet."""
+        record_id = f"tac_{uuid.uuid4().hex[:12]}"
+        now_iso = datetime.now(timezone.utc).isoformat()
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT COALESCE(SUM(delta_tac), 0.0) as balance FROM tac_credits_ledger WHERE wallet = ?",
+                (wallet.lower(),),
+            )
+            current_balance = float(cursor.fetchone()["balance"])
+            new_balance = current_balance + delta_tac
+
+            cursor.execute(
+                """
+                INSERT INTO tac_credits_ledger (
+                    id, wallet, delta_tac, new_balance, reason, ref_challenge_id, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (record_id, wallet.lower(), delta_tac, new_balance, reason, ref_challenge_id, now_iso),
+            )
+            conn.commit()
+            return new_balance
+
+    def get_user_tac_balance(self, wallet: str) -> float:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT COALESCE(SUM(delta_tac), 0.0) as balance FROM tac_credits_ledger WHERE wallet = ?",
+                (wallet.lower(),),
+            )
+            row = cursor.fetchone()
+            return float(row["balance"]) if row else 0.0
+
+    def get_tac_credits_ledger(self, wallet: str) -> list[dict[str, Any]]:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM tac_credits_ledger WHERE wallet = ? ORDER BY created_at DESC",
+                (wallet.lower(),),
+            )
+            return [dict(r) for r in cursor.fetchall()]
+
 
 
 

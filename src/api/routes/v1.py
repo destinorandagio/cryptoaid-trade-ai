@@ -648,6 +648,83 @@ def get_prop_reward_pool() -> dict[str, Any]:
     }
 
 
+class PayoutClaimRequest(BaseModel):
+    challenge_id: str
+    wallet: str
+    gross_profit_usdt: float
+
+
+@router.get("/prop/credits/{wallet}")
+def get_user_tac_credits(wallet: str) -> dict[str, Any]:
+    """Get user's TradeAid Credits (TAC) Second Chance balance and transaction ledger."""
+    balance = db.get_user_tac_balance(wallet)
+    ledger = db.get_tac_credits_ledger(wallet)
+    return {
+        "wallet": wallet.lower(),
+        "tac_balance": balance,
+        "symbol": "TAC",
+        "peg": "1 TAC = 1 USDT (Non-Withdrawable Margin)",
+        "can_retry_discount": balance >= 50.0,
+        "ledger": ledger,
+    }
+
+
+@router.post("/prop/payout/request")
+def request_prop_payout(req: PayoutClaimRequest) -> dict[str, Any]:
+    """Request 80% real crypto profit share payout from verified challenge trading gains."""
+    try:
+        user_share = req.gross_profit_usdt * 0.80
+        payout = db.record_prop_payout(
+            challenge_id=req.challenge_id,
+            wallet=req.wallet,
+            amount_gross_usdt=req.gross_profit_usdt,
+            amount_user_share_usdt=user_share,
+        )
+        return {
+            "status": "SUCCESS",
+            "message": f"Payout of ${user_share:,.2f} USDT (80% user share) requested successfully.",
+            "payout": payout,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to record payout request: {str(e)}")
+
+
+@router.get("/prop/institutional-rules")
+def get_prop_institutional_rules() -> dict[str, Any]:
+    """Get the 4 institutional rules: Consistency (max 30%), Min Days (5), News Filter (+-5m), Weekend Dampener (50%)."""
+    return {
+        "consistency_rule": {
+            "name": "Consistency Rule",
+            "limit_pct": 30.0,
+            "description": "No single trading day can represent more than 30% of total target profit. Prevents gambling spikes.",
+        },
+        "minimum_days": {
+            "name": "Minimum Trading Days",
+            "days": 5,
+            "description": "Minimum 5 active trading days required to qualify.",
+        },
+        "news_trading": {
+            "name": "Macro News Window Filter",
+            "buffer_minutes": 5,
+            "description": "AI automatically halts opening new positions 5 minutes before and after high-impact events (CPI, FOMC).",
+        },
+        "weekend_holding": {
+            "name": "Weekend Position Sizing Dampener",
+            "sizing_multiplier": 0.50,
+            "description": "Positions open during weekends have size reduced by 50% due to thin institutional liquidity.",
+        },
+        "profit_share": {
+            "user_payout_pct": 80.0,
+            "dao_reserve_pct": 20.0,
+            "currency": "USDT / POL",
+        },
+        "second_chance": {
+            "guarantee": "100% Challenge Fee to TradeAid Credits (TAC)",
+            "use_cases": ["Discounted Challenge Retries", "Permanent Demo Trading with Real Profit Withdrawals"],
+        },
+    }
+
+
 
 
 

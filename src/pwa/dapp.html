@@ -607,40 +607,60 @@
                         <!-- 3-TIER SELECTOR (50K / 100K / 150K) -->
                         <div class="prop-tier-selector">
                             <div class="prop-tier-btn" data-tier="50K" id="tier-btn-50k">
-                                <span class="t-title">50K STARTER</span>
-                                <span class="t-size">$50,000 USDT</span>
-                                <span class="t-fee">50 USDT FEE</span>
+                                <span class="t-title">STARTER</span>
+                                <span class="t-size">$50,000 · 1000x LEV</span>
+                                <span class="t-fee">50 USDT FEE · 80% PAYOUT</span>
                             </div>
                             <div class="prop-tier-btn active" data-tier="100K" id="tier-btn-100k">
                                 <span class="t-badge">MOST POPULAR</span>
-                                <span class="t-title">100K PRO</span>
-                                <span class="t-size">$100,000 USDT</span>
-                                <span class="t-fee">100 USDT FEE</span>
+                                <span class="t-title">PRO</span>
+                                <span class="t-size">$100,000 · 1000x LEV</span>
+                                <span class="t-fee">100 USDT FEE · 80% PAYOUT</span>
                             </div>
                             <div class="prop-tier-btn" data-tier="150K" id="tier-btn-150k">
                                 <span class="t-badge" style="background:#8b5cf6; color:#fff;">ELITE</span>
-                                <span class="t-title">150K ELITE</span>
-                                <span class="t-size">$150,000 USDT</span>
-                                <span class="t-fee">1,500 USDT FEE</span>
+                                <span class="t-title">ELITE</span>
+                                <span class="t-size">$150,000 · 100x LEV</span>
+                                <span class="t-fee">1,500 USDT FEE · 80% PAYOUT</span>
                             </div>
                         </div>
 
-                        <!-- NO-LOSS RECOVERY GUARANTEE BOX (OPTION A) -->
+                        <!-- SECOND CHANCE: TAC CREDIT WALLET & GUARANTEE (OPTION A) -->
                         <div class="prop-no-loss-box">
                             <div class="prop-no-loss-header">
                                 <span class="prop-no-loss-badge">
                                     <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px; height:12px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                    OPZIONE A · GARANZIA ZERO-PERDITE
+                                    SECOND CHANCE · TRADEAID CREDITS (TAC)
                                 </span>
-                                <span style="font-size:0.62rem; color:#f59e0b; font-family:'JetBrains Mono',monospace; font-weight:700;">100% FEE-BACK TRADING CREDIT</span>
+                                <span style="font-size:0.62rem; color:#f59e0b; font-family:'JetBrains Mono',monospace; font-weight:700;">SALDO CREDITI: <span id="prop-tac-balance-display">100.00 TAC</span></span>
                             </div>
                             <div class="prop-no-loss-body">
-                                Se non superi la challenge, la fee d'accesso (<strong id="prop-fee-highlight">100 USDT</strong>) <strong>NON va persa</strong>! Viene automaticamente accreditata come <strong>Credito di Autotrading Interno</strong>. Non puoi prelevare il credito base, ma <strong>puoi prelevare il 100% dei profitti</strong> generati dall'AI di TradeAID per recuperare interamente il capitale.
+                                <strong>Meccanismo di Recupero:</strong> Se non superi la challenge, la fee d'accesso (<strong id="prop-fee-highlight">100 USDT</strong>) viene convertita al 100% in <strong>TradeAid Credits (TAC)</strong>. Puoi usare i TAC per <strong>riprovare la challenge</strong> o per attivare l'Autotrading su conto Demo: <strong>tutti i profitti generati vengono pagati all'80% in criptovalute reali (POL/USDT)</strong>!
                             </div>
                             <div class="prop-no-loss-perks">
-                                <div class="prop-perk-pill">FEE-BACK: <span>100% CREDITO INTERNO</span></div>
-                                <div class="prop-perk-pill">PRELIEVI: <span>100% PROFITTI LIBERI</span></div>
-                                <div class="prop-perk-pill">ESECUZIONE: <span>AUTOTRADE CORTEX AI</span></div>
+                                <div class="prop-perk-pill">CONVERSIONE FEE: <span>100% IN TAC</span></div>
+                                <div class="prop-perk-pill">PAYOUT CONDIVISO: <span>80% A TE (CRYPTO REALI)</span></div>
+                                <div class="prop-perk-pill">LEVERAGE: <span>FINO A 1000x VIRTUALE</span></div>
+                            </div>
+                        </div>
+
+                        <!-- 4 REGOLE ISTITUZIONALI (TOP-TIER PROP FIRM STANDARDS) -->
+                        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-top:8px;">
+                            <div class="prop-stat-box" style="padding:4px 6px;">
+                                <span class="s-lbl">CONSISTENCY</span>
+                                <span style="font-size:0.62rem; font-weight:800; color:#34d399; font-family:'JetBrains Mono',monospace;">MAX 30%/DAY</span>
+                            </div>
+                            <div class="prop-stat-box" style="padding:4px 6px;">
+                                <span class="s-lbl">MIN TRADING</span>
+                                <span style="font-size:0.62rem; font-weight:800; color:#38bdf8; font-family:'JetBrains Mono',monospace;">5 GIORNI</span>
+                            </div>
+                            <div class="prop-stat-box" style="padding:4px 6px;">
+                                <span class="s-lbl">NO NEWS TRADING</span>
+                                <span style="font-size:0.62rem; font-weight:800; color:#fbbf24; font-family:'JetBrains Mono',monospace;">+/-5m CPI/FOMC</span>
+                            </div>
+                            <div class="prop-stat-box" style="padding:4px 6px;">
+                                <span class="s-lbl">WEEKEND SIZING</span>
+                                <span style="font-size:0.62rem; font-weight:800; color:#c084fc; font-family:'JetBrains Mono',monospace;">-50% SIZE</span>
                             </div>
                         </div>
 
