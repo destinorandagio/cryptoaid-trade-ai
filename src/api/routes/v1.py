@@ -1,0 +1,281 @@
+"""REST API Version 1 Routes for CryptoAID Trade AI."""
+from __future__ import annotations
+
+from typing import Any
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
+
+from src.agents.base import SignalType
+from src.agents.meta_agent import MetaAgent, MetaDecision
+from src.config import settings
+from src.data.provider import CompositeMarketDataProvider
+from src.execution.models import OrderSide
+from src.execution.paper_engine import PaperExecutionEngine
+from src.performance.metrics import calculate_performance
+from src.risk.capital_protection import CapitalProtectionEngine
+from src.risk.cryptoaid_gate import CryptoAidRiskGate
+from src.storage.db import DatabaseManager
+
+router = APIRouter(prefix="/api/v1", tags=["v1"])
+
+# Singletons for API worker
+db = DatabaseManager()
+market_provider = CompositeMarketDataProvider()
+meta_agent = MetaAgent()
+risk_gate = CryptoAidRiskGate()
+capital_engine = CapitalProtectionEngine()
+execution_engine = PaperExecutionEngine(db=db, risk_engine=capital_engine, risk_gate=risk_gate)
+
+
+class OrderRequest(BaseModel):
+    asset: str = Field(example="BTC/USDC")
+    side: str = Field(example="BUY")
+    size: float = Field(gt=0, example=0.005)
+    sl: float | None = Field(default=None, example=58000.0)
+    tp: float | None = Field(default=None, example=65000.0)
+    trailing_distance: float | None = Field(default=None)
+
+
+class KillSwitchRequest(BaseModel):
+    action: str = Field(example="TRIGGER", description="'TRIGGER' or 'RESET'")
+    reason: str = Field(default="Manual Operator Action")
+
+
+@router.get("/health")
+def get_health() -> dict[str, Any]:
+    """System and dependency healthcheck."""
+    mkt_health = market_provider.health()
+    return {
+        "status": "HEALTHY",
+        "app": settings.app_name,
+        "version": settings.app_version,
+        "env": settings.app_env,
+        "live_trading_enabled": settings.live_trading_enabled,
+        "kill_switch_active": capital_engine.kill_switch_active,
+        "market_provider": mkt_health,
+        "database": "CONNECTED",
+    }
+
+
+@router.get("/status")
+@router.get("/system/status")
+def get_system_status() -> dict[str, Any]:
+    """Comprehensive system status, runtime parameters and risk gate state."""
+    state = execution_engine.get_portfolio_state()
+    return {
+        "app_name": settings.app_name,
+        "version": settings.app_version,
+        "live_trading_enabled": settings.live_trading_enabled,
+        "mode": "PAPER_TRADING_ONLY" if not settings.live_trading_enabled else "LIVE_TRADING",
+        "base_quote": settings.base_quote,
+        "supported_universe": settings.universe,
+        "kill_switch": capital_engine.kill_switch_active,
+        "circuit_breaker_triggered": state.circuit_breaker_triggered,
+        "limits": {
+            "max_position_size_ratio": settings.max_position_size_ratio,
+            "max_portfolio_exposure_ratio": settings.max_portfolio_exposure_ratio,
+            "max_leverage": settings.max_leverage,
+            "daily_loss_limit_ratio": settings.daily_loss_limit_ratio,
+        },
+        "portfolio": state.model_dump(),
+    }
+
+
+@router.get("/markets")
+def get_markets() -> list[dict[str, Any]]:
+    """Get active market universe snapshots (POL, WETH, WBTC, LINK)."""
+    results: list[dict[str, Any]] = []
+    for sym in settings.universe:
+        ticker = market_provider.get_ticker(sym)
+        results.append({
+            "symbol": sym,
+            "price": ticker.price,
+            "bid": ticker.bid,
+            "ask": ticker.ask,
+            "spread": ticker.spread,
+            "volume_24h": ticker.volume_24h,
+            "change_24h_pct": ticker.change_24h_pct,
+        })
+    return results
+
+
+@router.get("/scan")
+def run_scanner() -> list[dict[str, Any]]:
+    """Scan entire universe through Market Intelligence + Agents + CryptoAID Risk Gate."""
+    scan_results: list[dict[str, Any]] = []
+    prices: dict[str, float] = {}
+
+    for sym in settings.universe:
+        snapshot = market_provider.get_snapshot(sym)
+        prices[sym] = snapshot.price
+
+        meta_dec = meta_agent.evaluate(snapshot)
+        risk_res = risk_gate.evaluate(meta_dec, snapshot)
+
+        scan_results.append({
+            "symbol": sym,
+            "price": snapshot.price,
+            "volume_24h": snapshot.volume_24h,
+            "volatility_24h": snapshot.volatility_24h,
+            "spread": snapshot.spread,
+            "ai_signal": meta_dec.decision.value,
+            "ai_confidence": meta_dec.confidence,
+            "expected_return": meta_dec.expected_return,
+            "expected_risk": meta_dec.expected_risk,
+            "recommended_stop_loss": meta_dec.recommended_stop_loss,
+            "recommended_take_profit": meta_dec.recommended_take_profit,
+            "cryptoaid_risk": {
+                "passed": risk_res.passed,
+                "decision": risk_res.final_decision,
+                "composite_risk_score": risk_res.composite_risk_score,
+                "rejections": risk_res.rejection_reasons,
+            },
+            "evidence": meta_dec.evidence,
+        })
+
+    # Update mark-to-market prices for open positions during scan
+    execution_engine.update_market_prices(prices)
+    return scan_results
+
+
+@router.get("/signals")
+def get_latest_signals() -> list[dict[str, Any]]:
+    """Get actionable high-confidence signals passing the CryptoAID Risk Gate."""
+    scans = run_scanner()
+    actionable = []
+    for s in scans:
+        if s["ai_signal"] not in ("NO_TRADE", "HOLD") and s["cryptoaid_risk"]["passed"]:
+            actionable.append(s)
+    return actionable
+
+
+@router.get("/strategies")
+def get_strategies() -> list[dict[str, Any]]:
+    """List all registered strategy agents, weights and descriptions."""
+    return [
+        {"name": a.name, "weight": a.weight, "description": a.__doc__ or "Strategy Agent"}
+        for a in meta_agent.agents
+    ]
+
+
+@router.get("/portfolio")
+def get_portfolio() -> dict[str, Any]:
+    """Get paper account equity, balances, open positions and drawdown."""
+    state = execution_engine.get_portfolio_state()
+    positions = db.get_open_positions()
+    return {
+        "account": state.model_dump(),
+        "positions": positions,
+    }
+
+
+@router.post("/orders")
+def place_order(req: OrderRequest) -> dict[str, Any]:
+    """Place a paper trading order."""
+    if req.asset not in settings.universe:
+        raise HTTPException(status_code=400, detail=f"Asset {req.asset} not in supported universe")
+
+    side_enum = OrderSide.BUY if req.side.upper() == "BUY" else OrderSide.SELL
+    ticker = market_provider.get_ticker(req.asset)
+
+    order = execution_engine.execute_market_order(
+        asset=req.asset,
+        side=side_enum,
+        size=req.size,
+        market_price=ticker.price,
+        sl=req.sl,
+        tp=req.tp,
+        trailing_distance=req.trailing_distance,
+    )
+
+    if order.status.value == "REJECTED":
+        raise HTTPException(status_code=400, detail=f"Order Rejected: {order.reason}")
+
+    return order.to_dict()
+
+
+@router.get("/orders")
+def list_orders(limit: int = Query(default=50, ge=1, le=200)) -> list[dict[str, Any]]:
+    """List historical paper orders."""
+    return db.get_orders(limit=limit)
+
+
+@router.get("/trades")
+def list_trades(limit: int = Query(default=100, ge=1, le=500)) -> list[dict[str, Any]]:
+    """List executed paper trade fills."""
+    return db.get_trades(limit=limit)
+
+
+@router.get("/performance")
+def get_performance() -> dict[str, Any]:
+    """Get calculated performance metrics (Win rate, Sharpe, Drawdown, Profit factor)."""
+    closed_orders = [o for o in db.get_orders(limit=500) if o["status"] == "CLOSED"]
+    metrics = calculate_performance(closed_orders, initial_capital=settings.default_paper_capital)
+    return metrics.to_dict()
+
+
+@router.get("/risk")
+def get_risk_status() -> dict[str, Any]:
+    """Get active capital protection state and risk limits."""
+    state = execution_engine.get_portfolio_state()
+    return {
+        "portfolio_risk": state.model_dump(),
+        "circuit_breaker_active": capital_engine.kill_switch_active,
+        "rules": {
+            "max_position_size_pct": settings.max_position_size_ratio * 100.0,
+            "max_portfolio_exposure_pct": settings.max_portfolio_exposure_ratio * 100.0,
+            "daily_loss_limit_pct": settings.daily_loss_limit_ratio * 100.0,
+            "max_drawdown_limit_pct": settings.max_drawdown_limit_ratio * 100.0,
+            "leverage": "OFF (1.0x Spot Paper Only)",
+        },
+    }
+
+
+@router.get("/positions")
+def get_positions() -> list[dict[str, Any]]:
+    """Get active Open Guardian positions with mark-to-market prices."""
+    return db.get_open_positions()
+
+
+@router.get("/autotrade")
+def get_autotrade_status() -> dict[str, Any]:
+    """Get current autonomous trading status."""
+    return {
+        "autotrade_enabled": settings.autotrade_enabled,
+        "live_trading_enabled": settings.live_trading_enabled,
+        "universe": settings.universe,
+        "base_quote": settings.base_quote,
+        "max_positions": settings.max_simultaneous_positions,
+    }
+
+
+@router.post("/autotrade")
+def set_autotrade_status(enabled: bool = Query(..., description="Enable or disable autonomous trading")) -> dict[str, Any]:
+    """Toggle autonomous trading on or off."""
+    settings.autotrade_enabled = enabled
+    return {
+        "status": "SUCCESS",
+        "autotrade_enabled": settings.autotrade_enabled,
+    }
+
+
+@router.post("/kill-switch")
+@router.post("/risk/kill-switch")
+def toggle_kill_switch(req: KillSwitchRequest) -> dict[str, Any]:
+    """Trigger or reset the emergency kill switch."""
+    if req.action.upper() == "TRIGGER":
+        capital_engine.trigger_kill_switch(reason=req.reason)
+        # Emergency close all active positions via Guardian
+        closed = execution_engine.guardian.emergency_close_all(reason=f"Kill Switch: {req.reason}")
+        return {
+            "status": "SUCCESS",
+            "kill_switch_active": True,
+            "action": "TRIGGERED",
+            "reason": req.reason,
+            "closed_positions_count": len(closed),
+        }
+    elif req.action.upper() == "RESET":
+        capital_engine.reset_kill_switch()
+        return {"status": "SUCCESS", "kill_switch_active": False, "action": "RESET"}
+    raise HTTPException(status_code=400, detail="Action must be 'TRIGGER' or 'RESET'")
+

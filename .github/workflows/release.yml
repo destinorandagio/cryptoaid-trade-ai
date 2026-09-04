@@ -1,0 +1,23 @@
+name: Release Packaging
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  package-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build Package Artifact
+        run: |
+          pip install build
+          python -m build
+      - name: Check Artifact
+        run: ls -la dist/

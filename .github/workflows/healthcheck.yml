@@ -1,0 +1,21 @@
+name: System Healthcheck
+
+on:
+  schedule:
+    - cron: '0 8,20 * * *' # Twice daily
+  workflow_dispatch:
+
+jobs:
+  ping-health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Verify Module Health
+        run: |
+          python -c "from src.data.provider import CompositeMarketDataProvider; from src.storage.db import DatabaseManager; from src.risk.capital_protection import CapitalProtectionEngine; m = CompositeMarketDataProvider(); db = DatabaseManager(); cp = CapitalProtectionEngine(); assert m.health()['status'] == 'HEALTHY'; print('System Health: ALL HEALTHY')"

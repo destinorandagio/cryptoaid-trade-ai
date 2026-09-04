@@ -1,0 +1,22 @@
+name: Paper Trading Engine Snapshot
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # Every 30 mins
+  workflow_dispatch:
+
+jobs:
+  paper-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Run Mark-to-Market Cycle
+        run: |
+          python -c "from src.execution.paper_engine import PaperExecutionEngine; from src.data.provider import CompositeMarketDataProvider; engine = PaperExecutionEngine(); mkt = CompositeMarketDataProvider(); prices = {s: mkt.get_ticker(s).price for s in ['BTC/USDC', 'ETH/USDC', 'SOL/USDC']}; engine.update_market_prices(prices); print('Mark-to-market snapshot complete:', engine.get_portfolio_state())"

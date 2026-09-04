@@ -1,0 +1,22 @@
+name: Market Scan & Multi-Agent Analysis
+
+on:
+  schedule:
+    - cron: '0 */4 * * *' # Every 4 hours
+  workflow_dispatch:
+
+jobs:
+  scan-universe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Run Universe Scan
+        run: |
+          python -c "from src.data.provider import CompositeMarketDataProvider; from src.agents.meta_agent import MetaAgent; from src.risk.cryptoaid_gate import CryptoAidRiskGate; mkt = CompositeMarketDataProvider(); meta = MetaAgent(); gate = CryptoAidRiskGate(); [print(s, meta.evaluate(mkt.get_snapshot(s)).decision, 'RiskGate:', gate.evaluate(meta.evaluate(mkt.get_snapshot(s)), mkt.get_snapshot(s)).final_decision) for s in ['BTC/USDC', 'ETH/USDC', 'SOL/USDC']]"

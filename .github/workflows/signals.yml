@@ -1,0 +1,24 @@
+name: Signal Generation & Gate Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      asset:
+        description: 'Asset to scan (e.g. BTC/USDC)'
+        required: true
+        default: 'BTC/USDC'
+
+jobs:
+  validate-signal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Evaluate Signal and Risk Gate
+        run: |
+          python -c "from src.data.provider import CompositeMarketDataProvider; from src.agents.meta_agent import MetaAgent; from src.risk.cryptoaid_gate import CryptoAidRiskGate; asset = '${{ github.event.inputs.asset }}'; mkt = CompositeMarketDataProvider(); snap = mkt.get_snapshot(asset); meta = MetaAgent().evaluate(snap); gate = CryptoAidRiskGate().evaluate(meta, snap); print(f'Asset: {asset} | Signal: {meta.decision.value} (Conf: {meta.confidence}) | Gate: {gate.final_decision} (Score: {gate.composite_risk_score})')"

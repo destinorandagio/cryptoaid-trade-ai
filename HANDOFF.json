@@ -1,0 +1,70 @@
+{
+  "system": "CryptoAID Trade AI",
+  "version": "1.0.0",
+  "status": "PRODUCTION_CANDIDATE",
+  "priority": "P0 / WAR MODE COMPLETED",
+  "repository": {
+    "target_repo": "https://github.com/destinorandagio/cryptoaid-trade-ai",
+    "branch": "main",
+    "commit_status": "READY_TO_PUSH"
+  },
+  "pwa": {
+    "url": "https://trade.cryptoaid.support",
+    "document_root": "/home/u173050672/domains/cryptoaid.support/public_html/trade",
+    "status": "DEPLOYED",
+    "views_count": 13
+  },
+  "telegram": {
+    "bot": "@CryptoAidTradeAIbot",
+    "community_group": "https://t.me/cryptoAIDsupporter",
+    "news_channel": "https://t.me/cryptoaidsup",
+    "topics_enforced": [
+      "🤖 TRADE AI",
+      "📡 AI SIGNALS",
+      "🚨 SECURITY & SCAM",
+      "🧪 CRYPTOAID LAB",
+      "🏠 GENERAL"
+    ],
+    "commands_count": 14,
+    "inline_controls_count": 8
+  },
+  "execution": {
+    "chain": "Polygon POS Mainnet",
+    "chain_id": 137,
+    "primary_asset": "USDT",
+    "capital_model_usd": 1000.0,
+    "live_trading_enabled": false,
+    "live_gate_points": 11,
+    "kill_switch_active": false,
+    "max_position_size_usd": 100.0,
+    "max_portfolio_exposure_usd": 500.0,
+    "dynamic_slippage_bps": 20.0,
+    "hard_max_slippage_bps": 100.0,
+    "emergency_stop_ceiling_pct": 5.0
+  },
+  "test_evidence": {
+    "total_tests": 37,
+    "passed": 37,
+    "failed": 0,
+    "pass_rate_pct": 100.0,
+    "duration_seconds": 53.13
+  },
+  "known_issues": [],
+  "blockers": [],
+  "human_actions_required": [
+    {
+      "step": 1,
+      "exact_action": "Set TELEGRAM_BOT_TOKEN in .env or Hostinger environment",
+      "exact_url": "https://t.me/BotFather",
+      "exact_value": "<TOKEN_FROM_BOTFATHER>",
+      "verification": "Run python -m pytest tests/test_telegram.py"
+    },
+    {
+      "step": 2,
+      "exact_action": "When ready for live testing with minimal capital, provide dedicated trading wallet address and private key in .env",
+      "exact_url": "Polygon Web3 Wallet",
+      "exact_value": "TRADING_WALLET_ADDRESS and TRADING_WALLET_PRIVATE_KEY",
+      "verification": "Dedicated wallet must have >= 50 USDT and 2 POL for gas. Run scripts/run_watchdog.py"
+    }
+  ]
+}

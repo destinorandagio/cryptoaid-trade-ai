@@ -1,0 +1,28 @@
+name: Security & Integrity Audit
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 4 * * 1' # Weekly security sweep
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify Live Trading Disabled
+        run: |
+          python -c "from src.config import settings; assert settings.live_trading_enabled is False, 'FATAL: LIVE_TRADING_ENABLED must be False'"
+          echo "LIVE_TRADING_ENABLED=false verified."
+      - name: Scan for Hardcoded Private Keys or Secrets
+        run: |
+          ! grep -rn "BEGIN PRIVATE KEY" src/
+          ! grep -rn "0x[a-fA-F0-9]\{64\}" src/
+          echo "Secret scan passed."
