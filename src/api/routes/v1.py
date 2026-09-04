@@ -1,6 +1,7 @@
 """REST API Version 1 Routes for CryptoAID Trade AI."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -723,6 +724,143 @@ def get_prop_institutional_rules() -> dict[str, Any]:
             "use_cases": ["Discounted Challenge Retries", "Permanent Demo Trading with Real Profit Withdrawals"],
         },
     }
+
+
+# ---------------------------------------------------------
+# LEDGER 1: AUTOTRADE RUNS & DEDICATED REWARD POOL
+# ---------------------------------------------------------
+
+class StartRunRequest(BaseModel):
+    wallet: str
+    tx_hash: str | None = None
+    paper_starting_balance: float = 10000.0
+
+
+class ConcludeRunRequest(BaseModel):
+    simulated_pnl_usdt: float
+    simulated_pnl_pct: float
+    trades_count: int
+    cortex_violations: int = 0
+
+
+@router.post("/autotrade/run/start")
+def start_autotrade_run(req: StartRunRequest) -> dict[str, Any]:
+    """Activate 1 Autotrade Run with 10 POL fee on 10,000 USDT Paper capital."""
+    from src.autotrade.run_engine import AutotradeRunEngine
+    db = DatabaseManager()
+    engine = AutotradeRunEngine(db=db)
+    run = engine.start_run(
+        wallet=req.wallet,
+        tx_hash_fee=req.tx_hash,
+        paper_starting_balance=req.paper_starting_balance,
+        max_duration_seconds=180,
+    )
+    return {
+        "status": "RUNNING",
+        "run": run,
+        "message": f"Autotrade Run {run['id']} activated. Time limit: 180s. Objective: Net P&L > 0.00% & 0 CORTEX violations.",
+        "economic_contract": {
+            "fee_paid": "10.0 POL -> DAO Treasury (0x3C320B3a0917fF44BF6551CDdee44402AFcF250C)",
+            "capital": "10,000 USDT PAPER",
+            "win_reward": "2.0 POL from Reward Pool",
+            "loss_reward": "0 POL",
+        },
+    }
+
+
+@router.get("/autotrade/run/{run_id}/telemetry")
+def get_autotrade_run_telemetry(run_id: str) -> dict[str, Any]:
+    """Get live telemetry of an active Autotrade Run."""
+    db = DatabaseManager()
+    run = db.get_autotrade_run(run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+    
+    # Calculate time remaining
+    now = datetime.now(timezone.utc)
+    started_at = datetime.fromisoformat(run["started_at"]) if "started_at" in run and run["started_at"] else now
+    elapsed_seconds = int((now - started_at).total_seconds())
+    remaining_seconds = max(0, run.get("max_duration_seconds", 180) - elapsed_seconds)
+
+    return {
+        "run_id": run["id"],
+        "sequence_id": run["sequence_id"],
+        "wallet": run["wallet"],
+        "status": run["status"],
+        "paper_balance_usdt": run["paper_starting_balance"] + run["paper_final_pnl_usdt"],
+        "net_pnl_usdt": run["paper_final_pnl_usdt"],
+        "net_pnl_pct": run["paper_final_pnl_pct"],
+        "trades_count": run["trades_count"],
+        "cortex_violations": run["cortex_violations"],
+        "elapsed_seconds": elapsed_seconds,
+        "remaining_seconds": remaining_seconds,
+        "time_limit_seconds": run["max_duration_seconds"],
+        "is_expired": remaining_seconds == 0,
+        "reward_pol": run["reward_pol"],
+        "payout_status": run["payout_status"],
+    }
+
+
+@router.post("/autotrade/run/{run_id}/conclude")
+def conclude_autotrade_run(run_id: str, req: ConcludeRunRequest) -> dict[str, Any]:
+    """Conclude an Autotrade Run, evaluate WIN/LOSS and determine 2 POL reward."""
+    from src.autotrade.run_engine import AutotradeRunEngine
+    db = DatabaseManager()
+    engine = AutotradeRunEngine(db=db)
+    try:
+        res = engine.evaluate_and_conclude_run(
+            run_id=run_id,
+            simulated_pnl_usdt=req.simulated_pnl_usdt,
+            simulated_pnl_pct=req.simulated_pnl_pct,
+            trades_count=req.trades_count,
+            cortex_violations=req.cortex_violations,
+        )
+        return {
+            "status": "CONCLUDED",
+            "result": "WON" if res.won else "LOST",
+            "run_id": res.run_id,
+            "won": res.won,
+            "reward_pol": res.reward_pol,
+            "payout_status": res.payout_status,
+            "final_pnl_usdt": res.final_pnl_usdt,
+            "final_pnl_pct": res.final_pnl_pct,
+            "trades_count": res.trades_count,
+            "cortex_violations": res.cortex_violations,
+            "reward_pool_solvent": res.reward_pool_solvent,
+            "explanation": res.explanation,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/autotrade/runs/wallet/{wallet}")
+def get_user_autotrade_runs(wallet: str) -> dict[str, Any]:
+    """List recent Autotrade Runs for a specific wallet."""
+    db = DatabaseManager()
+    runs = db.get_user_autotrade_runs(wallet)
+    return {
+        "wallet": wallet.lower(),
+        "total_runs": len(runs),
+        "runs": runs,
+    }
+
+
+@router.get("/autotrade/reward-pool/status")
+def get_reward_pool_status() -> dict[str, Any]:
+    """Get the solvency and capacity of the separate Reward Pool."""
+    db = DatabaseManager()
+    pool = db.get_reward_pool_status()
+    return {
+        "pool": pool,
+        "policy": {
+            "run_entry_fee": "10.0 POL -> 100% to B+ DAO Treasury (0x3C320B3a0917fF44BF6551CDdee44402AFcF250C)",
+            "win_reward": "2.0 POL paid from separate Reward Pool",
+            "loss_reward": "0 POL",
+            "max_exposure_ratio": "20% (1,000 POL fees collected = max 200 POL rewards if 100% win)",
+            "solvency_guarantee": "Rewards paid ONLY if pool is funded; no uncovered promises.",
+        },
+    }
+
 
 
 

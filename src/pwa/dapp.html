@@ -589,23 +589,117 @@
                          ======================================================= -->
 
                     <!-- =======================================================
-                         CENTRAL AUTOTRADE HERO ENGINE (ONE-CLICK AUTONOMOUS)
+                         3 DEDICATED PROTOCOL LEDGERS
+                         LEDGER 1: AUTOTRADE RUN (DEMO GAMIFICATA)
+                         LEDGER 2: PROP CHALLENGE (PROGRAMMA A TIER)
+                         LEDGER 3: TRADING CREDITS (TAC WALLET)
                          ======================================================= -->
 
-                    <div class="card-cockpit autotrade-pro-card" style="margin-top:12px; border:1px solid rgba(255,30,56,0.35); background: linear-gradient(145deg, rgba(22,22,30,0.96), rgba(12,12,18,0.96));">
-                        <div class="autotrade-header-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <!-- =======================================================
+                         LEDGER 1: AUTOTRADE RUN (DEMO GAMIFICATA)
+                         ======================================================= -->
+                    <div class="ledger-section-card ledger-1" id="ledger-autotrade-run">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                             <div style="display:flex; align-items:center; gap:8px;">
-                                <span class="pulse-beacon" id="autotrade-beacon" style="background:#34d399; box-shadow:0 0 12px #34d399;"></span>
-                                <strong style="color:#ffffff; font-size:0.95rem; letter-spacing:0.5px;">🏆 PROP DEMO / REWARD PROGRAM</strong>
-                                <span class="cert-pill" id="autotrade-status-pill" style="background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3); font-weight:700; font-size:0.68rem;">● AUTOTRADE ACTIVE (<span id="prop-tier-badge-txt">100K PRO · $100K</span>)</span>
+                                <span class="ledger-header-badge ledger-badge-1">LEDGER 1</span>
+                                <strong style="color:#ffffff; font-size:0.92rem; letter-spacing:0.5px;">AUTOTRADE RUN (DEMO GAMIFICATA)</strong>
                             </div>
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <span class="shield-badge" style="font-size:0.65rem;">DISCIPLINE + EXPECTANCY</span>
+                            <span class="cert-pill" id="run-status-pill" style="background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3); font-weight:700; font-size:0.65rem;">
+                                ● 10 POL ACCESS FEE → 2 POL WIN REWARD
+                            </span>
+                        </div>
+
+                        <!-- ECONOMIC CONTRACT SPECIFICATION -->
+                        <div class="run-win-condition-box">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                <strong style="color:#ffffff;">CONTRATTO ECONOMICO & REGOLA DI VITTORIA (WIN):</strong>
+                                <span style="color:#f59e0b; font-weight:700;">CAPITALE: 10,000 USDT PAPER</span>
+                            </div>
+                            <div>• <strong>Accesso:</strong> L'utente versa <strong>10 POL</strong> alla B+ DAO Treasury (<span style="color:#ffffff;">0x3C32...250C</span>) per attivare 1 giro Autotrade.</div>
+                            <div>• <strong>Condizione WIN cristallina:</strong> P&L netto positivo (&gt; +0.00%) dopo costi simulati entro <strong>180 secondi</strong> (3 min) E <strong>0 violazioni CORTEX</strong> (vietato tenere trade perdenti all'infinito).</div>
+                            <div>• <strong>Esito:</strong> <span style="color:#34d399; font-weight:700;">WIN ➔ 2 POL di Reward Reale</span> dal RewardPool dedicato | <span style="color:#ff1e38; font-weight:700;">LOSS ➔ 0 POL</span>.</div>
+                        </div>
+
+                        <!-- REWARD POOL SOLVENCY STATUS -->
+                        <div class="reward-pool-status-box">
+                            <div>
+                                <span style="color:#71717a;">REWARD POOL SEPARATO:</span>
+                                <strong id="pool-balance-txt" style="color:#34d399; margin-left:4px;">500.00 POL</strong>
+                                <span style="color:#a1a1aa; margin-left:6px;">(250 Run Vincenti Coperti 100%)</span>
+                            </div>
+                            <div class="pool-badge" id="pool-solvency-badge">
+                                🛡️ SOLVENTE (MAX ESPOSIZIONE 20%)
                             </div>
                         </div>
 
+                        <!-- ACTIVE RUN COCKPIT (DYNAMIC) -->
+                        <div class="run-cockpit-banner" id="run-cockpit-banner">
+                            <div class="run-cockpit-header">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="pulse-beacon" id="run-beacon" style="background:#34d399; width:8px; height:8px;"></span>
+                                    <span class="run-id-pill" id="run-id-display">AUTOTRADE #000123 — RUNNING</span>
+                                </div>
+                                <div class="run-countdown-timer" id="run-timer-display">
+                                    ⏱️ TEMPO: <span id="run-seconds-left">180s</span>
+                                </div>
+                            </div>
+
+                            <!-- Live Telemetry Grid -->
+                            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;">
+                                <div class="prop-stat-box" style="padding:4px 6px;">
+                                    <span class="s-lbl">EQUITY PAPER</span>
+                                    <span class="s-val" id="run-equity-display" style="color:#ffffff;">$10,112.40</span>
+                                </div>
+                                <div class="prop-stat-box" style="padding:4px 6px;">
+                                    <span class="s-lbl">P&L NETTO (SIMULATO)</span>
+                                    <span class="s-val" id="run-pnl-display" style="color:#34d399;">+$112.40 (+1.12%)</span>
+                                </div>
+                                <div class="prop-stat-box" style="padding:4px 6px;">
+                                    <span class="s-lbl">CORTEX GATE</span>
+                                    <span class="s-val" id="run-cortex-display" style="color:#34d399;">0 VIOLAZIONI</span>
+                                </div>
+                            </div>
+
+                            <!-- Run Resolution Banner (Hidden by default, shown on conclusion) -->
+                            <div id="run-result-banner" style="display:none; margin-top:8px; border-radius:6px; padding:8px 10px; text-align:center;">
+                                <strong id="run-result-title" style="font-size:0.88rem; display:block;"></strong>
+                                <span id="run-result-sub" style="font-size:0.65rem; display:block; margin-top:3px; font-family:'JetBrains Mono',monospace;"></span>
+                            </div>
+
+                            <!-- RUN CONTROLS -->
+                            <div style="margin-top:10px; display:flex; gap:8px; justify-content:center;">
+                                <button id="btn-trigger-run" class="btn-hero-autotrade" style="width:100%; max-width:320px; font-size:0.85rem; padding:10px 14px;">
+                                    <span id="btn-run-text">⚡ 10 POL ➔ START AUTOTRADE RUN</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 4 LIVE TELEMETRY STRIP -->
+                        <div class="autotrade-telemetry-strip" style="margin-top:8px;">
+                            <div class="telemetry-pill"><span class="t-dot green"></span><span>HEART SCANNING 42 ASSETS</span></div>
+                            <div class="telemetry-pill"><span class="t-dot cyan"></span><span>REGIME: <strong id="hero-regime-txt" style="color:#ffffff;">TRENDING BULL</strong></span></div>
+                            <div class="telemetry-pill"><span class="t-dot amber"></span><span>STRATEGY: <strong id="hero-strategy-txt" style="color:#ffffff;">MOMENTUM</strong></span></div>
+                            <div class="telemetry-pill"><span class="t-dot red"></span><span>CORTEX: <strong id="hero-cortex-txt" style="color:#ffffff;">PROTECTED</strong></span></div>
+                        </div>
+                    </div>
+
+
+                    <!-- =======================================================
+                         LEDGER 2: PROP CHALLENGE (PROGRAMMA A TIER)
+                         ======================================================= -->
+                    <div class="ledger-section-card ledger-2" id="ledger-prop-challenge">
+                        <div class="autotrade-header-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span class="ledger-header-badge ledger-badge-2">LEDGER 2</span>
+                                <strong style="color:#ffffff; font-size:0.92rem; letter-spacing:0.5px;">PROP CHALLENGE (PROGRAMMA A TIER)</strong>
+                            </div>
+                            <span class="cert-pill" style="background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); font-weight:700; font-size:0.65rem;">
+                                ● REWARD PAYOUT 80% PROFITTI
+                            </span>
+                        </div>
+
                         <!-- 3-TIER SELECTOR (50K / 100K / 150K) -->
-                        <div class="prop-tier-selector">
+                        <div class="prop-tier-selector" style="margin-top:10px;">
                             <div class="prop-tier-btn" data-tier="50K" id="tier-btn-50k">
                                 <span class="t-title">STARTER</span>
                                 <span class="t-size">$50,000 · 1000x LEV</span>
@@ -622,25 +716,6 @@
                                 <span class="t-title">ELITE</span>
                                 <span class="t-size">$150,000 · 100x LEV</span>
                                 <span class="t-fee">1,500 USDT FEE · 80% PAYOUT</span>
-                            </div>
-                        </div>
-
-                        <!-- SECOND CHANCE: TAC CREDIT WALLET & GUARANTEE (OPTION A) -->
-                        <div class="prop-no-loss-box">
-                            <div class="prop-no-loss-header">
-                                <span class="prop-no-loss-badge">
-                                    <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px; height:12px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                    SECOND CHANCE · TRADEAID CREDITS (TAC)
-                                </span>
-                                <span style="font-size:0.62rem; color:#f59e0b; font-family:'JetBrains Mono',monospace; font-weight:700;">SALDO CREDITI: <span id="prop-tac-balance-display">100.00 TAC</span></span>
-                            </div>
-                            <div class="prop-no-loss-body">
-                                <strong>Meccanismo di Recupero:</strong> Se non superi la challenge, la fee d'accesso (<strong id="prop-fee-highlight">100 USDT</strong>) viene convertita al 100% in <strong>TradeAid Credits (TAC)</strong>. Puoi usare i TAC per <strong>riprovare la challenge</strong> o per attivare l'Autotrading su conto Demo: <strong>tutti i profitti generati vengono pagati all'80% in criptovalute reali (POL/USDT)</strong>!
-                            </div>
-                            <div class="prop-no-loss-perks">
-                                <div class="prop-perk-pill">CONVERSIONE FEE: <span>100% IN TAC</span></div>
-                                <div class="prop-perk-pill">PAYOUT CONDIVISO: <span>80% A TE (CRYPTO REALI)</span></div>
-                                <div class="prop-perk-pill">LEVERAGE: <span>FINO A 1000x VIRTUALE</span></div>
                             </div>
                         </div>
 
@@ -666,27 +741,11 @@
 
                         <!-- PHILOSOPHY: ZERO RUSH ON AI -->
                         <div style="font-size:0.62rem; color:#a1a1aa; margin-top:6px; font-family:'JetBrains Mono',monospace; background:rgba(255,255,255,0.03); padding:5px 8px; border-radius:4px; border-left:2px solid #34d399;">
-                            ⚡ <strong style="color:#ffffff;">NESSUNA SCADENZA FORZATA:</strong> TradeAID cerca la migliore expectancy senza assumere rischi artificiali. La challenge osserva passivamente il rispetto dei vincoli di drawdown e disciplina.
-                        </div>
-
-                        <!-- 3-STAGE PROGRESSION LADDER (DEMO -> QUALIFIED -> PROP ELIGIBLE) -->
-                        <div style="margin-top:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-                            <div class="prop-badge-progression">
-                                <span class="p-step active" id="prop-step-1-lbl">1. FREE DEMO (<span id="prop-ladder-size">$100K</span>)</span>
-                                <span>➔</span>
-                                <span class="p-step locked" id="prop-step-qualified">2. QUALIFIED</span>
-                                <span>➔</span>
-                                <span class="p-step locked" id="prop-step-candidate">3. PROP ELIGIBLE</span>
-                            </div>
-                            <button id="btn-share-prop-challenge" class="btn-share-prop-challenge" title="Share your AI Prop Challenge performance">
-                                <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-                                <span>SHARE CHALLENGE</span>
-                            </button>
+                            ⚡ <strong style="color:#ffffff;">NESSUNA SCADENZA FORZATA:</strong> TradeAID opera esclusivamente per massimizzare la matematica dell'expectancy. La challenge audita passivamente il rispetto del Drawdown (-10%) e della disciplina.
                         </div>
 
                         <!-- PROP CHALLENGE TRACKER CARD -->
-                        <div class="prop-challenge-banner">
-                            <!-- TARGET PROGRESS BAR -->
+                        <div class="prop-challenge-banner" style="margin-top:8px;">
                             <div class="prop-progress-row">
                                 <div class="prop-progress-label-row">
                                     <span style="color:#a1a1aa;" id="prop-target-label">PROFIT TARGET (+8.00% / +$8,000):</span>
@@ -697,22 +756,20 @@
                                 </div>
                             </div>
 
-                            <!-- DRAWDOWN SAFETY BAR -->
                             <div class="prop-progress-row" style="margin-top:8px;">
                                 <div class="prop-progress-label-row">
-                                    <span style="color:#a1a1aa;" id="prop-dd-label">MAX TOTAL DRAWDOWN (-8.00% / -$8,000):</span>
-                                    <strong id="prop-dd-display" style="color:#38bdf8;">0.91% (SAFE BUFFER 7.09%)</strong>
+                                    <span style="color:#a1a1aa;" id="prop-dd-label">MAX TOTAL DRAWDOWN (-10.00% / -$10,000):</span>
+                                    <strong id="prop-dd-display" style="color:#38bdf8;">0.91% (SAFE BUFFER 9.09%)</strong>
                                 </div>
                                 <div class="prop-bar-track">
-                                    <div id="prop-dd-bar" class="prop-bar-fill-dd" style="width: 11.4%;"></div>
+                                    <div id="prop-dd-bar" class="prop-bar-fill-dd" style="width: 9.1%;"></div>
                                 </div>
                             </div>
 
-                            <!-- 4 STATS MATRIX -->
                             <div class="prop-stats-matrix">
                                 <div class="prop-stat-box">
                                     <span class="s-lbl">DAILY DD LIMIT</span>
-                                    <span class="s-val" id="prop-daily-dd" style="color:#34d399;">0.35% / 4.0%</span>
+                                    <span class="s-val" id="prop-daily-dd" style="color:#34d399;">0.35% / 5.0%</span>
                                 </div>
                                 <div class="prop-stat-box">
                                     <span class="s-lbl">CORTEX VIOLATIONS</span>
@@ -732,7 +789,7 @@
                             <div style="margin-top:10px;">
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
                                     <span style="font-size:0.62rem; color:#a1a1aa; font-family:'JetBrains Mono',monospace; font-weight:700;">COMPOSIZIONE 8-FACTOR PROP SCORE (100 PT):</span>
-                                    <span style="font-size:0.58rem; color:#34d399; font-family:'JetBrains Mono',monospace;">DISCIPLINA > RISCHIO</span>
+                                    <span style="font-size:0.58rem; color:#34d399; font-family:'JetBrains Mono',monospace;">DISCIPLINA &gt; RISCHIO</span>
                                 </div>
                                 <div class="prop-score-breakdown-grid">
                                     <div class="factor-chip">Return (15%): <span id="f-ret">11.2</span></div>
@@ -744,128 +801,78 @@
                                     <div class="factor-chip">Calibration (10%): <span id="f-cal">8.7</span></div>
                                     <div class="factor-chip">Consistency (5%): <span id="f-con">4.0</span></div>
                                 </div>
-                                <div style="font-size:0.58rem; color:#f59e0b; font-family:'JetBrains Mono',monospace; margin-top:3px;">
-                                    ⚖️ +6% con DD minimo (0.8%) batte +9% ottenuto rischiando tutto!
-                                </div>
                             </div>
 
-                            <!-- SIMULTANEOUS MULTI-PROFILE BENCHMARK (SAFE vs BALANCED vs TURBO) -->
-                            <div style="margin-top:12px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <span style="font-size:0.62rem; color:#a1a1aa; font-family:'JetBrains Mono',monospace; font-weight:700;">CONFRONTO SIMULTANEO STESSO MERCATO (3 PROFILI):</span>
-                                    <span style="font-size:0.58rem; color:#38bdf8; font-family:'JetBrains Mono',monospace;">POLYGON H24</span>
-                                </div>
+                            <!-- SIMULTANEOUS MULTI-PROFILE BENCHMARK -->
+                            <div style="margin-top:10px;">
                                 <div class="prop-benchmark-grid">
                                     <div class="prop-benchmark-card">
-                                        <div class="bm-header">
-                                            <span class="bm-title">SAFE</span>
-                                            <span class="bm-badge" style="background:rgba(52,211,153,0.2); color:#34d399;">🏆 91.2</span>
-                                        </div>
-                                        <div class="bm-metrics">
-                                            <span>Profit: +1.42%</span>
-                                            <span>DD: 0.28%</span>
-                                        </div>
-                                        <div class="bm-score" style="color:#34d399;">
-                                            <span>1-2% Sizing</span>
-                                            <span>0 Violazioni</span>
-                                        </div>
+                                        <div class="bm-header"><span class="bm-title">SAFE</span><span class="bm-badge" style="background:rgba(52,211,153,0.2); color:#34d399;">🏆 91.2</span></div>
+                                        <div class="bm-metrics"><span>Profit: +1.42%</span><span>DD: 0.28%</span></div>
                                     </div>
                                     <div class="prop-benchmark-card highlight">
-                                        <div class="bm-header">
-                                            <span class="bm-title">BALANCED</span>
-                                            <span class="bm-badge" style="background:rgba(245,158,11,0.2); color:#f59e0b;">⭐ 88.6</span>
-                                        </div>
-                                        <div class="bm-metrics">
-                                            <span>Profit: +2.83%</span>
-                                            <span>DD: 0.91%</span>
-                                        </div>
-                                        <div class="bm-score" style="color:#f59e0b;">
-                                            <span>2-5% Sizing</span>
-                                            <span>Recommended</span>
-                                        </div>
+                                        <div class="bm-header"><span class="bm-title">BALANCED</span><span class="bm-badge" style="background:rgba(245,158,11,0.2); color:#f59e0b;">⭐ 88.6</span></div>
+                                        <div class="bm-metrics"><span>Profit: +2.83%</span><span>DD: 0.91%</span></div>
                                     </div>
                                     <div class="prop-benchmark-card">
-                                        <div class="bm-header">
-                                            <span class="bm-title">TURBO</span>
-                                            <span class="bm-badge" style="background:rgba(139,92,246,0.2); color:#a78bfa;">⚡ 82.4</span>
-                                        </div>
-                                        <div class="bm-metrics">
-                                            <span>Profit: +5.12%</span>
-                                            <span>DD: 2.85%</span>
-                                        </div>
-                                        <div class="bm-score" style="color:#a78bfa;">
-                                            <span>5-10% Sizing</span>
-                                            <span>Max Return</span>
-                                        </div>
+                                        <div class="bm-header"><span class="bm-title">TURBO</span><span class="bm-badge" style="background:rgba(139,92,246,0.2); color:#a78bfa;">⚡ 82.4</span></div>
+                                        <div class="bm-metrics"><span>Profit: +5.12%</span><span>DD: 2.85%</span></div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- TRANSPARENCY & REWARD POOL CLAUSE -->
-                            <div style="font-size:0.58rem; color:#71717a; margin-top:10px; border-top:1px dashed rgba(255,255,255,0.08); padding-top:6px; font-family:'JetBrains Mono',monospace; line-height:1.4;">
-                                ⚠️ <strong style="color:#a1a1aa;">REGOLE DI TRASPARENZA:</strong> PAPER PROFITS ≠ SOLDI DOVUTI ALL'UTENTE. I profitti del conto virtuale sono simulati a fini di qualificazione della disciplina. Al superamento della fase PASSED l'utente accede allo status <strong>PROP ELIGIBLE</strong> per l'allocazione reale / Reward Pool DAO verificato.
-                            </div>
-
-                            <!-- INTERNAL TRADING CREDIT RECOVERY STATUS (SHOWN IF FAILED) -->
-                            <div id="prop-credit-recovery-card" style="display:none; margin-top:10px; background:rgba(245,158,11,0.08); border:1px dashed #f59e0b; border-radius:6px; padding:8px 10px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <span style="font-size:0.65rem; color:#f59e0b; font-family:'JetBrains Mono',monospace; font-weight:700;">● CREDITO AUTOTRADING ATTIVO: <span id="prop-credit-val">100.00 USDT</span></span>
-                                    <span style="font-size:0.60rem; color:#34d399; font-family:'JetBrains Mono',monospace;">PROFITTO PRELEVABILE: <strong id="prop-withdrawable-val">+0.00 USDT</strong></span>
-                                </div>
+                            <div style="font-size:0.58rem; color:#71717a; margin-top:8px; border-top:1px dashed rgba(255,255,255,0.08); padding-top:6px; font-family:'JetBrains Mono',monospace;">
+                                ⚠️ <strong style="color:#a1a1aa;">REGOLE DI TRASPARENZA:</strong> PAPER PROFITS ≠ SOLDI DOVUTI. La qualifica PASSED rende <strong>PROP ELIGIBLE</strong> per allocazione reale e prelievo dell'80% dei profitti netti.
                             </div>
                         </div>
 
-                        <!-- BIG HERO CENTRAL DUAL-STATE BUTTON -->
-                        <div style="margin-top:14px; text-align:center;">
-                            <button id="btn-hero-autotrade" class="btn-hero-autotrade running">
-                                <span id="hero-btn-main" style="display:flex; align-items:center; gap:8px;">
-                                    <span class="pulse-beacon" style="background:#34d399; width:10px; height:10px;"></span>
-                                    <span>● AUTOTRADE RUNNING 24/7</span>
-                                </span>
-                                <span id="hero-btn-sub" class="btn-hero-sub">(CLICK TO PAUSE AUTONOMOUS ENGINE)</span>
+                        <!-- SHARE BUTTON -->
+                        <div style="margin-top:8px; text-align:right;">
+                            <button id="btn-share-prop-challenge" class="btn-share-prop-challenge" style="padding:6px 12px; font-size:0.68rem;">
+                                <span>🔗 CONDIVIDI PERFORMANCE PROP</span>
                             </button>
                         </div>
+                    </div>
 
-                        <!-- 4 LIVE TELEMETRY STATUS ITEMS DIRECTLY UNDER BUTTON -->
-                        <div class="autotrade-telemetry-strip" style="margin-top:10px;">
-                            <div class="telemetry-pill">
-                                <span class="t-dot green"></span>
-                                <span>HEART SCANNING 42 ASSETS</span>
+
+                    <!-- =======================================================
+                         LEDGER 3: TRADING CREDITS (TAC WALLET)
+                         ======================================================= -->
+                    <div class="ledger-section-card ledger-3" id="ledger-trading-credits">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span class="ledger-header-badge ledger-badge-3">LEDGER 3</span>
+                                <strong style="color:#ffffff; font-size:0.92rem; letter-spacing:0.5px;">TRADING CREDITS (TAC WALLET)</strong>
                             </div>
-                            <div class="telemetry-pill">
-                                <span class="t-dot cyan"></span>
-                                <span>CURRENT REGIME: <strong id="hero-regime-txt" style="color:#ffffff;">TRENDING</strong></span>
-                            </div>
-                            <div class="telemetry-pill">
-                                <span class="t-dot amber"></span>
-                                <span>STRATEGY: <strong id="hero-strategy-txt" style="color:#ffffff;">MOMENTUM</strong></span>
-                            </div>
-                            <div class="telemetry-pill">
-                                <span class="t-dot red"></span>
-                                <span>CORTEX: <strong id="hero-cortex-txt" style="color:#ffffff;">PROTECTED</strong></span>
-                            </div>
+                            <span style="font-size:0.65rem; color:#f59e0b; font-family:'JetBrains Mono',monospace; font-weight:700;">
+                                SALDO DISPONIBILE: <span id="prop-tac-balance-display">100.00 TAC</span>
+                            </span>
                         </div>
 
-                        <!-- SIMULATED REWARD ENGINE VAULT (SEPARATE FROM P&L) -->
-                        <div class="reward-vault-strip" style="margin-top:12px; background:linear-gradient(135deg, rgba(247,147,26,0.12), rgba(20,20,26,0.95)); border:1px solid rgba(247,147,26,0.35); border-radius:10px; padding:10px;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <span style="font-size:1.3rem;">🎁</span>
-                                    <div>
-                                        <strong style="color:#f7931a; font-size:0.85rem; letter-spacing:0.5px;">10 POL PAPER REWARD</strong>
-                                        <div style="font-size:0.62rem; color:#a1a1aa;">QUALIFIED ACTION: <span style="color:#ffffff;">AUTOTRADE ONBOARDING</span> · <span style="color:#34d399;">ANTI-SYBIL: CLEAN (0.02)</span></div>
-                                    </div>
-                                </div>
-                                <div style="text-align:right;">
-                                    <div style="font-size:0.58rem; color:#a1a1aa;">REWARD VAULT (SEPARATE FROM P&L):</div>
-                                    <strong id="reward-vault-display" style="font-family:'JetBrains Mono',monospace; color:#ffffff; font-size:0.95rem;">10.00 POL</strong>
-                                </div>
+                        <div class="prop-no-loss-box" style="margin-top:8px;">
+                            <div class="prop-no-loss-header">
+                                <span class="prop-no-loss-badge">
+                                    <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px; height:12px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    SECOND CHANCE GUARANTEE · CONVERSIONE 100%
+                                </span>
+                                <span style="font-size:0.60rem; color:#34d399; font-family:'JetBrains Mono',monospace;">1 TAC = $1 USDT MARGIN</span>
                             </div>
-                            <div style="margin-top:6px; border-top:1px solid rgba(255,255,255,0.06); padding-top:4px; display:flex; justify-content:space-between; font-size:0.60rem; color:#71717a;">
-                                <span>Trading performance ≠ POL reward</span>
-                                <span style="color:#f7931a;">Paper Reward Adapter Active (Simulated)</span>
+                            <div class="prop-no-loss-body">
+                                Se una Prop Challenge fallisce, la fee d'ingresso (<strong id="prop-fee-highlight">100 USDT</strong>) non viene persa: viene convertita al <strong>100% in TradeAid Credits (TAC)</strong> interni non-rimborsabili. L'utente può usare i TAC per:
+                                <ul style="margin:4px 0 4px 16px; font-size:0.62rem;">
+                                    <li>Riacquistare una Challenge a prezzo scontato o gratuito tramite crediti.</li>
+                                    <li>Attivare l'Autotrading su conto Demo Permanente.</li>
+                                </ul>
+                                <strong>La Via d'Uscita:</strong> Tutti i profitti generati con i TAC danno diritto all'<strong>80% di Payout Reale</strong> in POL o USDT!
+                            </div>
+                            <div class="prop-no-loss-perks">
+                                <div class="prop-perk-pill">CONVERSIONE: <span>100% DELLA FEE</span></div>
+                                <div class="prop-perk-pill">PAYOUT PROFITTI: <span>80% IN CRYPTO REALI</span></div>
+                                <div class="prop-perk-pill">PRELIEVO MARGINE BASE: <span>NON RIMBORSABILE</span></div>
                             </div>
                         </div>
+                    </div>
+
 
                         <!-- Autopilot Risk Profile Selector -->
                         <div style="margin-top:12px;">

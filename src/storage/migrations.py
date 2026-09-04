@@ -541,6 +541,46 @@ CREATE INDEX IF NOT EXISTS idx_payouts_wallet ON prop_payouts (wallet);
 CREATE INDEX IF NOT EXISTS idx_tac_wallet ON tac_credits_ledger (wallet);
 """
 
+MIGRATION_V9 = """
+-- LEDGER 1: Autotrade Run Demo Gamificata (10 POL fee -> 2 POL Reward Engine)
+CREATE TABLE IF NOT EXISTS autotrade_runs (
+    id TEXT PRIMARY KEY,
+    sequence_id INTEGER NOT NULL,
+    wallet TEXT NOT NULL,
+    tx_hash_fee TEXT,
+    fee_pol REAL DEFAULT 10.0,
+    paper_starting_balance REAL DEFAULT 10000.0,
+    paper_final_pnl_usdt REAL DEFAULT 0.0,
+    paper_final_pnl_pct REAL DEFAULT 0.0,
+    trades_count INTEGER DEFAULT 0,
+    cortex_violations INTEGER DEFAULT 0,
+    max_duration_seconds INTEGER DEFAULT 180,
+    status TEXT NOT NULL DEFAULT 'RUNNING', -- 'RUNNING', 'WON', 'LOST', 'EXPIRED'
+    reward_pol REAL DEFAULT 2.0,
+    payout_status TEXT NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'PAID', 'FEATURE_FLAG_HELD', 'NOT_ELIGIBLE'
+    payout_tx_hash TEXT,
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP,
+    closed_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_run_wallet ON autotrade_runs (wallet);
+CREATE INDEX IF NOT EXISTS idx_run_status ON autotrade_runs (status);
+
+-- Dedicated Reward Pool Ledger
+CREATE TABLE IF NOT EXISTS autotrade_reward_pool (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    balance_pol REAL NOT NULL DEFAULT 500.0,
+    total_funded_pol REAL NOT NULL DEFAULT 500.0,
+    total_paid_pol REAL NOT NULL DEFAULT 0.0,
+    payout_enabled INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT OR IGNORE INTO autotrade_reward_pool (id, balance_pol, total_funded_pol, total_paid_pol, payout_enabled)
+VALUES (1, 500.0, 500.0, 0.0, 0);
+"""
+
 
 def apply_migrations(db_path: Path | str) -> None:
     """Run migrations to ensure all database tables are up to date."""
@@ -607,8 +647,16 @@ def apply_migrations(db_path: Path | str) -> None:
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (8)")
             conn.commit()
             logger.info("Database migration V8 applied successfully.")
+
+        if current_version < 9:
+            logger.info("Applying database migration V9 (Autotrade Runs & Reward Pool)...")
+            cursor.executescript(MIGRATION_V9)
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (9)")
+            conn.commit()
+            logger.info("Database migration V9 applied successfully.")
     finally:
         conn.close()
+
 
 
 

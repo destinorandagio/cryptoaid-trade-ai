@@ -5,7 +5,7 @@ import json
 import sqlite3
 import uuid
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -903,6 +903,211 @@ class DatabaseManager:
                 (wallet.lower(),),
             )
             return [dict(r) for r in cursor.fetchall()]
+
+    # ---------------------------------------------------------
+    # LEDGER 1: AUTOTRADE RUNS & DEDICATED REWARD POOL
+    # ---------------------------------------------------------
+
+    def create_autotrade_run(
+        self,
+        run_id: str,
+        sequence_id: int,
+        wallet: str,
+        tx_hash_fee: str | None = None,
+        fee_pol: float = 10.0,
+        paper_starting_balance: float = 10000.0,
+        max_duration_seconds: int = 180,
+    ) -> dict[str, Any]:
+        """Record the start of an Autotrade Run upon payment of 10 POL fee."""
+        now = datetime.now(timezone.utc)
+        expires_at = (now + timedelta(seconds=max_duration_seconds)).isoformat()
+        now_iso = now.isoformat()
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO autotrade_runs (
+                    id, sequence_id, wallet, tx_hash_fee, fee_pol,
+                    paper_starting_balance, paper_final_pnl_usdt, paper_final_pnl_pct,
+                    trades_count, cortex_violations, max_duration_seconds,
+                    status, reward_pol, payout_status, started_at, expires_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 0.0, 0.0, 0, 0, ?, 'RUNNING', 2.0, 'PENDING', ?, ?)
+                """,
+                (
+                    run_id,
+                    sequence_id,
+                    wallet.lower(),
+                    tx_hash_fee,
+                    fee_pol,
+                    paper_starting_balance,
+                    max_duration_seconds,
+                    now_iso,
+                    expires_at,
+                ),
+            )
+            conn.commit()
+            return self.get_autotrade_run(run_id) or {}
+
+    def get_autotrade_run(self, run_id: str) -> dict[str, Any] | None:
+        """Fetch details of a single Autotrade Run."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM autotrade_runs WHERE id = ?", (run_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def update_autotrade_run_progress(
+        self,
+        run_id: str,
+        pnl_usdt: float,
+        pnl_pct: float,
+        trades_count: int,
+        cortex_violations: int = 0,
+    ) -> None:
+        """Update live running metrics of an ongoing Autotrade Run."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE autotrade_runs
+                SET paper_final_pnl_usdt = ?,
+                    paper_final_pnl_pct = ?,
+                    trades_count = ?,
+                    cortex_violations = ?
+                WHERE id = ? AND status = 'RUNNING'
+                """,
+                (pnl_usdt, pnl_pct, trades_count, cortex_violations, run_id),
+            )
+            conn.commit()
+
+    def conclude_autotrade_run(
+        self,
+        run_id: str,
+        won: bool,
+        pnl_usdt: float,
+        pnl_pct: float,
+        trades_count: int,
+        cortex_violations: int,
+        payout_status: str,
+        payout_tx_hash: str | None = None,
+    ) -> dict[str, Any] | None:
+        """Finalize an Autotrade Run as WON or LOST and record payout status."""
+        status = "WON" if won else "LOST"
+        now_iso = datetime.now(timezone.utc).isoformat()
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE autotrade_runs
+                SET status = ?,
+                    paper_final_pnl_usdt = ?,
+                    paper_final_pnl_pct = ?,
+                    trades_count = ?,
+                    cortex_violations = ?,
+                    payout_status = ?,
+                    payout_tx_hash = ?,
+                    closed_at = ?
+                WHERE id = ?
+                """,
+                (
+                    status,
+                    pnl_usdt,
+                    pnl_pct,
+                    trades_count,
+                    cortex_violations,
+                    payout_status,
+                    payout_tx_hash,
+                    now_iso,
+                    run_id,
+                ),
+            )
+            conn.commit()
+            return self.get_autotrade_run(run_id)
+
+    def get_user_autotrade_runs(self, wallet: str, limit: int = 20) -> list[dict[str, Any]]:
+        """Retrieve recent Autotrade Runs for a specific wallet."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT * FROM autotrade_runs
+                WHERE wallet = ?
+                ORDER BY started_at DESC
+                LIMIT ?
+                """,
+                (wallet.lower(), limit),
+            )
+            return [dict(r) for r in cursor.fetchall()]
+
+    def get_reward_pool_status(self) -> dict[str, Any]:
+        """Fetch current Reward Pool solvency and capacity."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM autotrade_reward_pool WHERE id = 1")
+            row = cursor.fetchone()
+            if not row:
+                return {
+                    "balance_pol": 500.0,
+                    "total_funded_pol": 500.0,
+                    "total_paid_pol": 0.0,
+                    "payout_enabled": 0,
+                    "is_solvent": True,
+                    "backed_payouts": 250,
+                }
+            d = dict(row)
+            d["is_solvent"] = d["balance_pol"] >= 2.0
+            d["backed_payouts"] = int(d["balance_pol"] // 2.0)
+            return d
+
+    def fund_reward_pool(self, amount_pol: float) -> dict[str, Any]:
+        """Add funding to the separate Reward Pool."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE autotrade_reward_pool
+                SET balance_pol = balance_pol + ?,
+                    total_funded_pol = total_funded_pol + ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = 1
+                """,
+                (amount_pol, amount_pol),
+            )
+            conn.commit()
+            return self.get_reward_pool_status()
+
+    def pay_reward_from_pool(self, amount_pol: float = 2.0) -> bool:
+        """Deduct reward from pool if solvent."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT balance_pol FROM autotrade_reward_pool WHERE id = 1")
+            row = cursor.fetchone()
+            if not row or float(row["balance_pol"]) < amount_pol:
+                return False
+            cursor.execute(
+                """
+                UPDATE autotrade_reward_pool
+                SET balance_pol = balance_pol - ?,
+                    total_paid_pol = total_paid_pol + ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = 1
+                """,
+                (amount_pol, amount_pol),
+            )
+            conn.commit()
+            return True
+
+    def set_reward_payout_enabled(self, enabled: bool) -> None:
+        """Toggle the legal/compliance feature-flag for real on-chain reward dispatch."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE autotrade_reward_pool SET payout_enabled = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1",
+                (1 if enabled else 0,),
+            )
+            conn.commit()
+
 
 
 

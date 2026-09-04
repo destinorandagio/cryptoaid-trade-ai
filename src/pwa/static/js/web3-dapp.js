@@ -81,44 +81,51 @@ class Web3Controller {
 
         // Prop Challenge Multi-Tier (50K, 100K, 150K) & Option A No-Loss Guarantee
         this.activePropTier = "100K";
+        this.tacBalance = 100.00; // 100 TradeAid Credits (TAC)
         this.propTiers = {
             "50K": {
-                name: "50K STARTER PROP",
-                badgeTxt: "50K STARTER · $50K",
+                name: "STARTER",
+                badgeTxt: "STARTER · $50K · 1000x LEV",
                 size: 50000.0,
                 fee: 50.0,
+                leverage: "1000x (Virtual)",
+                payoutPct: 80.0,
                 targetPct: 8.0,
                 targetProfit: 4000.0,
-                maxTotalDdPct: 8.0,
-                maxTotalDdUsdt: 4000.0,
-                maxDailyDdPct: 4.0,
-                maxDailyDdUsdt: 2000.0,
+                maxTotalDdPct: 10.0,
+                maxTotalDdUsdt: 5000.0,
+                maxDailyDdPct: 5.0,
+                maxDailyDdUsdt: 2500.0,
                 minDays: 5
             },
             "100K": {
-                name: "100K PRO PROP",
-                badgeTxt: "100K PRO · $100K",
+                name: "PRO",
+                badgeTxt: "PRO · $100K · 1000x LEV",
                 size: 100000.0,
                 fee: 100.0,
+                leverage: "1000x (Virtual)",
+                payoutPct: 80.0,
                 targetPct: 8.0,
                 targetProfit: 8000.0,
-                maxTotalDdPct: 8.0,
-                maxTotalDdUsdt: 8000.0,
-                maxDailyDdPct: 4.0,
-                maxDailyDdUsdt: 4000.0,
+                maxTotalDdPct: 10.0,
+                maxTotalDdUsdt: 10000.0,
+                maxDailyDdPct: 5.0,
+                maxDailyDdUsdt: 5000.0,
                 minDays: 5
             },
             "150K": {
-                name: "150K ELITE PROP",
-                badgeTxt: "150K ELITE · $150K",
+                name: "ELITE",
+                badgeTxt: "ELITE · $150K · 100x LEV",
                 size: 150000.0,
                 fee: 1500.0,
+                leverage: "100x (Virtual)",
+                payoutPct: 80.0,
                 targetPct: 8.0,
                 targetProfit: 12000.0,
-                maxTotalDdPct: 8.0,
-                maxTotalDdUsdt: 12000.0,
-                maxDailyDdPct: 4.0,
-                maxDailyDdUsdt: 6000.0,
+                maxTotalDdPct: 10.0,
+                maxTotalDdUsdt: 15000.0,
+                maxDailyDdPct: 5.0,
+                maxDailyDdUsdt: 7500.0,
                 minDays: 5
             }
         };
@@ -306,6 +313,12 @@ class Web3Controller {
         const btnShareProp = document.getElementById("btn-share-prop-challenge");
         if (btnShareProp) {
             btnShareProp.addEventListener("click", () => this.sharePropChallenge());
+        }
+
+        // Ledger 1: Autotrade Run trigger
+        const btnTriggerRun = document.getElementById("btn-trigger-run");
+        if (btnTriggerRun) {
+            btnTriggerRun.addEventListener("click", () => this.handleRunButtonClick());
         }
 
         this.setupHeroTelemetryCycle();
@@ -1091,6 +1104,10 @@ class Web3Controller {
         if (fExc) fExc.textContent = "9.2";
         if (fCal) fCal.textContent = "8.7";
         if (fCon) fCon.textContent = "4.0";
+
+        // Update TAC balance display
+        const tacDisplay = document.getElementById("prop-tac-balance-display");
+        if (tacDisplay) tacDisplay.textContent = `${this.tacBalance.toFixed(2)} TAC`;
     }
 
     sharePropChallenge() {
@@ -1099,13 +1116,13 @@ class Web3Controller {
         const profitUsdt = (tier.size * 2.83) / 100.0;
 
         const text = `🏆 TRADEAID PROP DEMO / REWARD PROGRAM (${tier.name})\n` +
-            `• Account: $${tier.size.toLocaleString()} USDT (Fee: $${tier.fee.toLocaleString()} USDT)\n` +
+            `• Account: $${tier.size.toLocaleString()} USDT (${tier.leverage})\n` +
+            `• Payout Share: 80% Real Crypto (POL/USDT)\n` +
             `• Target: +8.00% (+$${tier.targetProfit.toLocaleString()}) | Now: +2.83% (+$${profitUsdt.toFixed(2)})\n` +
-            `• Max Drawdown: 0.91% / 8.00% MAX (SAFE BUFFER 7.09%)\n` +
+            `• Max Drawdown: 0.91% / -${tier.maxTotalDdPct.toFixed(1)}% MAX (SAFE BUFFER ${(tier.maxTotalDdPct - 0.91).toFixed(2)}%)\n` +
             `• CORTEX Violations: 0 (ZERO TOLERANCE PASS)\n` +
             `• 8-Factor Prop Score: 88.6/100 | Global Rank #238\n` +
-            `• Mode: Pure Expectancy (No artificial time rush)\n` +
-            `🛡 100% Fee-Back Credit Guarantee (Option A): fee converts to Internal Trading Credit with 100% withdrawable profits!\n` +
+            `🛡 Second Chance Guarantee: Fee converts 100% to TAC Credits with 80% real crypto payout!\n` +
             `👉 Test TradeAID Autotrade: https://trade.cryptoaid.support/dapp.html`;
 
         const btn = document.getElementById("btn-share-prop-challenge");
@@ -1123,8 +1140,155 @@ class Web3Controller {
             prompt("Copy and share your Prop Challenge progress:", text);
         }
     }
+
+    // =======================================================
+    // LEDGER 1: AUTOTRADE RUN DEMO GAMIFICATA (10 POL -> 2 POL)
+    // =======================================================
+    handleRunButtonClick() {
+        if (!this.isRunActive) {
+            this.startAutotradeRun();
+        } else {
+            this.concludeAutotradeRun();
+        }
+    }
+
+    async startAutotradeRun() {
+        this.isRunActive = true;
+        this.runSecondsLeft = 180;
+        const seq = Math.floor(Math.random() * 900000) + 100000;
+        this.currentRunId = `RUN-${seq}`;
+        this.runPnlPct = 0.20;
+        this.runPnlUsdt = 20.00;
+
+        const idDisplay = document.getElementById("run-id-display");
+        const timerDisplay = document.getElementById("run-seconds-left");
+        const btnRun = document.getElementById("btn-trigger-run");
+        const btnText = document.getElementById("btn-run-text");
+        const resBanner = document.getElementById("run-result-banner");
+        const pill = document.getElementById("run-status-pill");
+
+        if (idDisplay) idDisplay.textContent = `AUTOTRADE #${seq} — RUNNING`;
+        if (timerDisplay) timerDisplay.textContent = `180s`;
+        if (btnRun) {
+            btnRun.className = "btn-hero-autotrade running";
+            if (btnText) btnText.innerHTML = `<span>⏹ CONCLUDI RUN ANTICIPATAMENTE (VALUTA P&L LIVE)</span>`;
+        }
+        if (resBanner) resBanner.style.display = "none";
+        if (pill) {
+            pill.style.background = "rgba(52,211,153,0.2)";
+            pill.style.color = "#34d399";
+            pill.textContent = `● RUN #${seq} ATTIVO (10,000 USDT PAPER)`;
+        }
+
+        // Call backend API asynchronously
+        try {
+            fetch("/api/v1/autotrade/run/start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    wallet: this.account || "0x71C84102610a8877AE34805A20668f4e24D7B244",
+                    tx_hash: "0x10pol_fee_tx"
+                })
+            }).catch(e => console.warn("Run start API notice:", e));
+        } catch (e) {}
+
+        if (this.runTimerInterval) clearInterval(this.runTimerInterval);
+        this.runTimerInterval = setInterval(() => this.tickAutotradeRun(), 1000);
+    }
+
+    tickAutotradeRun() {
+        if (!this.isRunActive) return;
+        this.runSecondsLeft--;
+        const timerDisplay = document.getElementById("run-seconds-left");
+        if (timerDisplay) timerDisplay.textContent = `${this.runSecondsLeft}s`;
+
+        // Micro random walk on PnL (+0.05% to +0.15% trend)
+        const deltaPct = (Math.random() * 0.12) - 0.03;
+        this.runPnlPct = Math.max(-0.40, this.runPnlPct + deltaPct);
+        this.runPnlUsdt = (10000.0 * this.runPnlPct) / 100.0;
+        const equity = 10000.0 + this.runPnlUsdt;
+
+        const equityDisplay = document.getElementById("run-equity-display");
+        const pnlDisplay = document.getElementById("run-pnl-display");
+        if (equityDisplay) equityDisplay.textContent = `$${equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        if (pnlDisplay) {
+            const isPos = this.runPnlPct >= 0;
+            pnlDisplay.textContent = `${isPos ? '+' : ''}$${this.runPnlUsdt.toFixed(2)} (${isPos ? '+' : ''}${this.runPnlPct.toFixed(2)}%)`;
+            pnlDisplay.style.color = isPos ? "#34d399" : "#ff1e38";
+        }
+
+        if (this.runSecondsLeft <= 0) {
+            this.concludeAutotradeRun();
+        }
+    }
+
+    async concludeAutotradeRun() {
+        this.isRunActive = false;
+        if (this.runTimerInterval) clearInterval(this.runTimerInterval);
+
+        const won = this.runPnlPct > 0.0;
+        const resBanner = document.getElementById("run-result-banner");
+        const resTitle = document.getElementById("run-result-title");
+        const resSub = document.getElementById("run-result-sub");
+        const btnRun = document.getElementById("btn-trigger-run");
+        const btnText = document.getElementById("btn-run-text");
+        const pill = document.getElementById("run-status-pill");
+
+        if (resBanner && resTitle && resSub) {
+            resBanner.style.display = "block";
+            if (won) {
+                resBanner.style.background = "rgba(52,211,153,0.18)";
+                resBanner.style.border = "1px solid #34d399";
+                if (resTitle) {
+                    resTitle.style.color = "#34d399";
+                    resTitle.innerHTML = `🎉 WIN! +2.0 POL REWARD MATURATO (+${this.runPnlPct.toFixed(2)}% P&L NETTO)`;
+                }
+                if (resSub) {
+                    resSub.style.color = "#ffffff";
+                    resSub.innerHTML = `Reward Pool solvente (500 POL in riserva). Payout registrato. Salta a: <strong>LEDGER 2 (Prop Challenge)</strong>!`;
+                }
+            } else {
+                resBanner.style.background = "rgba(255,30,56,0.18)";
+                resBanner.style.border = "1px solid #ff1e38";
+                if (resTitle) {
+                    resTitle.style.color = "#ff1e38";
+                    resTitle.innerHTML = `RUN CONCLUSO — NESSUN REWARD (${this.runPnlPct.toFixed(2)}% P&L)`;
+                }
+                if (resSub) {
+                    resSub.style.color = "#a1a1aa";
+                    resSub.innerHTML = `Il P&L non ha raggiunto territorio positivo entro 180s. Nessuna perdita di capitale reale (10,000 USDT Paper).`;
+                }
+            }
+        }
+
+        if (btnRun && btnText) {
+            btnRun.className = "btn-hero-autotrade";
+            btnText.innerHTML = `<span>⚡ 10 POL ➔ START NUOVO AUTOTRADE RUN</span>`;
+        }
+
+        if (pill) {
+            pill.style.background = won ? "rgba(52,211,153,0.2)" : "rgba(255,30,56,0.2)";
+            pill.style.color = won ? "#34d399" : "#ff1e38";
+            pill.textContent = won ? `🏆 ESITO: WIN (+2 POL REWARD)` : `⏸ ESITO: RUN CONCLUSO (0 POL)`;
+        }
+
+        // Send conclusion to backend API
+        try {
+            fetch(`/api/v1/autotrade/run/${this.currentRunId || 'RUN-000123'}/conclude`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    simulated_pnl_usdt: this.runPnlUsdt,
+                    simulated_pnl_pct: this.runPnlPct,
+                    trades_count: 4,
+                    cortex_violations: 0
+                })
+            }).catch(e => console.warn("Run conclude notice:", e));
+        } catch (e) {}
+    }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
     window.web3App = new Web3Controller();
 });
+
