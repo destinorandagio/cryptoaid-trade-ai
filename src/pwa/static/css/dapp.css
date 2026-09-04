@@ -1867,5 +1867,155 @@ body.dapp-body {
     color: #ffffff;
 }
 
+/* =======================================================
+   PROP CHALLENGE MULTI-TIER & NO-LOSS RECOVERY (OPTION A)
+   ======================================================= */
+.prop-tier-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+    margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+    .prop-tier-selector {
+        grid-template-columns: 1fr;
+    }
+}
+
+.prop-tier-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 10px 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.prop-tier-btn:hover {
+    border-color: rgba(52, 211, 153, 0.5);
+    background: rgba(52, 211, 153, 0.05);
+}
+
+.prop-tier-btn.active {
+    background: linear-gradient(145deg, rgba(52, 211, 153, 0.12), rgba(16, 185, 129, 0.05));
+    border-color: #34d399;
+    box-shadow: 0 0 14px rgba(52, 211, 153, 0.25);
+}
+
+.prop-tier-btn .t-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: #f59e0b;
+    color: #000;
+    font-size: 0.50rem;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.5px;
+}
+
+.prop-tier-btn .t-title {
+    font-size: 0.82rem;
+    font-weight: 800;
+    font-family: 'Outfit', sans-serif;
+    color: #ffffff;
+    display: block;
+}
+
+.prop-tier-btn.active .t-title {
+    color: #34d399;
+}
+
+.prop-tier-btn .t-size {
+    font-size: 0.70rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: #a1a1aa;
+    display: block;
+    margin-top: 2px;
+}
+
+.prop-tier-btn .t-fee {
+    font-size: 0.65rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: #f7931a;
+    display: block;
+    margin-top: 3px;
+}
+
+/* NO-LOSS RECOVERY GUARANTEE BOX (OPTION A) */
+.prop-no-loss-box {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(6, 78, 59, 0.15));
+    border: 1px solid rgba(52, 211, 153, 0.35);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    margin-bottom: 12px;
+    position: relative;
+}
+
+.prop-no-loss-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.prop-no-loss-badge {
+    background: rgba(52, 211, 153, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(52, 211, 153, 0.4);
+    font-size: 0.60rem;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.prop-no-loss-body {
+    font-size: 0.68rem;
+    color: #d4d4d8;
+    line-height: 1.45;
+    font-family: 'Outfit', sans-serif;
+}
+
+.prop-no-loss-body strong {
+    color: #34d399;
+}
+
+.prop-no-loss-perks {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.prop-perk-pill {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    padding: 3px 6px;
+    font-size: 0.58rem;
+    color: #a1a1aa;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.prop-perk-pill span {
+    color: #ffffff;
+    font-weight: 700;
+}
+
 
 

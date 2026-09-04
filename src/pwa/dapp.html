@@ -596,22 +596,62 @@
                         <div class="autotrade-header-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <span class="pulse-beacon" id="autotrade-beacon" style="background:#34d399; box-shadow:0 0 12px #34d399;"></span>
-                                <strong style="color:#ffffff; font-size:0.95rem; letter-spacing:0.5px;">🏆 TRADEAID PROP DEMO</strong>
-                                <span class="cert-pill" id="autotrade-status-pill" style="background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3); font-weight:700; font-size:0.68rem;">● AUTOTRADE ACTIVE ($10,000 PAPER)</span>
+                                <strong style="color:#ffffff; font-size:0.95rem; letter-spacing:0.5px;">🏆 TRADEAID PROP CHALLENGE</strong>
+                                <span class="cert-pill" id="autotrade-status-pill" style="background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3); font-weight:700; font-size:0.68rem;">● AUTOTRADE ACTIVE (<span id="prop-tier-badge-txt">100K PRO · $100K</span>)</span>
                             </div>
                             <div style="display:flex; align-items:center; gap:6px;">
                                 <span class="shield-badge" style="font-size:0.65rem;">DISCIPLINE + PROFIT CHALLENGE</span>
                             </div>
                         </div>
 
+                        <!-- 3-TIER SELECTOR (50K / 100K / 150K) -->
+                        <div class="prop-tier-selector">
+                            <div class="prop-tier-btn" data-tier="50K" id="tier-btn-50k">
+                                <span class="t-title">50K STARTER</span>
+                                <span class="t-size">$50,000 USDT</span>
+                                <span class="t-fee">50 USDT FEE</span>
+                            </div>
+                            <div class="prop-tier-btn active" data-tier="100K" id="tier-btn-100k">
+                                <span class="t-badge">MOST POPULAR</span>
+                                <span class="t-title">100K PRO</span>
+                                <span class="t-size">$100,000 USDT</span>
+                                <span class="t-fee">100 USDT FEE</span>
+                            </div>
+                            <div class="prop-tier-btn" data-tier="150K" id="tier-btn-150k">
+                                <span class="t-badge" style="background:#8b5cf6; color:#fff;">ELITE</span>
+                                <span class="t-title">150K ELITE</span>
+                                <span class="t-size">$150,000 USDT</span>
+                                <span class="t-fee">1,500 USDT FEE</span>
+                            </div>
+                        </div>
+
+                        <!-- NO-LOSS RECOVERY GUARANTEE BOX (OPTION A) -->
+                        <div class="prop-no-loss-box">
+                            <div class="prop-no-loss-header">
+                                <span class="prop-no-loss-badge">
+                                    <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px; height:12px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    OPZIONE A · GARANZIA ZERO-PERDITE
+                                </span>
+                                <span style="font-size:0.62rem; color:#f59e0b; font-family:'JetBrains Mono',monospace; font-weight:700;">100% FEE-BACK TRADING CREDIT</span>
+                            </div>
+                            <div class="prop-no-loss-body">
+                                Se non superi la challenge, la fee d'accesso (<strong id="prop-fee-highlight">100 USDT</strong>) <strong>NON va persa</strong>! Viene automaticamente accreditata come <strong>Credito di Autotrading Interno</strong>. Non puoi prelevare il credito base, ma <strong>puoi prelevare il 100% dei profitti</strong> generati dall'AI di TradeAID per recuperare interamente il capitale.
+                            </div>
+                            <div class="prop-no-loss-perks">
+                                <div class="prop-perk-pill">FEE-BACK: <span>100% CREDITO INTERNO</span></div>
+                                <div class="prop-perk-pill">PRELIEVI: <span>100% PROFITTI LIBERI</span></div>
+                                <div class="prop-perk-pill">ESECUZIONE: <span>AUTOTRADE CORTEX AI</span></div>
+                            </div>
+                        </div>
+
                         <!-- 3-TIER PROGRESSION LADDER -->
-                        <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                        <div style="margin-top:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                             <div class="prop-badge-progression">
-                                <span class="p-step active">1. PROP DEMO ($10K)</span>
+                                <span class="p-step active" id="prop-step-1-lbl">1. CHALLENGE (<span id="prop-ladder-size">$100K</span>)</span>
                                 <span>➔</span>
                                 <span class="p-step locked" id="prop-step-qualified">2. QUALIFIED</span>
                                 <span>➔</span>
-                                <span class="p-step locked" id="prop-step-candidate">3. FUNDED CANDIDATE</span>
+                                <span class="p-step locked" id="prop-step-candidate">3. FUNDED TRADER</span>
                             </div>
                             <button id="btn-share-prop-challenge" class="btn-share-prop-challenge" title="Share your AI Prop Challenge performance">
                                 <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
@@ -624,8 +664,8 @@
                             <!-- TARGET PROGRESS BAR -->
                             <div class="prop-progress-row">
                                 <div class="prop-progress-label-row">
-                                    <span style="color:#a1a1aa;">PROFIT TARGET (+8.00% / +$800):</span>
-                                    <strong id="prop-target-display" style="color:#34d399;">+$283.00 (+2.83%)</strong>
+                                    <span style="color:#a1a1aa;" id="prop-target-label">PROFIT TARGET (+8.00% / +$8,000):</span>
+                                    <strong id="prop-target-display" style="color:#34d399;">+$2,830.00 (+2.83%)</strong>
                                 </div>
                                 <div class="prop-bar-track">
                                     <div id="prop-target-bar" class="prop-bar-fill-target" style="width: 35.4%;"></div>
@@ -635,7 +675,7 @@
                             <!-- DRAWDOWN SAFETY BAR -->
                             <div class="prop-progress-row" style="margin-top:8px;">
                                 <div class="prop-progress-label-row">
-                                    <span style="color:#a1a1aa;">MAX TOTAL DRAWDOWN (-8.00% CEILING):</span>
+                                    <span style="color:#a1a1aa;" id="prop-dd-label">MAX TOTAL DRAWDOWN (-8.00% / -$8,000):</span>
                                     <strong id="prop-dd-display" style="color:#38bdf8;">0.91% (SAFE BUFFER 7.09%)</strong>
                                 </div>
                                 <div class="prop-bar-track">
@@ -660,6 +700,14 @@
                                 <div class="prop-stat-box">
                                     <span class="s-lbl">GLOBAL RANK</span>
                                     <span class="s-val" id="prop-rank-val" style="color:#ffffff;">#238</span>
+                                </div>
+                            </div>
+
+                            <!-- INTERNAL TRADING CREDIT RECOVERY STATUS (SHOWN IF FAILED) -->
+                            <div id="prop-credit-recovery-card" style="display:none; margin-top:10px; background:rgba(245,158,11,0.08); border:1px dashed #f59e0b; border-radius:6px; padding:8px 10px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="font-size:0.65rem; color:#f59e0b; font-family:'JetBrains Mono',monospace; font-weight:700;">● CREDITO AUTOTRADING ATTIVO: <span id="prop-credit-val">100.00 USDT</span></span>
+                                    <span style="font-size:0.60rem; color:#34d399; font-family:'JetBrains Mono',monospace;">PROFITTO PRELEVABILE: <strong id="prop-withdrawable-val">+0.00 USDT</strong></span>
                                 </div>
                             </div>
                         </div>

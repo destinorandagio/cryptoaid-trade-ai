@@ -79,6 +79,50 @@ class Web3Controller {
         // Active trade staging for on-chain preventivo
         this.activeTradeStaging = null;
 
+        // Prop Challenge Multi-Tier (50K, 100K, 150K) & Option A No-Loss Guarantee
+        this.activePropTier = "100K";
+        this.propTiers = {
+            "50K": {
+                name: "50K STARTER PROP",
+                badgeTxt: "50K STARTER · $50K",
+                size: 50000.0,
+                fee: 50.0,
+                targetPct: 8.0,
+                targetProfit: 4000.0,
+                maxTotalDdPct: 8.0,
+                maxTotalDdUsdt: 4000.0,
+                maxDailyDdPct: 4.0,
+                maxDailyDdUsdt: 2000.0,
+                minDays: 5
+            },
+            "100K": {
+                name: "100K PRO PROP",
+                badgeTxt: "100K PRO · $100K",
+                size: 100000.0,
+                fee: 100.0,
+                targetPct: 8.0,
+                targetProfit: 8000.0,
+                maxTotalDdPct: 8.0,
+                maxTotalDdUsdt: 8000.0,
+                maxDailyDdPct: 4.0,
+                maxDailyDdUsdt: 4000.0,
+                minDays: 5
+            },
+            "150K": {
+                name: "150K ELITE PROP",
+                badgeTxt: "150K ELITE · $150K",
+                size: 150000.0,
+                fee: 1500.0,
+                targetPct: 8.0,
+                targetProfit: 12000.0,
+                maxTotalDdPct: 8.0,
+                maxTotalDdUsdt: 12000.0,
+                maxDailyDdPct: 4.0,
+                maxDailyDdUsdt: 6000.0,
+                minDays: 5
+            }
+        };
+
         this.init();
 
     }
@@ -247,6 +291,15 @@ class Web3Controller {
                     if (stratDisplay) stratDisplay.textContent = "GEM ASYMMETRIC (2x Moonbag)";
                     if (heroStratTxt) heroStratTxt.textContent = "GEM HUNTER";
                 }
+        });
+
+        // Prop Challenge Tier selector buttons
+        document.querySelectorAll(".prop-tier-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".prop-tier-btn").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                const tier = btn.dataset.tier;
+                this.switchPropTier(tier);
             });
         });
 
@@ -963,42 +1016,78 @@ class Web3Controller {
         }, 5000);
     }
 
+    switchPropTier(tierKey) {
+        if (!this.propTiers[tierKey]) return;
+        this.activePropTier = tierKey;
+        this.renderPropChallenge();
+    }
+
     renderPropChallenge() {
+        const tierKey = this.activePropTier || "100K";
+        const tier = this.propTiers[tierKey] || this.propTiers["100K"];
+
+        // Update header & badges
+        const tierBadgeTxt = document.getElementById("prop-tier-badge-txt");
+        if (tierBadgeTxt) tierBadgeTxt.textContent = tier.badgeTxt;
+
+        const feeHighlight = document.getElementById("prop-fee-highlight");
+        if (feeHighlight) feeHighlight.textContent = `${tier.fee.toLocaleString()} USDT`;
+
+        const ladderSize = document.getElementById("prop-ladder-size");
+        if (ladderSize) ladderSize.textContent = `$${(tier.size / 1000).toFixed(0)}K`;
+
+        const targetLabel = document.getElementById("prop-target-label");
+        if (targetLabel) targetLabel.textContent = `PROFIT TARGET (+${tier.targetPct.toFixed(2)}% / +$${tier.targetProfit.toLocaleString()}):`;
+
+        const ddLabel = document.getElementById("prop-dd-label");
+        if (ddLabel) ddLabel.textContent = `MAX TOTAL DRAWDOWN (-${tier.maxTotalDdPct.toFixed(2)}% / -$${tier.maxTotalDdUsdt.toLocaleString()}):`;
+
+        // Calculate progress based on tier capital
+        const profitPct = 2.83; // Baseline demo progress
+        const profitUsdt = (tier.size * profitPct) / 100.0;
+        const targetProgress = Math.min(100.0, (profitPct / tier.targetPct) * 100.0);
+
         const targetDisplay = document.getElementById("prop-target-display");
         const targetBar = document.getElementById("prop-target-bar");
-        const ddDisplay = document.getElementById("prop-dd-display");
-        const ddBar = document.getElementById("prop-dd-bar");
-        const dailyDd = document.getElementById("prop-daily-dd");
-        const cortexViol = document.getElementById("prop-cortex-viol");
-        const scoreVal = document.getElementById("prop-score-val");
-        const rankVal = document.getElementById("prop-rank-val");
-
-        // Real-time $10,000 USDT Paper Challenge metrics
-        const initial = 10000.0;
-        const current = 10283.0;
-        const profit = current - initial;
-        const profitPct = (profit / initial) * 100.0;
-        const targetPct = 8.0;
-        const targetProgress = Math.min(100.0, (profitPct / targetPct) * 100.0);
-
-        if (targetDisplay) targetDisplay.textContent = `+$${profit.toFixed(2)} (+${profitPct.toFixed(2)}%)`;
+        if (targetDisplay) targetDisplay.textContent = `+$${profitUsdt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (+${profitPct.toFixed(2)}%)`;
         if (targetBar) targetBar.style.width = `${targetProgress.toFixed(1)}%`;
 
         const totalDd = 0.91;
-        const maxDd = 8.0;
+        const maxDd = tier.maxTotalDdPct;
         const ddBuffer = maxDd - totalDd;
         const ddProgress = (totalDd / maxDd) * 100.0;
 
+        const ddDisplay = document.getElementById("prop-dd-display");
+        const ddBar = document.getElementById("prop-dd-bar");
         if (ddDisplay) ddDisplay.textContent = `${totalDd.toFixed(2)}% (SAFE BUFFER ${ddBuffer.toFixed(2)}%)`;
         if (ddBar) ddBar.style.width = `${ddProgress.toFixed(1)}%`;
-        if (dailyDd) dailyDd.textContent = "0.35% / 4.0%";
+
+        const dailyDd = document.getElementById("prop-daily-dd");
+        if (dailyDd) dailyDd.textContent = `0.35% / 4.0% (-$${(tier.maxDailyDdUsdt).toLocaleString()} max)`;
+
+        const cortexViol = document.getElementById("prop-cortex-viol");
         if (cortexViol) cortexViol.textContent = "0 (CLEAN)";
+
+        const scoreVal = document.getElementById("prop-score-val");
         if (scoreVal) scoreVal.textContent = "87.4 / 100";
+
+        const rankVal = document.getElementById("prop-rank-val");
         if (rankVal) rankVal.textContent = "#238";
     }
 
     sharePropChallenge() {
-        const text = `🏆 TRADEAID PROP CHALLENGE ($10,000 PAPER)\n• Mode: BALANCED AUTOTRADE\n• Progress: +2.83% / +8.00% (+$283.00)\n• Drawdown: 0.91% / 8.00% MAX (SAFE BUFFER 7.09%)\n• CORTEX Violations: 0 (DISCIPLINE PASS)\n• Prop Score: 87.4/100 | Global Rank #238\n👉 Test the AI Autotrade with $10,000 Paper: https://trade.cryptoaid.support/dapp.html`;
+        const tierKey = this.activePropTier || "100K";
+        const tier = this.propTiers[tierKey] || this.propTiers["100K"];
+        const profitUsdt = (tier.size * 2.83) / 100.0;
+
+        const text = `🏆 TRADEAID PROP CHALLENGE (${tier.name})\n` +
+            `• Account: $${tier.size.toLocaleString()} USDT (Fee: $${tier.fee.toLocaleString()} USDT)\n` +
+            `• Target: +8.00% (+$${tier.targetProfit.toLocaleString()}) | Now: +2.83% (+$${profitUsdt.toFixed(2)})\n` +
+            `• Max Drawdown: 0.91% / 8.00% MAX (SAFE BUFFER 7.09%)\n` +
+            `• CORTEX Violations: 0 (DISCIPLINE PASS)\n` +
+            `• Prop Score: 87.4/100 | Global Rank #238\n` +
+            `🛡 100% Fee-Back Credit Guarantee (Option A): if failed, fee converts to Internal Trading Credit with 100% withdrawable profits!\n` +
+            `👉 Test the AI Autotrade: https://trade.cryptoaid.support/dapp.html`;
 
         const btn = document.getElementById("btn-share-prop-challenge");
         if (navigator.clipboard) {

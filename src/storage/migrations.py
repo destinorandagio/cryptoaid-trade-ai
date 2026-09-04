@@ -480,14 +480,16 @@ CREATE INDEX IF NOT EXISTS idx_autotrade_wallet ON autotrade_authorizations (wal
 
 
 MIGRATION_V7 = """
--- TradeAID Prop Challenge Engine ($10,000 Paper Demo & Progression)
+-- TradeAID Prop Challenge Engine (50K, 100K, 150K Multi-Tier & No-Loss Credit)
 CREATE TABLE IF NOT EXISTS prop_challenges (
     id TEXT PRIMARY KEY,
     wallet TEXT NOT NULL,
+    tier TEXT NOT NULL DEFAULT '100K',
+    challenge_fee_usdt REAL NOT NULL DEFAULT 100.0,
     mode TEXT NOT NULL DEFAULT 'BALANCED',
-    initial_equity REAL NOT NULL DEFAULT 10000.0,
-    current_equity REAL NOT NULL DEFAULT 10000.0,
-    peak_equity REAL NOT NULL DEFAULT 10000.0,
+    initial_equity REAL NOT NULL DEFAULT 100000.0,
+    current_equity REAL NOT NULL DEFAULT 100000.0,
+    peak_equity REAL NOT NULL DEFAULT 100000.0,
     profit_target_pct REAL NOT NULL DEFAULT 8.0,
     max_total_dd_pct REAL NOT NULL DEFAULT 8.0,
     max_daily_dd_pct REAL NOT NULL DEFAULT 4.0,
@@ -497,6 +499,8 @@ CREATE TABLE IF NOT EXISTS prop_challenges (
     min_trading_days INTEGER NOT NULL DEFAULT 5,
     trading_days_count INTEGER NOT NULL DEFAULT 1,
     status TEXT NOT NULL DEFAULT 'ACTIVE',
+    trading_credit_usdt REAL NOT NULL DEFAULT 0.0,
+    withdrawable_profits_usdt REAL NOT NULL DEFAULT 0.0,
     prop_score REAL NOT NULL DEFAULT 85.0,
     rank_position INTEGER DEFAULT 238,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

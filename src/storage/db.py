@@ -712,7 +712,7 @@ class DatabaseManager:
     # Prop Challenge Operations ($10,000 Paper Demo & Progression)
     # =========================================================================
 
-    def get_or_create_prop_challenge(self, wallet: str, mode: str = "BALANCED") -> dict[str, Any]:
+    def get_or_create_prop_challenge(self, wallet: str, mode: str = "BALANCED", tier: str = "100K") -> dict[str, Any]:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -723,27 +723,29 @@ class DatabaseManager:
             if row:
                 return dict(row)
 
-            # Create new 10,000 USDT Paper Prop Challenge
+            tier_key = tier.upper()
+            tier_sizes = {"50K": (50000.0, 50.0), "100K": (100000.0, 100.0), "150K": (150000.0, 1500.0)}
+            initial_equity, fee = tier_sizes.get(tier_key, (100000.0, 100.0))
+
             challenge_id = f"prop_{uuid.uuid4().hex[:12]}"
-            initial_equity = 10000.0
             now_iso = datetime.now(timezone.utc).isoformat()
             cursor.execute(
                 """
                 INSERT INTO prop_challenges (
-                    id, wallet, mode, initial_equity, current_equity, peak_equity,
+                    id, wallet, tier, challenge_fee_usdt, mode, initial_equity, current_equity, peak_equity,
                     profit_target_pct, max_total_dd_pct, max_daily_dd_pct,
                     current_total_dd_pct, current_daily_dd_pct, cortex_violations,
-                    min_trading_days, trading_days_count, status, prop_score, rank_position,
-                    created_at, updated_at
+                    min_trading_days, trading_days_count, status, trading_credit_usdt, withdrawable_profits_usdt,
+                    prop_score, rank_position, created_at, updated_at
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?, ?,
                     8.0, 8.0, 4.0,
                     0.0, 0.0, 0,
-                    5, 1, 'ACTIVE', 85.0, 238,
-                    ?, ?
+                    5, 1, 'ACTIVE', 0.0, 0.0,
+                    85.0, 238, ?, ?
                 )
                 """,
-                (challenge_id, wallet.lower(), mode, initial_equity, initial_equity, initial_equity, now_iso, now_iso),
+                (challenge_id, wallet.lower(), tier_key, fee, mode, initial_equity, initial_equity, initial_equity, now_iso, now_iso),
             )
             conn.commit()
             cursor.execute("SELECT * FROM prop_challenges WHERE id = ?", (challenge_id,))
