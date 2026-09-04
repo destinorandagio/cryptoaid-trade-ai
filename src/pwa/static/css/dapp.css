@@ -581,6 +581,59 @@ body.dapp-body {
     color: var(--text-muted);
 }
 
+/* DAPP CREDENTIAL STRIP */
+.dapp-credential-strip {
+    background: linear-gradient(90deg, #090c14, #121622, #090c14);
+    border-bottom: 1px solid rgba(255, 30, 56, 0.2);
+    padding: 6px 10px;
+    font-size: 0.62rem;
+    color: #94a3b8;
+    text-align: center;
+    letter-spacing: 0.02em;
+    z-index: 9;
+}
+.dapp-cred-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    line-height: 1.35;
+}
+.cred-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+.poly-glow {
+    color: #c084fc;
+    text-shadow: 0 0 6px rgba(192, 132, 252, 0.4);
+}
+.cred-tag-pulse {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #ff1e38;
+    box-shadow: 0 0 6px #ff1e38;
+    flex-shrink: 0;
+}
+.cert-badge-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+.cert-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #34d399;
+}
+
 /* Bottom Bar */
 .dapp-bottom-bar {
     padding: 10px 14px;
@@ -592,11 +645,14 @@ body.dapp-body {
     align-items: center;
     gap: 8px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.62rem;
+    font-size: 0.58rem;
     color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .pulse-icon {
-    color: var(--accent-green);
+    color: var(--brand-red, #ff1e38);
     animation: pulse 1.5s infinite;
 }
 

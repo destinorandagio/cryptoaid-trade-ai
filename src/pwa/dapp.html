@@ -8,9 +8,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="static/css/dapp.css">
+    <link rel="stylesheet" href="static/css/dapp.css?v=7">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="static/logo.png">
+</head>
 <body class="dapp-body">
     <!-- Matrix Red 01010101 Rain Effect Canvas -->
     <canvas id="matrix-canvas"></canvas>
@@ -35,6 +36,18 @@
                     </button>
                 </div>
             </header>
+
+            <!-- DAPP INSTITUTIONAL STRIP -->
+            <div class="dapp-credential-strip">
+                <div class="dapp-cred-text" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:0.62rem; line-height:1.3; white-space:normal;">
+                    <div class="cred-line" style="display:flex; align-items:center; gap:5px;">
+                        <span class="cred-tag-pulse"></span> Powered by <strong>Blockchain+</strong> · Audited & Certified by <strong>Cortex</strong>
+                    </div>
+                    <div class="cred-line" style="display:flex; align-items:center; gap:5px;">
+                        Engineered by <strong>Neuralog</strong> · Native on <strong style="color:#c084fc;">Polygon</strong>
+                    </div>
+                </div>
+            </div>
 
             <!-- CHAIN WARNING MODAL (Appears if not on Polygon 137) -->
             <div id="chain-warning-modal" class="warning-banner hidden">
@@ -240,18 +253,28 @@
                     </div>
                 </section>
 
-                <!-- TAB 4: SICUREZZA & KILL SWITCH -->
+                <!-- TAB 4: SICUREZZA & AUDIT -->
                 <section id="tab-security" class="tab-content">
                     <div class="security-card">
                         <h5>KILL SWITCH DI EMERGENZA</h5>
-                        <p>In caso di emergenza, chiude all'istante tutte le posizioni a mercato e le liquida al 100% in USDT.</p>
+                        <p>In caso di emergenza o anomalia di mercato, chiude all'istante tutte le posizioni e le liquida al 100% in USDT sul tuo wallet.</p>
                         <button id="btn-dapp-kill-switch" class="btn-panic-kill">
                             🛑 ATTIVA KILL SWITCH ISTANTANEO
                         </button>
                     </div>
+
                     <div class="audit-card">
-                        <h5>AUDIT CONTRATTI & REGISTRO FAIL-CLOSED</h5>
-                        <p>Tutti i token non autorizzati o con codice honeypot vengono automaticamente scartati e notificati al canale di sicurezza.</p>
+                        <h5>AUDITED & CERTIFIED BY CORTEX</h5>
+                        <p>Test euristici di sicurezza eseguiti su bor RPC, anti-honeypot gate e verifica formale smart contract.</p>
+                        <div class="cert-badge-row">
+                            <span class="cert-pill">✓ FORMAL VERIFICATION: PASSED</span>
+                            <span class="cert-pill">✓ FAIL-CLOSED PROTOCOL: ACTIVE</span>
+                        </div>
+                    </div>
+
+                    <div class="audit-card" style="margin-top: 10px;">
+                        <h5>ENGINEERED BY NEURALOG · POWERED BY BLOCKCHAIN+</h5>
+                        <p>Quant Engine alimentato da modelli statistici proprietari Neuralog, routing decentralizzato Blockchain+ e finalità nativa su Polygon (137).</p>
                     </div>
                 </section>
 
@@ -261,7 +284,7 @@
             <footer class="dapp-bottom-bar">
                 <div class="guardian-ticker">
                     <span class="pulse-icon">●</span>
-                    <span class="ticker-text">AUTONOMOUS ENGINE: ONLINE | BOR RPC CHAIN 137</span>
+                    <span class="ticker-text">TRADEAID · Powered by Blockchain+ · Audited by Cortex · Engineered by Neuralog · Polygon 137</span>
                 </div>
             </footer>
 

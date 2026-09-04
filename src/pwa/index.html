@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="static/css/landing.css">
+    <link rel="stylesheet" href="static/css/landing.css?v=2">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="static/logo.png">
 </head>
@@ -19,6 +19,20 @@
     <!-- Background Ambient Glow -->
     <div class="ambient-glow top-right"></div>
     <div class="ambient-glow bottom-left"></div>
+
+    <!-- TOP INSTITUTIONAL CREDENTIAL STRIP -->
+    <div class="top-credential-strip">
+        <div class="credential-inner">
+            <span class="cred-badge">TRADEAID</span>
+            <span class="cred-item"><span class="cred-dot"></span> Powered by <strong>Blockchain+</strong></span>
+            <span class="cred-sep">·</span>
+            <span class="cred-item">Audited & Certified by <strong>Cortex</strong></span>
+            <span class="cred-sep">·</span>
+            <span class="cred-item">Engineered by <strong>Neuralog</strong></span>
+            <span class="cred-sep">·</span>
+            <span class="cred-item cred-highlight">Native on <strong>Polygon</strong></span>
+        </div>
+    </div>
 
     <!-- Navigation Bar -->
     <header class="landing-nav">
@@ -33,7 +47,7 @@
             <nav class="nav-links">
                 <a href="#come-funziona">Come Funziona</a>
                 <a href="#blue-ocean">Perché è Diverso</a>
-                <a href="#scudo-5">Scudo 5%</a>
+                <a href="#architettura">Certificazioni</a>
                 <a href="#pricing">Offerta Founders</a>
             </nav>
             <div class="nav-actions">
@@ -48,7 +62,7 @@
     <section class="hero-section">
         <div class="hero-content">
             <div class="pill-badge">
-                <span class="pulse-dot"></span> 100% NON-CUSTODIAL · SETTLEMENT IN USDT SU POLYGON
+                <span class="pulse-dot"></span> TRADEAID · POWERED BY BLOCKCHAIN+ · NATIVE ON POLYGON
             </div>
             <h1 class="hero-title">
                 Mentre dormi alle 3:00 del mattino,<br>
@@ -105,6 +119,49 @@
                         <span class="label">SETTLEMENT</span>
                         <span class="value cyan">100% USDT</span>
                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- INSTITUTIONAL CREDENTIALS / TRUST PILLARS -->
+    <section id="architettura" class="credentials-section">
+        <div class="credentials-container">
+            <div class="section-badge">SICUREZZA & INFRASTRUTTURA NATIVA</div>
+            <h2 class="cred-main-title">
+                TRADEAID <span class="gradient-text">Ecosystem Architecture</span>
+            </h2>
+            <p class="cred-sub-text">
+                Quattro pilastri ingegneristici proprietari per garantire esecuzione autonoma, sicurezza matematica e totale trasparenza.
+            </p>
+
+            <div class="credentials-grid">
+                <div class="cred-card">
+                    <div class="cred-card-tag">LIQUIDITÀ & ROUTING</div>
+                    <div class="cred-icon-wrap">⚡</div>
+                    <h3>Powered by Blockchain+</h3>
+                    <p>Infrastruttura Web3 decentralizzata, smart routing a bassissimo impatto di prezzo su pool DEX Polygon e architettura di settlement non-custodial.</p>
+                </div>
+
+                <div class="cred-card">
+                    <div class="cred-card-tag">AUDIT & FORMAL SECURITY</div>
+                    <div class="cred-icon-wrap">🛡️</div>
+                    <h3>Audited & Certified by Cortex</h3>
+                    <p>Certificazione di sicurezza continua e test euristici di penetrazione: verifica formale delle chiamate RPC, simulazione bor anti-revert e logica fail-closed.</p>
+                </div>
+
+                <div class="cred-card">
+                    <div class="cred-card-tag">AI QUANT ENGINE</div>
+                    <div class="cred-icon-wrap">🧠</div>
+                    <h3>Engineered by Neuralog</h3>
+                    <p>Riconoscimento di regime di mercato in tempo reale, filtro slippage dinamico, calcolo del Net Edge probabilistico e Position Guardian persistente 24/7.</p>
+                </div>
+
+                <div class="cred-card highlight-polygon">
+                    <div class="cred-card-tag poly">BLOCKCHAIN NATIVA</div>
+                    <div class="cred-icon-wrap poly">🟣</div>
+                    <h3>Native on Polygon</h3>
+                    <p>Esecuzione diretta on-chain su Polygon Mainnet (Chain ID 137). Gas fee sub-cent, finalità in secondi e settlement contabile al 100% in USDT.</p>
                 </div>
             </div>
         </div>
@@ -266,6 +323,17 @@
     <!-- FOOTER & ATTRIBUZIONE -->
     <footer class="landing-footer">
         <div class="footer-container">
+            <div class="footer-trust-banner">
+                <span class="ft-brand">TRADEAID</span>
+                <span class="ft-sep">·</span>
+                <span>Powered by <strong>Blockchain+</strong></span>
+                <span class="ft-sep">·</span>
+                <span>Audited & Certified by <strong>Cortex</strong></span>
+                <span class="ft-sep">·</span>
+                <span>Engineered by <strong>Neuralog</strong></span>
+                <span class="ft-sep">·</span>
+                <span class="ft-poly">Native on <strong>Polygon</strong></span>
+            </div>
             <p class="attribution">
                 Costruito con il Protocollo M.A.G.I.C. Offer — metodo ideato da Giorgian Putanu · Vendita Automatica® · Freedom Builder. 
                 Uso riservato al titolare della licenza. Riproduzione e divulgazione non autorizzate vietate.<br>
@@ -274,7 +342,7 @@
             <div class="footer-links">
                 <a href="https://t.me/cryptoAIDsupporter" target="_blank">Telegram Community</a>
                 <a href="https://t.me/cryptoaidsup" target="_blank">Canale Ufficiale</a>
-                <a href="https://trade.cryptoaid.support">PWA Cockpit</a>
+                <a href="dapp.html">Web3 dApp (9:16)</a>
             </div>
         </div>
     </footer>

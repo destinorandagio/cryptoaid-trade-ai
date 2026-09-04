@@ -620,6 +620,153 @@ body {
     color: var(--accent-green);
 }
 
+/* TOP INSTITUTIONAL STRIP */
+.top-credential-strip {
+    background: linear-gradient(90deg, #090b10, #141722, #090b10);
+    border-bottom: 1px solid rgba(255, 30, 56, 0.25);
+    padding: 8px 16px;
+    font-size: 0.78rem;
+    position: relative;
+    z-index: 101;
+    text-align: center;
+}
+.credential-inner {
+    max-width: 1240px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    letter-spacing: 0.04em;
+    color: #e2e8f0;
+}
+.cred-badge {
+    background: var(--brand-red);
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.08em;
+}
+.cred-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    margin-right: 4px;
+}
+.cred-sep {
+    color: rgba(255, 255, 255, 0.25);
+}
+.cred-highlight {
+    color: #a855f7;
+}
+
+/* INSTITUTIONAL CREDENTIALS SECTION */
+.credentials-section {
+    padding: 80px 24px;
+    position: relative;
+    z-index: 1;
+    max-width: 1240px;
+    margin: 0 auto;
+    text-align: center;
+}
+.cred-main-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin: 12px 0;
+    letter-spacing: -0.02em;
+}
+.cred-sub-text {
+    color: var(--text-secondary);
+    max-width: 720px;
+    margin: 0 auto 40px;
+    font-size: 1rem;
+}
+.credentials-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    text-align: left;
+}
+.cred-card {
+    background: rgba(14, 17, 26, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 16px;
+    padding: 24px 20px;
+    position: relative;
+    backdrop-filter: blur(12px);
+    transition: all 0.3s ease;
+}
+.cred-card:hover {
+    border-color: rgba(255, 30, 56, 0.4);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px rgba(255, 30, 56, 0.15);
+}
+.cred-card.highlight-polygon {
+    border-color: rgba(168, 85, 247, 0.35);
+}
+.cred-card.highlight-polygon:hover {
+    border-color: #a855f7;
+    box-shadow: 0 10px 30px rgba(168, 85, 247, 0.2);
+}
+.cred-card-tag {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--brand-red);
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+    font-family: 'JetBrains Mono', monospace;
+}
+.cred-card-tag.poly {
+    color: #c084fc;
+}
+.cred-icon-wrap {
+    font-size: 1.8rem;
+    margin-bottom: 12px;
+}
+.cred-card h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #ffffff;
+}
+.cred-card p {
+    font-size: 0.88rem;
+    color: #94a3b8;
+    line-height: 1.55;
+}
+
+/* FOOTER TRUST BANNER */
+.footer-trust-banner {
+    background: rgba(20, 24, 36, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 30px;
+    padding: 10px 24px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 0.82rem;
+    color: #cbd5e1;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.ft-brand {
+    color: #ffffff;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+}
+.ft-sep {
+    color: rgba(255, 255, 255, 0.2);
+}
+.ft-poly {
+    color: #c084fc;
+}
+
 /* Responsive */
 @media (max-width: 992px) {
     .hero-section {
@@ -635,10 +782,14 @@ body {
     .steps-container {
         grid-template-columns: 1fr 1fr;
     }
+    .credentials-grid {
+        grid-template-columns: 1fr 1fr;
+    }
 }
 @media (max-width: 600px) {
     .nav-links { display: none; }
     .hero-title { font-size: 1.9rem; }
     .steps-container { grid-template-columns: 1fr; }
     .pricing-card { padding: 24px; }
+    .credentials-grid { grid-template-columns: 1fr; }
 }
