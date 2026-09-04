@@ -34,6 +34,10 @@ class TickerData(BaseModel):
     change_24h_pct: float = 0.0
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+    @property
+    def last(self) -> float:
+        return self.price
+
 
 class MarketSnapshot(BaseModel):
     symbol: str
@@ -43,6 +47,10 @@ class MarketSnapshot(BaseModel):
     spread: float | None = None
     volume_24h: float = 0.0
     change_24h_pct: float = 0.0
+
+    @property
+    def last(self) -> float:
+        return self.price
     volatility_24h: float = 0.0
     funding_rate: float | None = None
     open_interest: float | None = None

@@ -304,6 +304,35 @@ CREATE TABLE IF NOT EXISTS wallet_events (
 );
 """
 
+MIGRATION_V3 = """
+-- Predictive Heart Forecasts & Calibration Ledger (Closure 1)
+CREATE TABLE IF NOT EXISTS predictive_heart_forecasts (
+    id TEXT PRIMARY KEY,
+    asset TEXT NOT NULL,
+    timeframe TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    target_timestamp TIMESTAMP NOT NULL,
+    now_price REAL NOT NULL,
+    predicted_p50 REAL NOT NULL,
+    predicted_p10 REAL NOT NULL,
+    predicted_p90 REAL NOT NULL,
+    direction TEXT NOT NULL, -- 'LONG', 'SHORT', 'NO_TRADE'
+    expected_return_pct REAL NOT NULL,
+    confidence_pct REAL NOT NULL,
+    regime TEXT NOT NULL,
+    models_evidence_json TEXT,
+    actual_price REAL,
+    error_pct REAL,
+    direction_hit INTEGER, -- 1 if predicted direction matches sign(actual - now), 0 otherwise
+    brier_score REAL,
+    is_calibrated INTEGER DEFAULT 0,
+    calibrated_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_forecasts_uncalibrated ON predictive_heart_forecasts (is_calibrated, target_timestamp);
+CREATE INDEX IF NOT EXISTS idx_forecasts_asset ON predictive_heart_forecasts (asset, timeframe);
+"""
+
 
 def apply_migrations(db_path: Path | str) -> None:
     """Run migrations to ensure all database tables are up to date."""
@@ -328,6 +357,13 @@ def apply_migrations(db_path: Path | str) -> None:
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (2)")
             conn.commit()
             logger.info("Database migration V2 applied successfully.")
+
+        if current_version < 3:
+            logger.info("Applying database migration V3 (Predictive Heart Forecasts & Calibration)...")
+            cursor.executescript(MIGRATION_V3)
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (3)")
+            conn.commit()
+            logger.info("Database migration V3 applied successfully.")
     finally:
         conn.close()
 

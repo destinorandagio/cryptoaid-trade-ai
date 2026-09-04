@@ -11,6 +11,7 @@ from src.config import settings
 from src.data.provider import CompositeMarketDataProvider
 from src.execution.models import OrderSide
 from src.execution.paper_engine import PaperExecutionEngine
+from src.agents.predictive_heart import PredictiveHeartEngine
 from src.performance.metrics import calculate_performance
 from src.risk.capital_protection import CapitalProtectionEngine
 from src.risk.cryptoaid_gate import CryptoAidRiskGate
@@ -22,6 +23,7 @@ router = APIRouter(prefix="/api/v1", tags=["v1"])
 db = DatabaseManager()
 market_provider = CompositeMarketDataProvider()
 meta_agent = MetaAgent()
+predictive_heart = PredictiveHeartEngine(market_provider=market_provider, db=db)
 risk_gate = CryptoAidRiskGate()
 capital_engine = CapitalProtectionEngine()
 execution_engine = PaperExecutionEngine(db=db, risk_engine=capital_engine, risk_gate=risk_gate)
@@ -278,4 +280,48 @@ def toggle_kill_switch(req: KillSwitchRequest) -> dict[str, Any]:
         capital_engine.reset_kill_switch()
         return {"status": "SUCCESS", "kill_switch_active": False, "action": "RESET"}
     raise HTTPException(status_code=400, detail="Action must be 'TRIGGER' or 'RESET'")
+
+
+# =========================================================================
+# PREDICTIVE HEART ROUTES (Closure 1: Real Forecasts & Calibration Ledger)
+# =========================================================================
+@router.get("/heart/forecast")
+def get_predictive_heart_forecast(
+    symbol: str = Query("POL/USDT", description="Target trading pair"),
+    timeframe: str = Query("15m", description="Timeframe: 5m, 15m, 1h, 4h, 24h"),
+    history_points: int = Query(35, ge=15, le=100),
+    future_steps: int = Query(16, ge=5, le=40),
+) -> dict[str, Any]:
+    """Generate live Predictive Heart forecast with white historical curve and red P50 trajectory."""
+    try:
+        return predictive_heart.generate_forecast(
+            symbol=symbol,
+            timeframe=timeframe,
+            history_points=history_points,
+            future_steps=future_steps,
+            record_to_db=True,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate Predictive Heart forecast: {str(e)}")
+
+
+@router.get("/heart/calibration")
+def get_heart_calibration_stats(
+    asset: str | None = Query(None, description="Optional asset filter"),
+) -> dict[str, Any]:
+    """Get calibration metrics (Accuracy %, Brier Score, recent evaluations)."""
+    try:
+        return db.get_calibration_stats(asset=asset)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch calibration stats: {str(e)}")
+
+
+@router.post("/heart/evaluate")
+def evaluate_heart_predictions() -> dict[str, Any]:
+    """Evaluate expired forecasts against actual market prices to update calibration."""
+    try:
+        return predictive_heart.evaluate_pending_forecasts()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to evaluate predictions: {str(e)}")
+
 

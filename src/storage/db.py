@@ -347,3 +347,135 @@ class DatabaseManager:
             )
             conn.commit()
 
+    # Predictive Heart Forecast & Calibration Ledger (Closure 1)
+    def record_forecast(self, forecast: dict[str, Any]) -> str:
+        fid = forecast.get("id") or str(uuid.uuid4())
+        forecast_data = {
+            "id": fid,
+            "asset": forecast["asset"],
+            "timeframe": forecast["timeframe"],
+            "target_timestamp": forecast["target_timestamp"],
+            "now_price": float(forecast["now_price"]),
+            "predicted_p50": float(forecast["predicted_p50"]),
+            "predicted_p10": float(forecast["predicted_p10"]),
+            "predicted_p90": float(forecast["predicted_p90"]),
+            "direction": forecast["direction"],
+            "expected_return_pct": float(forecast.get("expected_return_pct", 0.0)),
+            "confidence_pct": float(forecast.get("confidence_pct", 0.0)),
+            "regime": forecast.get("regime", "UNKNOWN"),
+            "models_evidence_json": json.dumps(forecast.get("models_evidence", {})),
+            "actual_price": None,
+            "error_pct": None,
+            "direction_hit": None,
+            "brier_score": None,
+            "is_calibrated": 0,
+            "calibrated_at": None,
+        }
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO predictive_heart_forecasts (
+                    id, asset, timeframe, target_timestamp, now_price,
+                    predicted_p50, predicted_p10, predicted_p90, direction,
+                    expected_return_pct, confidence_pct, regime, models_evidence_json,
+                    actual_price, error_pct, direction_hit, brier_score, is_calibrated, calibrated_at
+                ) VALUES (
+                    :id, :asset, :timeframe, :target_timestamp, :now_price,
+                    :predicted_p50, :predicted_p10, :predicted_p90, :direction,
+                    :expected_return_pct, :confidence_pct, :regime, :models_evidence_json,
+                    :actual_price, :error_pct, :direction_hit, :brier_score, :is_calibrated, :calibrated_at
+                )
+                """,
+                forecast_data,
+            )
+            conn.commit()
+        return fid
+
+    def get_uncalibrated_forecasts(self, max_timestamp: str | None = None) -> list[dict[str, Any]]:
+        now_iso = max_timestamp or datetime.now(timezone.utc).isoformat()
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT * FROM predictive_heart_forecasts
+                WHERE is_calibrated = 0 AND target_timestamp <= ?
+                ORDER BY target_timestamp ASC
+                LIMIT 100
+                """,
+                (now_iso,),
+            )
+            return [dict(r) for r in cursor.fetchall()]
+
+    def calibrate_forecast(
+        self,
+        forecast_id: str,
+        actual_price: float,
+        error_pct: float,
+        direction_hit: int,
+        brier_score: float,
+    ) -> None:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE predictive_heart_forecasts
+                SET actual_price = ?, error_pct = ?, direction_hit = ?,
+                    brier_score = ?, is_calibrated = 1, calibrated_at = ?
+                WHERE id = ?
+                """,
+                (actual_price, error_pct, direction_hit, brier_score, now_iso, forecast_id),
+            )
+            conn.commit()
+
+    def get_calibration_stats(self, asset: str | None = None) -> dict[str, Any]:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            query = "SELECT * FROM predictive_heart_forecasts WHERE is_calibrated = 1"
+            params = []
+            if asset:
+                query += " AND asset = ?"
+                params.append(asset)
+            query += " ORDER BY calibrated_at DESC LIMIT 500"
+            cursor.execute(query, tuple(params))
+            rows = [dict(r) for r in cursor.fetchall()]
+
+            if not rows:
+                return {
+                    "total_calibrated": 0,
+                    "accuracy_direction_pct": 0.0,
+                    "avg_error_pct": 0.0,
+                    "avg_brier_score": 0.0,
+                    "status": "INITIALIZING_CALIBRATION",
+                    "recent_evaluations": [],
+                }
+
+            hits = sum(1 for r in rows if r.get("direction_hit") == 1)
+            accuracy = (hits / len(rows)) * 100.0
+            avg_err = sum(abs(float(r.get("error_pct") or 0.0)) for r in rows) / len(rows)
+            avg_brier = sum(float(r.get("brier_score") or 0.0) for r in rows) / len(rows)
+
+            return {
+                "total_calibrated": len(rows),
+                "accuracy_direction_pct": round(accuracy, 2),
+                "avg_error_pct": round(avg_err, 4),
+                "avg_brier_score": round(avg_brier, 4),
+                "status": "CALIBRATED_ACTIVE",
+                "recent_evaluations": rows[:10],
+            }
+
+    def get_recent_forecasts(self, asset: str = "POL/USDT", limit: int = 10) -> list[dict[str, Any]]:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT * FROM predictive_heart_forecasts
+                WHERE asset = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                (asset, limit),
+            )
+            return [dict(r) for r in cursor.fetchall()]
+
