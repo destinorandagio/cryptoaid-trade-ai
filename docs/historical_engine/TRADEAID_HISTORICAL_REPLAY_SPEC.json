@@ -1,0 +1,64 @@
+{
+  "artifact_id": "TRADEAID_HISTORICAL_REPLAY_SPEC",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "HistoricalReplayEngine",
+  "purpose": "Specifica tecnica per il motore di Replay Storico temporale senza look-ahead né survivorship bias, operante attraverso modalità scalabili (MODE_A BTC, MODE_B BTC+ETH, MODE_C Dynamic Top-200).",
+  "invariants": [
+    "Replay cronologico strictly-forward: time loop non può retrocedere",
+    "Ad ogni timestamp T l'ambiente è congelato: tutti gli input con timestamp > T generano errore fatale (LOOK_AHEAD_VIOLATION)",
+    "I prezzi di esecuzione simulati applicano la regola 'T_plus_1_open' o next tick, mai il close di T (zero look-ahead sull'esecuzione)",
+    "Separazione netta tra MARKET_SIGNAL_REPLAY (pura analisi di prezzo) e EXECUTION_VENUE_REPLAY (costi realistici con slippage ed impatto di mercato target)",
+    "Ogni run è identificata da UUID univoco e versionamento quintuplo (dataset, features, strategy, cost_model, replay_engine)"
+  ],
+  "replay_modes": {
+    "MODE_A_BTC_ONLY": {
+      "timeline": "2013-04-28 / 2026-present",
+      "universe": ["CANON_BTC_BITCOIN"],
+      "granularity": "1d (2013-2016), 1h/1d (2017+)",
+      "goal": "Validazione macro-cicli, regime transition e long-term capital preservation"
+    },
+    "MODE_B_MAJORS": {
+      "timeline": "2017-01-01 / 2026-present",
+      "universe": ["CANON_BTC_BITCOIN", "CANON_ETH_ETHEREUM", "CANON_POLYGON_MATIC_POL"],
+      "granularity": "1h, 4h, 1d",
+      "goal": "Lead/lag cross-pair, altcoin beta e relative strength testing"
+    },
+    "MODE_C_DYNAMIC_TOP200": {
+      "timeline": "2020-01-01 / 2026-present",
+      "universe": "Snapshot Top-200 point-in-time ad ogni data T (inclusi dead/delisted)",
+      "granularity": "1d daily snapshot + 1h for top-20 liquid assets",
+      "goal": "Piena simulazione di market breadth, rotazione settoriale e survivorship-free alpha"
+    }
+  },
+  "execution_and_cost_models": {
+    "historical_venue_model": {
+      "era_2013_2016": {"fee_bps": 35.0, "slippage_bps": 50.0, "notes": "Early centralized order books with wide spreads"},
+      "era_2017_2020": {"fee_bps": 10.0, "slippage_bps": 15.0, "notes": "CEX Tier 1 dominance (Binance/Bitfinex)"},
+      "era_2021_present_cex": {"fee_bps": 7.5, "slippage_bps": 5.0}
+    },
+    "target_polygon_dex_model": {
+      "purpose": "Valutare la fattibilità reale di trasposizione delle strategie sull'ambiente target di TRADEAID (Polygon DEX 2026)",
+      "network": "Polygon PoS",
+      "dex_venues": ["QuickSwap V3", "Uniswap V3", "0x Swap API v2"],
+      "dex_fee_bps": 30.0,
+      "estimated_gas_cost_pol": 0.05,
+      "b_plus_dao_fee_pol": 10.0,
+      "max_acceptable_slippage_bps": 30.0,
+      "mev_sandwich_risk_penalty_bps": 10.0
+    }
+  },
+  "checkpointing_and_resume_protocol": {
+    "frequency": "Daily at 00:00 UTC",
+    "checkpoint_payload": [
+      "portfolio_equity_and_holdings",
+      "open_positions_with_entry_and_sl_tp",
+      "unclosed_experience_records",
+      "rolling_feature_cache",
+      "last_processed_timestamp"
+    ],
+    "storage": "PostgreSQL historical_replay_runs table + binary snapshot cache"
+  }
+}

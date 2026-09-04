@@ -1,0 +1,73 @@
+{
+  "artifact_id": "TRADEAID_HISTORICAL_ANALOG_ENGINE",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "HistoricalAnalogEngine",
+  "purpose": "Motore di ricerca semantica di analoghi storici. Dato lo stato corrente, interroga la memoria storica di TRADEAID per estrarre i K momenti storici più simili su finestre temporali multiple e stimare distribuzioni di esito.",
+  "invariants": [
+    "Candidati storici interrogabili esclusivamente con timestamp < T_query (zero look-ahead)",
+    "Se il max similarity score è inferiore alla soglia di qualità, l'output deve essere classificato UNKNOWN (nessuna previsione forzata)",
+    "Un pattern non è una singola candela né una sagoma geometrica: è una traiettoria vettoriale multidimensionale",
+    "Gli analoghi appartenenti a ere strutturalmente incompatibili subiscono penalizzazione ponderata via StructuralChangeDetector"
+  ],
+  "query_pipeline": [
+    {
+      "step": 1,
+      "name": "state_vector_extraction",
+      "description": "Costruzione del MarketStateVector corrente a timestamp T_query"
+    },
+    {
+      "step": 2,
+      "name": "candidate_filtering",
+      "description": "Filtro rigido pre-computazione: timestamp_candidate < T_query, data_quality in [TIER_A, TIER_B]"
+    },
+    {
+      "step": 3,
+      "name": "multi_metric_similarity_scoring",
+      "metrics_computed": ["cosine_similarity", "normalized_euclidean_distance", "dtw_trajectory_alignment"]
+    },
+    {
+      "step": 4,
+      "name": "structural_compatibility_weighting",
+      "formula": "final_score = raw_similarity * compatibility_weight(current_era, candidate_era) * recency_decay(days_ago)"
+    },
+    {
+      "step": 5,
+      "name": "top_k_selection",
+      "k_value": 5,
+      "diversity_constraint": "Massimo 1 match all'interno di una finestra di 14 giorni per evitare duplicazione dello stesso episodio"
+    },
+    {
+      "step": 6,
+      "name": "quality_gate_and_novelty_check",
+      "rules": [
+        "Se top_k[0].final_score < 0.65 -> is_novel_state = true",
+        "Se top_k[0].final_score < 0.50 -> analog_state = UNKNOWN, no directional bias permitted"
+      ]
+    },
+    {
+      "step": 7,
+      "name": "forward_outcome_aggregation",
+      "horizons": ["1D", "7D", "30D", "90D"],
+      "outputs": [
+        "expected_return_distribution (mean, p5, p25, p50, p75, p95)",
+        "expected_drawdown_p95",
+        "scenario_probabilities (BULL_CONTINUATION, RANGE_BOUND, REVERSAL_DOWN, BEAR_CONTINUATION)"
+      ]
+    }
+  ],
+  "integration_contracts": {
+    "input": "QWEN_MARKET_STATE_VECTOR_001 / TRADEAID_MARKET_STATE_VECTOR",
+    "structural_filter": "TRADEAID_STRUCTURAL_CHANGE_MODEL",
+    "output_to_scenarios": "TRADEAID_TREND_SCENARIO_ENGINE",
+    "output_to_strategy_selector": "TRADEAID_EXPERIENCE_MATRIX_SPEC"
+  },
+  "qa_benchmarks": [
+    "TEST-ANALOG-01: candidate_timestamps all strictly < T_query",
+    "TEST-ANALOG-02: novelty flag activates on synthetic black-swan input",
+    "TEST-ANALOG-03: ensemble out-of-sample Brier score < unconditional baseline",
+    "TEST-ANALOG-04: query response time < 5.0 seconds for K=5 against 10-year daily history"
+  ]
+}

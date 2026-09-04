@@ -1,0 +1,111 @@
+{
+  "artifact_id": "TRADEAID_BTC_CYCLE_MODEL",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "BtcCycleClassifier",
+  "purpose": "Modello tassonomico empirico per i regimi e le fasi di ciclo di Bitcoin, basato su indicatori quantitativi continui e non su assunzioni a priori.",
+  "invariants": [
+    "Nessun ciclo passato è assunto identico a quello attuale",
+    "Gli halving sono trattati come marker temporali di contesto, non come cause meccaniche certe",
+    "Tutte le metriche di drawdown e rolling return usano esclusivamente dati <= T",
+    "I cambi di regime richiedono conferme su finestre multiple per evitare 'whipsaws'"
+  ],
+  "cycle_phases_taxonomy": [
+    {
+      "phase": "ACCUMULATION",
+      "characteristics": ["Drawdown > 50% from ATH", "Volatility 30d below historical median", "Price consolidating within narrow band", "Breadth depressed"]
+    },
+    {
+      "phase": "EARLY_BULL",
+      "characteristics": ["Price cross above SMA200", "Higher highs over 90d window", "Market breadth expanding above 0.50", "Halving proximity window [-180d, +180d]"]
+    },
+    {
+      "phase": "BULL_EXPANSION",
+      "characteristics": ["Return 90d > +50%", "Price > SMA50 > SMA200", "Volume expansion", "Altcoin participation broadening"]
+    },
+    {
+      "phase": "EUPHORIA",
+      "characteristics": ["Price breaking previous ATH", "RSI 14d > 80 sustained", "Volatility expansion upwards", "Retail search / social volume spike"]
+    },
+    {
+      "phase": "DISTRIBUTION",
+      "characteristics": ["Lower highs with elevated volume", "Bearish divergences on daily momentum", "BTC dominance flattening/falling", "High dispersion across Top-200"]
+    },
+    {
+      "phase": "BEAR",
+      "characteristics": ["Price cross below SMA200", "Return 90d < -20%", "Lower highs and lower lows", "Institutional/retail outflow"]
+    },
+    {
+      "phase": "CAPITULATION",
+      "characteristics": ["Rapid drawdown (> 20% in < 7d)", "Extreme volume spike on downward candles", "RSI 14d < 20", "Funding rates deeply negative / liquidation cascades"]
+    },
+    {
+      "phase": "RECOVERY",
+      "characteristics": ["Stabilization post-capitulation", "RSI divergence recovery from oversold", "Declining downward momentum", "Mean reversion towards SMA50"]
+    },
+    {
+      "phase": "RANGE_BOUND",
+      "characteristics": ["Price oscillating between clear support/resistance levels (+/- 10%)", "No trend on SMA50 slope", "Low directional conviction"]
+    },
+    {
+      "phase": "VOLATILITY_COMPRESSION",
+      "characteristics": ["Bollinger band width at 6-month lows", "ATR 14d relative to price at bottom decile", "Precursor to directional breakout"]
+    },
+    {
+      "phase": "VOLATILITY_EXPANSION",
+      "characteristics": ["Sharp increase in daily true range (> 2x 30d median)", "Break of multi-week range boundaries"]
+    }
+  ],
+  "halving_context_markers": {
+    "halving_dates_utc": [
+      {"epoch": 1, "date": "2012-11-28"},
+      {"epoch": 2, "date": "2016-07-09"},
+      {"epoch": 3, "date": "2020-05-11"},
+      {"epoch": 4, "date": "2024-04-20"},
+      {"epoch": 5, "projected_date": "2028-04-15"}
+    ],
+    "derived_features": [
+      {"name": "days_since_last_halving", "formula": "current_date - last_halving_date"},
+      {"name": "days_to_next_halving", "formula": "next_halving_date - current_date"},
+      {"name": "halving_cycle_progress_pct", "formula": "days_since_last_halving / (days_since_last_halving + days_to_next_halving)"}
+    ]
+  },
+  "historical_crash_memory": [
+    {
+      "event_id": "CRASH_2011_MTGOX_HACK",
+      "period": "2011-06-10 / 2011-11-18",
+      "peak_to_trough_drawdown_pct": -93.0,
+      "lessons": "Extreme illiquidity, single exchange risk, spot-only environment"
+    },
+    {
+      "event_id": "CRASH_2013_POST_EUPHORIA",
+      "period": "2013-11-30 / 2015-01-14",
+      "peak_to_trough_drawdown_pct": -85.0,
+      "lessons": "Multi-year bear market post retail hype and China restrictions"
+    },
+    {
+      "event_id": "CRASH_2017_2018_ICO_BURST",
+      "period": "2017-12-17 / 2018-12-15",
+      "peak_to_trough_drawdown_pct": -84.0,
+      "lessons": "ICO bubble collapse, emergence of BitMEX perpetual liquidations"
+    },
+    {
+      "event_id": "CRASH_2020_COVID_LIQUIDITY_SHOCK",
+      "period": "2020-03-08 / 2020-03-13",
+      "peak_to_trough_drawdown_pct": -50.0,
+      "lessons": "Cross-market liquidity panic, BitMEX cascade, swift V-shape recovery"
+    },
+    {
+      "event_id": "CRASH_2022_TERRA_FTX_DELEVERAGING",
+      "period": "2021-11-10 / 2022-11-21",
+      "peak_to_trough_drawdown_pct": -77.0,
+      "lessons": "DeFi lending contagion, algorithmic stablecoin collapse (UST/LUNA), CeFi insolvency (3AC, Celsius, BlockFi, FTX)"
+    }
+  ],
+  "classification_rules": {
+    "primary_classifier": "RegimeDecisionTree(price_vs_sma200, momentum_90d, volatility_30d, drawdown_from_ath)",
+    "confidence_calculation": "Probabilistic score [0.0, 1.0] basato su coerenza tra trend, volatilità e volume"
+  }
+}

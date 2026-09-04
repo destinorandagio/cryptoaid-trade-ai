@@ -1,0 +1,81 @@
+{
+  "artifact_id": "TRADEAID_MARKET_STATE_VECTOR",
+  "version": "1.0.0",
+  "created_at": "2026-09-04",
+  "evidence_state": "DESIGN_SPEC",
+  "owner": "CRYPTOAID_TRADE_AI",
+  "component": "MarketStateVectorBuilder",
+  "purpose": "Rappresentazione compatta e deterministica dello stato globale e specifico del mercato crypto a ogni timestamp T. Point-in-time safe al 100%.",
+  "invariants": [
+    "Tutti i campi sono computati esclusivamente con dati chiusi a timestamp <= T",
+    "Nessuna informazione su barre successive a T (nemmeno high/low della barra T+1)",
+    "Lo state_hash è calcolato tramite sha256 delle feature normalizzate per ricerca istantanea e deduplicazione",
+    "Campi non disponibili per limiti storici (es. stablecoin share nel 2013) sono esplicitamente impostati a NULL, mai a zero fittizio"
+  ],
+  "schema_v1": {
+    "temporal_metadata": {
+      "timestamp_utc": "datetime ISO 8601",
+      "granularity": "enum (1h|4h|1d)",
+      "feature_version": "string (es. 'v1.0.0')"
+    },
+    "btc_macro_state": {
+      "price_usd": "float",
+      "return_1d": "float",
+      "return_7d": "float",
+      "return_30d": "float",
+      "momentum_14d": "float",
+      "momentum_90d": "float",
+      "volatility_7d_ann": "float",
+      "volatility_30d_ann": "float",
+      "drawdown_from_ath": "float [-1.0, 0.0]",
+      "drawdown_from_90d_high": "float [-1.0, 0.0]",
+      "rsi_14d": "float [0.0, 100.0]",
+      "price_vs_sma50_pct": "float",
+      "price_vs_sma200_pct": "float",
+      "btc_regime": "enum (BULL_TREND|BEAR_TREND|RANGE_COMPRESSION|VOLATILITY_EXPANSION)",
+      "btc_cycle_phase": "enum (ACCUMULATION|EARLY_BULL|BULL_EXPANSION|EUPHORIA|DISTRIBUTION|BEAR|CAPITULATION|RECOVERY)",
+      "days_since_halving": "int",
+      "btc_dominance": "float [0.0, 1.0] | null"
+    },
+    "market_breadth_state": {
+      "pct_top200_above_sma50": "float [0.0, 1.0] | null",
+      "pct_top200_positive_return_7d": "float [0.0, 1.0] | null",
+      "pct_top200_outperforming_btc_7d": "float [0.0, 1.0] | null",
+      "median_alt_return_7d": "float | null",
+      "median_alt_return_30d": "float | null",
+      "alt_dispersion_7d": "float | null",
+      "market_breadth_index": "float [0.0, 1.0] | null",
+      "market_cap_concentration_top10": "float [0.0, 1.0] | null",
+      "stablecoin_market_share": "float [0.0, 1.0] | null",
+      "market_breadth_regime": "enum (BTC_LED_MARKET|ALT_EXPANSION|BROAD_RALLY|BROAD_WEAKNESS|ROTATION) | null"
+    },
+    "asset_specific_state": {
+      "canonical_asset_id": "string",
+      "symbol_at_t": "string",
+      "rank_at_t": "int [1..200] | null",
+      "asset_class": "enum (LAYER_1|LAYER_2|DEFI|MEME|STABLECOIN|PAYMENT|INFRASTRUCTURE)",
+      "price_usd": "float",
+      "return_1d": "float",
+      "return_7d": "float",
+      "return_30d": "float",
+      "volatility_30d_ann": "float",
+      "liquidity_bucket": "enum (LOW|MEDIUM|HIGH)",
+      "volume_24h_usd": "float | null",
+      "correlation_to_btc_30d": "float [-1.0, 1.0] | null",
+      "correlation_to_btc_90d": "float [-1.0, 1.0] | null",
+      "beta_to_btc_30d": "float | null",
+      "downside_beta_90d": "float | null",
+      "relative_strength_vs_btc_30d": "float | null"
+    },
+    "structural_context": {
+      "structural_era": "enum (PRE_DERIVATIVES|DERIVATIVES_INTRODUCTION|STABLECOIN_ERA|DEFI_SUMMER_AND_INSTITUTIONAL|ETF_ERA)",
+      "data_quality_tier": "enum (TIER_A|TIER_B|TIER_C)"
+    }
+  },
+  "vector_normalization_policy": {
+    "method": "robust_z_score_with_clipping",
+    "clipping_bounds": [-3.0, 3.0],
+    "embedding_dimension": 32,
+    "distance_metric": "cosine_or_mahalanobis"
+  }
+}
