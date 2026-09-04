@@ -596,11 +596,71 @@
                         <div class="autotrade-header-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <span class="pulse-beacon" id="autotrade-beacon" style="background:#34d399; box-shadow:0 0 12px #34d399;"></span>
-                                <strong style="color:#ffffff; font-size:0.95rem; letter-spacing:0.5px;">🤖 AUTOTRADE PRO</strong>
-                                <span class="cert-pill" id="autotrade-status-pill" style="background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3); font-weight:700; font-size:0.68rem;">● RUNNING (DEMO 1,000 USDT)</span>
+                                <strong style="color:#ffffff; font-size:0.95rem; letter-spacing:0.5px;">🏆 TRADEAID PROP DEMO</strong>
+                                <span class="cert-pill" id="autotrade-status-pill" style="background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3); font-weight:700; font-size:0.68rem;">● AUTOTRADE ACTIVE ($10,000 PAPER)</span>
                             </div>
                             <div style="display:flex; align-items:center; gap:6px;">
-                                <span class="shield-badge" style="font-size:0.65rem;">STOP CEILING: -5.0%</span>
+                                <span class="shield-badge" style="font-size:0.65rem;">DISCIPLINE + PROFIT CHALLENGE</span>
+                            </div>
+                        </div>
+
+                        <!-- 3-TIER PROGRESSION LADDER -->
+                        <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                            <div class="prop-badge-progression">
+                                <span class="p-step active">1. PROP DEMO ($10K)</span>
+                                <span>➔</span>
+                                <span class="p-step locked" id="prop-step-qualified">2. QUALIFIED</span>
+                                <span>➔</span>
+                                <span class="p-step locked" id="prop-step-candidate">3. FUNDED CANDIDATE</span>
+                            </div>
+                            <button id="btn-share-prop-challenge" class="btn-share-prop-challenge" title="Share your AI Prop Challenge performance">
+                                <svg class="icon-svg sm svg-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                                <span>SHARE CHALLENGE</span>
+                            </button>
+                        </div>
+
+                        <!-- PROP CHALLENGE TRACKER CARD -->
+                        <div class="prop-challenge-banner">
+                            <!-- TARGET PROGRESS BAR -->
+                            <div class="prop-progress-row">
+                                <div class="prop-progress-label-row">
+                                    <span style="color:#a1a1aa;">PROFIT TARGET (+8.00% / +$800):</span>
+                                    <strong id="prop-target-display" style="color:#34d399;">+$283.00 (+2.83%)</strong>
+                                </div>
+                                <div class="prop-bar-track">
+                                    <div id="prop-target-bar" class="prop-bar-fill-target" style="width: 35.4%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- DRAWDOWN SAFETY BAR -->
+                            <div class="prop-progress-row" style="margin-top:8px;">
+                                <div class="prop-progress-label-row">
+                                    <span style="color:#a1a1aa;">MAX TOTAL DRAWDOWN (-8.00% CEILING):</span>
+                                    <strong id="prop-dd-display" style="color:#38bdf8;">0.91% (SAFE BUFFER 7.09%)</strong>
+                                </div>
+                                <div class="prop-bar-track">
+                                    <div id="prop-dd-bar" class="prop-bar-fill-dd" style="width: 11.4%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- 4 STATS MATRIX -->
+                            <div class="prop-stats-matrix">
+                                <div class="prop-stat-box">
+                                    <span class="s-lbl">DAILY DD LIMIT</span>
+                                    <span class="s-val" id="prop-daily-dd" style="color:#34d399;">0.35% / 4.0%</span>
+                                </div>
+                                <div class="prop-stat-box">
+                                    <span class="s-lbl">CORTEX VIOLATIONS</span>
+                                    <span class="s-val" id="prop-cortex-viol" style="color:#34d399;">0 (CLEAN)</span>
+                                </div>
+                                <div class="prop-stat-box">
+                                    <span class="s-lbl">PROP SCORE</span>
+                                    <span class="s-val" id="prop-score-val" style="color:#f7931a;">87.4 / 100</span>
+                                </div>
+                                <div class="prop-stat-box">
+                                    <span class="s-lbl">GLOBAL RANK</span>
+                                    <span class="s-val" id="prop-rank-val" style="color:#ffffff;">#238</span>
+                                </div>
                             </div>
                         </div>
 

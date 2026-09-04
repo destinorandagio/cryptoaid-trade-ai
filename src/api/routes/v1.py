@@ -41,6 +41,8 @@ from src.learning.auto_learner import global_auto_learner as auto_learner
 strategy_selector = auto_learner.strategy_selector
 experience_matrix = auto_learner.experience_matrix
 champion_system = auto_learner.champion_system
+from src.agents.prop_challenge import PropChallengeEngine
+prop_engine = PropChallengeEngine()
 
 
 
@@ -544,6 +546,55 @@ def get_autotrade_status(wallet: str) -> dict[str, Any]:
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get autotrade status: {str(e)}")
+
+
+# =====================================================================
+# PROP CHALLENGE API ($10,000 Paper Demo & Progression)
+# =====================================================================
+
+class PropStartRequest(BaseModel):
+    wallet: str = Field(default="0x_demo_prop_user")
+    mode: str = Field(default="BALANCED")
+
+
+@router.post("/prop/start")
+def start_prop_challenge(req: PropStartRequest) -> dict[str, Any]:
+    """Start or retrieve the 10,000 USDT Paper Prop Challenge."""
+    try:
+        challenge = db.get_or_create_prop_challenge(wallet=req.wallet, mode=req.mode)
+        evaluation = prop_engine.evaluate(challenge)
+        return {
+            "status": "SUCCESS",
+            "challenge": challenge,
+            "evaluation": evaluation.__dict__,
+            "message": "Prop Challenge active: $10,000 USDT Paper. Target: +8% (+$800). Max Total DD: -8%. Min Days: 5.",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start prop challenge: {str(e)}")
+
+
+@router.get("/prop/status/{wallet}")
+def get_prop_challenge_status(wallet: str) -> dict[str, Any]:
+    """Get current Prop Challenge progress, drawdowns, and discipline score."""
+    try:
+        challenge = db.get_or_create_prop_challenge(wallet=wallet)
+        evaluation = prop_engine.evaluate(challenge)
+        return {
+            "wallet": wallet,
+            "evaluation": evaluation.__dict__,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get prop challenge status: {str(e)}")
+
+
+@router.get("/prop/leaderboard")
+def get_prop_leaderboard(limit: int = 10) -> list[dict[str, Any]]:
+    """Get top ranked Prop Challenge traders."""
+    try:
+        return db.get_prop_leaderboard(limit=limit)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get prop leaderboard: {str(e)}")
+
 
 
 

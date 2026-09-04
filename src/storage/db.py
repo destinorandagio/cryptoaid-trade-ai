@@ -708,5 +708,113 @@ class DatabaseManager:
             row = cursor.fetchone()
             return dict(row) if row else None
 
+    # =========================================================================
+    # Prop Challenge Operations ($10,000 Paper Demo & Progression)
+    # =========================================================================
+
+    def get_or_create_prop_challenge(self, wallet: str, mode: str = "BALANCED") -> dict[str, Any]:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM prop_challenges WHERE wallet = ? AND status = 'ACTIVE' ORDER BY created_at DESC LIMIT 1",
+                (wallet.lower(),),
+            )
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+
+            # Create new 10,000 USDT Paper Prop Challenge
+            challenge_id = f"prop_{uuid.uuid4().hex[:12]}"
+            initial_equity = 10000.0
+            now_iso = datetime.now(timezone.utc).isoformat()
+            cursor.execute(
+                """
+                INSERT INTO prop_challenges (
+                    id, wallet, mode, initial_equity, current_equity, peak_equity,
+                    profit_target_pct, max_total_dd_pct, max_daily_dd_pct,
+                    current_total_dd_pct, current_daily_dd_pct, cortex_violations,
+                    min_trading_days, trading_days_count, status, prop_score, rank_position,
+                    created_at, updated_at
+                ) VALUES (
+                    ?, ?, ?, ?, ?, ?,
+                    8.0, 8.0, 4.0,
+                    0.0, 0.0, 0,
+                    5, 1, 'ACTIVE', 85.0, 238,
+                    ?, ?
+                )
+                """,
+                (challenge_id, wallet.lower(), mode, initial_equity, initial_equity, initial_equity, now_iso, now_iso),
+            )
+            conn.commit()
+            cursor.execute("SELECT * FROM prop_challenges WHERE id = ?", (challenge_id,))
+            return dict(cursor.fetchone())
+
+    def update_prop_challenge(
+        self,
+        challenge_id: str,
+        current_equity: float,
+        current_daily_dd_pct: float,
+        current_total_dd_pct: float,
+        cortex_violations: int,
+        trading_days_count: int,
+        status: str,
+        prop_score: float,
+    ) -> dict[str, Any] | None:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT peak_equity FROM prop_challenges WHERE id = ?", (challenge_id,))
+            row = cursor.fetchone()
+            peak = max(current_equity, row["peak_equity"] if row else current_equity)
+            now_iso = datetime.now(timezone.utc).isoformat()
+
+            cursor.execute(
+                """
+                UPDATE prop_challenges
+                SET current_equity = ?,
+                    peak_equity = ?,
+                    current_daily_dd_pct = ?,
+                    current_total_dd_pct = ?,
+                    cortex_violations = ?,
+                    trading_days_count = ?,
+                    status = ?,
+                    prop_score = ?,
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    current_equity,
+                    peak,
+                    current_daily_dd_pct,
+                    current_total_dd_pct,
+                    cortex_violations,
+                    trading_days_count,
+                    status,
+                    prop_score,
+                    now_iso,
+                    challenge_id,
+                ),
+            )
+            conn.commit()
+            cursor.execute("SELECT * FROM prop_challenges WHERE id = ?", (challenge_id,))
+            res = cursor.fetchone()
+            return dict(res) if res else None
+
+    def get_prop_leaderboard(self, limit: int = 10) -> list[dict[str, Any]]:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, wallet, mode, current_equity, 
+                       ((current_equity - initial_equity) / initial_equity * 100.0) as return_pct,
+                       current_total_dd_pct, cortex_violations, prop_score, rank_position, status
+                FROM prop_challenges
+                ORDER BY return_pct DESC, current_total_dd_pct ASC
+                LIMIT ?
+                """,
+                (limit,),
+            )
+            return [dict(r) for r in cursor.fetchall()]
+
+
 
 

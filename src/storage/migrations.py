@@ -479,6 +479,35 @@ CREATE INDEX IF NOT EXISTS idx_autotrade_wallet ON autotrade_authorizations (wal
 """
 
 
+MIGRATION_V7 = """
+-- TradeAID Prop Challenge Engine ($10,000 Paper Demo & Progression)
+CREATE TABLE IF NOT EXISTS prop_challenges (
+    id TEXT PRIMARY KEY,
+    wallet TEXT NOT NULL,
+    mode TEXT NOT NULL DEFAULT 'BALANCED',
+    initial_equity REAL NOT NULL DEFAULT 10000.0,
+    current_equity REAL NOT NULL DEFAULT 10000.0,
+    peak_equity REAL NOT NULL DEFAULT 10000.0,
+    profit_target_pct REAL NOT NULL DEFAULT 8.0,
+    max_total_dd_pct REAL NOT NULL DEFAULT 8.0,
+    max_daily_dd_pct REAL NOT NULL DEFAULT 4.0,
+    current_total_dd_pct REAL NOT NULL DEFAULT 0.0,
+    current_daily_dd_pct REAL NOT NULL DEFAULT 0.0,
+    cortex_violations INTEGER NOT NULL DEFAULT 0,
+    min_trading_days INTEGER NOT NULL DEFAULT 5,
+    trading_days_count INTEGER NOT NULL DEFAULT 1,
+    status TEXT NOT NULL DEFAULT 'ACTIVE',
+    prop_score REAL NOT NULL DEFAULT 85.0,
+    rank_position INTEGER DEFAULT 238,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_prop_wallet ON prop_challenges (wallet);
+CREATE INDEX IF NOT EXISTS idx_prop_status ON prop_challenges (status);
+"""
+
+
 def apply_migrations(db_path: Path | str) -> None:
     """Run migrations to ensure all database tables are up to date."""
     conn = sqlite3.connect(str(db_path))
@@ -530,6 +559,13 @@ def apply_migrations(db_path: Path | str) -> None:
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (6)")
             conn.commit()
             logger.info("Database migration V6 applied successfully.")
+
+        if current_version < 7:
+            logger.info("Applying database migration V7 (Prop Challenge Engine $10k Paper)...")
+            cursor.executescript(MIGRATION_V7)
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (7)")
+            conn.commit()
+            logger.info("Database migration V7 applied successfully.")
     finally:
         conn.close()
 

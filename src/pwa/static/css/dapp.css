@@ -1737,4 +1737,135 @@ body.dapp-body {
 .telemetry-pill .t-dot.amber { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
 .telemetry-pill .t-dot.red { background: #ff1e38; box-shadow: 0 0 6px #ff1e38; }
 
+/* ====================================================================
+   TRADEAID PROP DEMO TRACKER & PROGRESSION LADDER ($10,000 PAPER)
+   ==================================================================== */
+.prop-challenge-banner {
+    background: linear-gradient(135deg, rgba(255, 30, 56, 0.12), rgba(20, 20, 28, 0.95));
+    border: 1px solid rgba(255, 30, 56, 0.35);
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 12px;
+}
+
+.prop-badge-progression {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.60rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: #a1a1aa;
+    flex-wrap: wrap;
+}
+
+.prop-badge-progression .p-step.active {
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.15);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.prop-badge-progression .p-step.locked {
+    color: #71717a;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.prop-progress-row {
+    margin-top: 10px;
+}
+
+.prop-progress-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.68rem;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 4px;
+}
+
+.prop-bar-track {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.prop-bar-fill-target {
+    height: 100%;
+    background: linear-gradient(90deg, #059669, #34d399);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+    box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+}
+
+.prop-bar-fill-dd {
+    height: 100%;
+    background: linear-gradient(90deg, #38bdf8, #fbbf24);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+.prop-stats-matrix {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+}
+
+@media (max-width: 640px) {
+    .prop-stats-matrix {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.prop-stat-box {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 6px;
+    padding: 6px 8px;
+    text-align: center;
+}
+
+.prop-stat-box .s-lbl {
+    font-size: 0.55rem;
+    color: #71717a;
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 2px;
+}
+
+.prop-stat-box .s-val {
+    font-size: 0.75rem;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.btn-share-prop-challenge {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 6px 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-share-prop-challenge:hover {
+    background: rgba(255, 30, 56, 0.15);
+    border-color: #ff1e38;
+    color: #ffffff;
+}
+
+
 
