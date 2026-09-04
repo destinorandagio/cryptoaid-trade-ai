@@ -29,6 +29,10 @@ def test_auto_learner_step_execution(temp_db: DatabaseManager):
     assert "matrix_observations" in report
     assert report["bull_champion"] in ["MOMENTUM", "TREND", "BREAKOUT", "SCALP"]
     assert "portfolios" in report
+    assert "cortex_intents" in report
+    assert report["cortex_health"] in ["GREEN", "YELLOW", "ORANGE", "RED", "BREACH"]
+    assert report["distance_to_ruin_usd"] > 0
+    assert report["available_risk_budget_usd"] > 0
 
     # Verify state after step
     stats = engine.experience_matrix.get_matrix_stats()

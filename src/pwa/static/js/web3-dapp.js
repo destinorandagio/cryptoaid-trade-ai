@@ -79,15 +79,78 @@ class Web3Controller {
         // Active trade staging for on-chain preventivo
         this.activeTradeStaging = null;
 
-        // Prop Challenge Multi-Tier (50K, 100K, 150K) & Option A No-Loss Guarantee
-        this.activePropTier = "100K";
+        // Prop Challenge Multi-Tier (STARTER, PRO, ELITE, BLACK) & Schema V1.0 Dual Auth
+        this.activePropTier = "PRO";
+        this.sicId = localStorage.getItem("tradeaid_sic_id") || null;
         this.tacBalance = 100.00; // 100 TradeAid Credits (TAC)
+        this.withdrawableRewards = 0.00;
         this.propTiers = {
-            "50K": {
+            "STARTER": {
                 name: "STARTER",
-                badgeTxt: "STARTER · $50K · 1000x LEV",
-                size: 50000.0,
+                badgeTxt: "STARTER · $10K · 1000x LEV",
+                size: 10000.0,
                 fee: 50.0,
+                leverage: "1000x (Virtual)",
+                payoutPct: 80.0,
+                targetPct: 8.0,
+                targetProfit: 800.0,
+                maxTotalDdPct: 10.0,
+                maxTotalDdUsdt: 1000.0,
+                maxDailyDdPct: 5.0,
+                maxDailyDdUsdt: 500.0,
+                minDays: 5
+            },
+            "PRO": {
+                name: "PRO",
+                badgeTxt: "PRO · $50K · 1000x LEV",
+                size: 50000.0,
+                fee: 100.0,
+                leverage: "1000x (Virtual)",
+                payoutPct: 80.0,
+                targetPct: 8.0,
+                targetProfit: 4000.0,
+                maxTotalDdPct: 10.0,
+                maxTotalDdUsdt: 5000.0,
+                maxDailyDdPct: 5.0,
+                maxDailyDdUsdt: 2500.0,
+                minDays: 5
+            },
+            "ELITE": {
+                name: "ELITE",
+                badgeTxt: "ELITE · $100K · 1000x LEV",
+                size: 100000.0,
+                fee: 500.0,
+                leverage: "1000x (Virtual)",
+                payoutPct: 80.0,
+                targetPct: 8.0,
+                targetProfit: 8000.0,
+                maxTotalDdPct: 10.0,
+                maxTotalDdUsdt: 10000.0,
+                maxDailyDdPct: 5.0,
+                maxDailyDdUsdt: 5000.0,
+                minDays: 5
+            },
+            "BLACK": {
+                name: "BLACK",
+                badgeTxt: "BLACK · $150K · 100x LEV",
+                size: 150000.0,
+                fee: 1500.0,
+                leverage: "100x (Virtual)",
+                payoutPct: 80.0,
+                targetPct: 8.0,
+                targetProfit: 12000.0,
+                maxTotalDdPct: 10.0,
+                maxTotalDdUsdt: 15000.0,
+                maxDailyDdPct: 5.0,
+                maxDailyDdUsdt: 7500.0,
+                minDays: 5
+            },
+            // Backward compatible aliases
+            "50K": {
+                name: "PRO",
+                badgeTxt: "PRO · $50K · 1000x LEV",
+                size: 50000.0,
+                fee: 100.0,
                 leverage: "1000x (Virtual)",
                 payoutPct: 80.0,
                 targetPct: 8.0,
@@ -99,10 +162,10 @@ class Web3Controller {
                 minDays: 5
             },
             "100K": {
-                name: "PRO",
-                badgeTxt: "PRO · $100K · 1000x LEV",
+                name: "ELITE",
+                badgeTxt: "ELITE · $100K · 1000x LEV",
                 size: 100000.0,
-                fee: 100.0,
+                fee: 500.0,
                 leverage: "1000x (Virtual)",
                 payoutPct: 80.0,
                 targetPct: 8.0,
@@ -114,8 +177,8 @@ class Web3Controller {
                 minDays: 5
             },
             "150K": {
-                name: "ELITE",
-                badgeTxt: "ELITE · $150K · 100x LEV",
+                name: "BLACK",
+                badgeTxt: "BLACK · $150K · 100x LEV",
                 size: 150000.0,
                 fee: 1500.0,
                 leverage: "100x (Virtual)",
@@ -138,6 +201,44 @@ class Web3Controller {
         this.loadState();
         this.bindEvents();
         this.renderState();
+        this.refreshCortexHealth();
+        setInterval(() => this.refreshCortexHealth(), 10000);
+    }
+
+    async refreshCortexHealth() {
+        try {
+            const resp = await fetch("/api/v1/engine/cortex-health/default");
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const badgeEl = document.getElementById("cortex-health-badge");
+            const distRuinEl = document.getElementById("cortex-dist-ruin");
+            const budgetEl = document.getElementById("cortex-risk-budget");
+
+            if (badgeEl) {
+                const colorMap = {
+                    "GREEN": { bg: "rgba(34,197,94,0.15)", text: "#22c55e", border: "rgba(34,197,94,0.3)" },
+                    "YELLOW": { bg: "rgba(234,179,8,0.15)", text: "#eab308", border: "rgba(234,179,8,0.3)" },
+                    "ORANGE": { bg: "rgba(249,115,22,0.15)", text: "#f97316", border: "rgba(249,115,22,0.3)" },
+                    "RED": { bg: "rgba(239,68,68,0.15)", text: "#ef4444", border: "rgba(239,68,68,0.3)" },
+                    "BREACH": { bg: "rgba(239,68,68,0.3)", text: "#ff1e38", border: "rgba(255,30,56,0.6)" }
+                };
+                const c = colorMap[data.cortex_health] || colorMap["GREEN"];
+                badgeEl.style.background = c.bg;
+                badgeEl.style.color = c.text;
+                badgeEl.style.borderColor = c.border;
+                badgeEl.innerHTML = `<span style="width:6px; height:6px; border-radius:50%; background:${c.text};"></span> ${data.cortex_health}`;
+            }
+
+            if (distRuinEl) {
+                distRuinEl.textContent = `$${Number(data.distance_to_ruin_usd).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+            }
+
+            if (budgetEl) {
+                budgetEl.textContent = `$${Number(data.available_risk_budget_usd).toFixed(2)}`;
+            }
+        } catch (err) {
+            // Passive fallback
+        }
     }
 
     loadState() {

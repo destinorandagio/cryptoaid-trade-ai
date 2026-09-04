@@ -25,6 +25,13 @@ from src.execution.paper_engine import PaperExecutionEngine
 from src.learning.experience_matrix import ExperienceMatrix
 from src.learning.memory_weighting import ChampionChallengerSystem
 from src.risk.capital_protection import CapitalProtectionEngine
+from src.risk.challenge_risk_agent import (
+    ChallengeRiskAgent,
+    CortexHealth,
+    RiskDecision,
+    TradeAuthorization,
+    TradeIntent,
+)
 from src.risk.cryptoaid_gate import CryptoAidRiskGate
 from src.risk.risk_agent_v1 import RiskAgentV1
 from src.storage.db import DatabaseManager
@@ -45,6 +52,7 @@ class AutoLearnerEngine:
         self.market_provider = market_provider or CompositeMarketDataProvider()
         self.predictive_heart = PredictiveHeartEngine(market_provider=self.market_provider, db=self.db)
         self.risk_agent_v1 = RiskAgentV1()
+        self.challenge_risk_agent = ChallengeRiskAgent()
         self.strategy_selector = StrategySelector()
         self.experience_matrix = ExperienceMatrix(db_manager=self.db)
         self.champion_system = ChampionChallengerSystem(db_manager=self.db)
@@ -120,8 +128,9 @@ class AutoLearnerEngine:
             except Exception as e:
                 logger.debug("Failed to feed item to experience matrix: %s", e)
 
-        # 3. GENERATE FRESH PREDICTIVE HEART FORECASTS ON CANONICAL UNIVERSE
+        # 3. GENERATE FRESH PREDICTIVE HEART FORECASTS & PROCESS TRADE INTENTS VIA CORTEX
         forecast_results = []
+        cortex_intents = []
         for symbol in settings.universe:
             try:
                 fc = self.predictive_heart.generate_forecast(
@@ -132,8 +141,75 @@ class AutoLearnerEngine:
                     record_to_db=True,
                 )
                 forecast_results.append(fc)
+
+                # --- DEFINITIVE TRADEAID PIPELINE: PREDICTIVE HEART -> Strategy Selector ---
+                pred_return = float(fc.get("expected_return_pct", 0.0) or (0.015 if fc.get("direction") == "BULLISH" else -0.015))
+                conf = float(fc.get("confidence_pct", 75.0) / 100.0) if fc.get("confidence_pct", 75.0) > 1.0 else float(fc.get("confidence_pct", 0.75))
+                regime_str = str(fc.get("regime", "TRENDING_BULL"))
+                adx = 28.0 if "TRENDING" in regime_str else 18.0
+                open_pos = self.execution_engine.db.get_open_positions("challenge_pro_default")
+                in_pos = any(p.get("asset") == symbol for p in open_pos)
+
+                state_vec = MarketStateVector(
+                    asset=symbol,
+                    regime=regime_str,
+                    predictive_forecast_pct=pred_return,
+                    forecast_confidence=conf,
+                    historical_analog_score=0.75,
+                    tournament_rankings={},
+                    strategy_reliability={},
+                    adx=adx,
+                    rsi_14=54.0,
+                    volatility_ratio=1.05,
+                    is_overextended=False,
+                    in_active_position=in_pos,
+                )
+                strat_res = self.strategy_selector.evaluate(state_vec)
+
+                # Strategy Selector -> Trade Intent -> Challenge Risk Agent (CORTEX)
+                if strat_res.action == "ENTER" and not in_pos:
+                    now_price = float(fc.get("now_price", 1.0))
+                    direction = "LONG" if pred_return >= 0 else "SHORT"
+                    intent = TradeIntent(
+                        challenge_id="challenge_pro_default",
+                        target_asset=symbol,
+                        direction=direction,
+                        strategy_name=strat_res.selected_strategy,
+                        strategy_confidence=strat_res.strategy_scores.get(strat_res.selected_strategy, 0.75),
+                        prediction_confidence=conf,
+                        forecast_horizon_bars=12,
+                        current_price=now_price,
+                        timeframe="15m",
+                        volatility_14d=0.02,
+                        atr=now_price * 0.015,
+                        regime=regime_str,
+                        correlation_portfolio=0.15,
+                        slippage_pct=0.001,
+                        price_impact_pct=0.0005,
+                        gas_cost_usd=0.015,
+                    )
+
+                    auth = self.challenge_risk_agent.authorize_trade_intent(intent)
+                    exec_order = None
+                    if auth.authorized and auth.position_size_units > 0:
+                        exec_order = self.execution_engine.execute_authorized_intent(
+                            intent=intent,
+                            auth=auth,
+                            market_price=now_price,
+                            account_id="challenge_pro_default",
+                        )
+
+                    cortex_intents.append({
+                        "asset": symbol,
+                        "strategy": strat_res.selected_strategy,
+                        "intent_id": intent.intent_id,
+                        "decision": auth.decision.value,
+                        "authorized": auth.authorized,
+                        "cortex_health": auth.cortex_health.value,
+                        "order_id": exec_order.order_id if exec_order else None,
+                    })
             except Exception as e:
-                logger.debug("Forecast skipped for %s: %s", symbol, e)
+                logger.debug("Forecast/Intent pipeline error for %s: %s", symbol, e)
 
         # 4. RUN CONTINUOUS STRATEGY TOURNAMENT PROMOTION EVALUATION
         promotions = []
@@ -142,13 +218,23 @@ class AutoLearnerEngine:
             if res.get("status") == "PROMOTED":
                 promotions.append(res)
 
-        # 5. STEP POSITION GUARDIAN & STRATEGY SWITCHING ENGINE
+        # 5. STEP POSITION GUARDIAN & REALTIME EQUITY/DD MARK-TO-MARKET
         guardian_reports = []
         try:
             reports = self.execution_engine.guardian.evaluate_positions()
             guardian_reports.extend(reports)
+
+            # Continuous Mark-to-market for Challenge Risk Agent
+            open_pos = self.execution_engine.db.get_open_positions("challenge_pro_default")
+            total_unrealized = sum(float(p.get("unrealized_pnl", 0.0)) for p in open_pos)
+            acct = self.execution_engine.db.get_account_state("challenge_pro_default")
+            cash = float(acct.cash_balance) if acct else 50000.0
+            self.challenge_risk_agent.state.update_mark_to_market(
+                unrealized_pnl=total_unrealized,
+                cash_balance=cash,
+            )
         except Exception as e:
-            logger.debug("Guardian step: %s", e)
+            logger.debug("Guardian/M2M step: %s", e)
 
         # 6. SCAN GEM RADAR
         try:
@@ -162,13 +248,14 @@ class AutoLearnerEngine:
         portfolios = self.execution_engine.get_all_portfolios_summary()
 
         logger.info(
-            "[%s | Cycle #%d] AUTO-LEARN: Calibrated=%d | MatrixObs=%d | Champion(Bull)=%s | PromoEvents=%d | ActivePos=%d",
+            "[%s | Cycle #%d] AUTO-LEARN: Calibrated=%d | CORTEX_Health=%s | DistToRuin=$%.2f | RiskBudget=$%.2f | Intents=%d | ActivePos=%d",
             now_str,
             self.iteration_count,
             newly_calibrated,
-            matrix_stats.get("total_trade_observations", 0),
-            active_champ,
-            len(promotions),
+            self.challenge_risk_agent.state.cortex_health.value,
+            self.challenge_risk_agent.state.distance_to_ruin_usd,
+            self.challenge_risk_agent.state.available_risk_budget_usd,
+            len(cortex_intents),
             len(self.execution_engine.guardian.active_positions),
         )
 
@@ -181,6 +268,10 @@ class AutoLearnerEngine:
             "promotions": promotions,
             "guardian_reports": guardian_reports,
             "portfolios": portfolios,
+            "cortex_intents": cortex_intents,
+            "cortex_health": self.challenge_risk_agent.state.cortex_health.value,
+            "distance_to_ruin_usd": self.challenge_risk_agent.state.distance_to_ruin_usd,
+            "available_risk_budget_usd": self.challenge_risk_agent.state.available_risk_budget_usd,
         }
 
 
