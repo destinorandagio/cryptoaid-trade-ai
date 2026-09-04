@@ -1,147 +1,137 @@
-# CryptoAID Trade AI — Technical Architecture
+# TRADEAID — GOLDEN MASTER ARCHITECTURE SPECIFICATION
+**Version:** 1.0.0-GOLDEN-MASTER  
+**Security / Governance:** Strict Non-Custodial · CORTEX Protected · Native on Polygon (Chain ID 137)  
+**Brand Mandate:**
+- **TRADEAID**
+- **Powered by BLOCKCHAIN+ (B+)**
+- **Engineered by NEURALOG**
+- **CORTEX — Risk / Security / Audit Layer**
+- **Native on Polygon**
 
-## 1. High-Level Architecture Flow
+*(Note: "Audited & Certified by CORTEX" is strictly reserved as a future public claim once formal live audit verification is executed. The operational layer designation is CORTEX — Risk / Security / Audit Layer).*
 
-```
-+---------------------------------------------------------------------------------------------------+
-|                                      CRYPTOAID TRADE AI ARCHITECTURE                              |
-+---------------------------------------------------------------------------------------------------+
-|                                                                                                   |
-|  [DEDICATED TRADING WALLET] (Server-Side Isolation, Chain ID 137, Never Committed/Exposed)         |
-|             |                                                                                     |
-|             v                                                                                     |
-|  [USDT ACCOUNTING & SETTLEMENT] ($1,000 Starting Capital Model, Max 10% Pos Size, Max 50% Exp)     |
-|             |                                                                                     |
-|             v                                                                                     |
-|  [POLYGON SCANNER] (Volume, Spread, Depth, Volatility, Contract Freshness)                         |
-|             |                                                                                     |
-|             v                                                                                     |
-|  [MARKET REGIME DETECTOR]                                                                         |
-|     --> TRENDING | RANGING | HIGH_VOLATILITY | LOW_VOLATILITY | LOW_LIQUIDITY | RISK_OFF         |
-|             |                                                                                     |
-|             v                                                                                     |
-|  [MULTI-STRATEGY AGENTS]                                                                          |
-|     * Scalping Agent (1m/3m/5m, spread gate, micro-momentum)                                      |
-|     * Trend Following Agent (EMA 12/26 cross, MACD, ADX)                                          |
-|     * Momentum Agent (RSI, Stochastic, Rate of Change)                                            |
-|     * Breakout Agent (Bollinger Band squeeze, 20-period High/Low)                                 |
-|     * Mean Reversion Agent (Z-Score, RSI extreme reversals)                                       |
-|     * Volatility Agent (ATR expansion, historical volatility)                                     |
-|             |                                                                                     |
-|             v                                                                                     |
-|  [METASTRATEGY & MATHEMATICAL NET EDGE GATE]                                                      |
-|     NET_EDGE = EXPECTED_MOVE - GAS - FEES - PRICE_IMPACT - SLIPPAGE - SAFETY_BUFFER               |
-|     If NET_EDGE < 0.40%  --> STRICT NO_TRADE                                                      |
-|             |                                                                                     |
-|             v                                                                                     |
-|  [CRYPTOAID RISK & SECURITY GATE]                                                                 |
-|     * Anti-Scam Bytecode Verification (Rejects unverified contracts, honeypots, blacklist)        |
-|     * Portfolio Limits: Max 10% ($100), Max 50% exposure ($500), Max 4 concurrent positions      |
-|     * Circuit Breakers: -3% daily loss, -6% weekly loss, -10% max drawdown, 3 consecutive losses  |
-|             |                                                                                     |
-|             v                                                                                     |
-|  [SMART EXECUTION ROUTER]                                                                         |
-|     * Multi-route quote comparison: Uniswap V3 (Quoter V2) vs QuickSwap Router                    |
-|     * Dynamic slippage tolerance: 20 bps base, 100 bps hard cap                                   |
-|     * Guaranteed amountOutMinimum calculation                                                     |
-|             |                                                                                     |
-|             v                                                                                     |
-|  [PRE-FLIGHT TRANSACTION SIMULATION] (eth_call against Bor RPC node)                              |
-|     If simulation fails or reverts  --> STRICT REJECT                                             |
-|             |                                                                                     |
-|             v                                                                                     |
-|  [AUTOMATIC DEDICATED-WALLET SIGNER]                                                              |
-|     * Server-side only, Polygon Chain 137 verified, EIP-1559 gas pricing                          |
-|             |                                                                                     |
-|             v                                                                                     |
-|  [DEX EXECUTION & ON-CHAIN CONFIRMATION]                                                          |
-|             |                                                                                     |
-|             v                                                                                     |
-|  [PERSISTENT POSITION GUARDIAN] (24/7 Daemon, Survives Restarts via SQLite WAL)                   |
-|     * Dynamic ATR/Volatility Stop Loss (Default 1.5%)                                             |
-|     * Take Profit Target (Default 3.5%)                                                           |
-|     * Break-even Ratchet (Locks entry +0.1% once profit reaches +1.2%)                            |
-|     * Dynamic Trailing Stop (Activates at +1.8%, trails at 1.0% distance)                         |
-|     * Emergency Hard Stop Ceiling: 5.0% absolute maximum (Liquidates to USDT)                     |
-|             |                                                                                     |
-|             v                                                                                     |
-|  [100% USDT SETTLEMENT & REALIZED P&L ACCOUNTING]                                                 |
-|             |                                                                                     |
-|             v                                                                                     |
-|  [OBSERVABILITY, TELEGRAM BROADCAST & PWA COCKPIT]                                                |
-|     * Telegram @CryptoAidTradeAIbot topic routing                                                 |
-|     * REST API (FastAPI)                                                                          |
-|     * PWA Cockpit (13 views deployed at https://trade.cryptoaid.support)                          |
-+---------------------------------------------------------------------------------------------------+
+---
+
+## 1. The Canonical Unified Macro Architecture Flow
+
+```text
+       [ MARKET DATA + ON-CHAIN + SENTIMENT + CRYPTOAID INTELLIGENCE ]
+                                      │
+                                      ▼
+             [ PREDICTIVE HEART — White Reality × Red Prediction ]
+                                      │
+                                      ▼
+                              [ REGIME ENGINE ]
+                                      │
+                                      ▼
+                               [ STRATEGY DNA ]
+                                      │
+                                      ▼
+                        [ MULTI-AGENT COUNCIL ]
+      (Scalping · Trend · Momentum · Breakout · Mean Reversion ·
+       Volatility · Arbitrage · On-chain · Sentiment · Liquidity)
+                                      │
+                                      ▼
+                               [ META STRATEGY ]
+                                      │
+                                      ▼
+                           [ CORTEX RISK VETO ]
+                                      │
+                                      ▼
+                            [ CAPITAL ALLOCATOR ]
+                                      │
+                                      ▼
+                        [ SMART POLYGON DEX ROUTER ]
+                                      │
+                                      ▼
+                  [ SIMULATION + SLIPPAGE/IMPACT/MEV GATES ]
+                                      │
+                                      ▼
+                         [ AUTOMATIC WALLET SIGNER ]
+                                      │
+                                      ▼
+                          [ POSITION GUARDIAN H24 ]
+                                      │
+                                      ▼
+                   [ PERFORMANCE + PREDICTION CALIBRATION ]
+                                      │
+                                      ▼
+                      [ STRATEGY TOURNAMENT / LEARNING ]
+                                      │
+                                      └───► ↺ (Feedback loop into Predictive Heart)
 ```
 
 ---
 
-## 2. Directory Layout
+## 2. Core Functional Responsibilities
 
+| Subsystem | Functional Role & Mandate |
+|---|---|
+| **PREDICTIVE HEART** | **The Predictive Brain.** Ingests real market history (White Line), fuses 7+ sub-models via Dynamic Time Warping (DTW), Mahalanobis distance, and cosine analogs to produce a probabilistic forward trajectory (Red Line P50) with confidence cone (P10–P90). |
+| **META STRATEGY** | **The Decision Engine.** Evaluates the Predictive Heart's trajectory against market regime, candidate strategy recommendations, expected net edge, and portfolio state to synthesize the primary intent (`LONG`, `SHORT`, or `NO_TRADE`). |
+| **CORTEX RISK VETO** | **The Absolute Veto & Security Layer.** Non-negotiable guardian. Enforces the -5.0% hard stop ceiling, daily drawdown halts, smart-contract anti-scam / anti-honeypot filters, and treasury constraints. |
+| **SMART ROUTER** | **The Execution Optimizer.** Quotes, splits, and routes swaps across Polygon DEXes (Uniswap V3, QuickSwap, 1inch) with tight slippage gates and pre-flight Bor RPC simulation. |
+| **POSITION GUARDIAN H24** | **Capital Protector.** 24/7 autonomous daemon. Priority: *protect existing capital before discovering new trades*. Enforces break-even locks, dynamic trailing stops, partial take-profits, and emergency liquidation. |
+| **PERFORMANCE & LEARNING** | **Continuous Calibration Ledger.** Records `Expected vs Actual`, attributes errors (Regime, Sizing, Slippage), scores decision quality (`CORRECT_DECISION`, `CORRECT_NO_TRADE`, `GOOD_LOSS`, `MISSED_OPPORTUNITY`, `LUCKY_WIN`), and updates weights for the next cycle. |
+
+---
+
+## 3. Specialized Intelligence Domains
+
+1. **Sentiment & Narrative Intelligence Engine:** Continuous monitoring of sentiment signals, narrative shifts, and social velocity for actionable market regime context.
+2. **On-Chain / Flow Intelligence:** Mempool inspection, whale wallet tracking, DEX liquidity shifts, and bridge inflow/outflow metrics on Polygon.
+3. **Gem Hunter & Liquidity Scanner:** Early pool detection, bytecode verification, rug-pull heuristics, and liquidity lock analysis.
+4. **Multi-DEX & Triangular Arbitrage:** Cross-venue spatial spreads (QuickSwap vs Uniswap V3) and triangular arbitrage circuits on Polygon POS.
+5. **Digital Twin Modeling:** Shadow-simulation mirroring real trader profiles and algorithmic software bots to stress-test candidate strategies before capital allocation.
+6. **Strategy DNA & Strategy Tournament:** Multi-tier strategy ranking (`PROMOTED`, `WATCH`, `DEMOTED`, `REJECTED`) evaluated on walk-forward out-of-sample data with full cost modeling.
+
+---
+
+## 4. PWA Cockpit Specification (HOME IS HEART)
+
+The TradeAID PWA cockpit (`trade.cryptoaid.support`) is purpose-built around the **HEART** experience:
+
+### A. Above Chart (Top Telemetry Bar)
+Five continuous high-visibility metrics:
+1. `PREDICTION`: E.g., `↑ +1.84% (P50)`
+2. `CONFIDENCE`: E.g., `78% (HIGH)`
+3. `REGIME`: E.g., `EXPANSION / MOMENTUM`
+4. `NET EDGE`: E.g., `+1.12% NET`
+5. `CORTEX`: E.g., `VETO: CLEAR (PASS)`
+
+### B. The Predictive Heart Canvas
+- **White Line:** Historical observed reality (immutable memory).
+- **Red Line:** Future probabilistic trajectory (P50).
+- **Confidence Band:** Probabilistic cone (P10 to P90).
+- **NOW Pulsing Boundary:** Real-time marker dividing observed history from forward projection.
+- **Dynamic Price Markers:** Entry price, Stop-Loss (Dynamic SL), and Target Take-Profits (TP1, TP2).
+
+### C. Below Chart (Decision Callout & Explainability)
+- **Primary Signal Badges:** `LONG` · `SHORT` · `NO TRADE` (active status highlighted).
+- **`WHY?` Inspector:** Transparent Explainability modal disclosing the Multi-Agent Council weights and full execution pipeline.
+- **Scenarios & Calibration:** Multi-scenario distribution (Base P50, Surge, Mean Reversion) and historical directional accuracy ledger.
+
+### D. The Six Canonical Navigation Sections
+1. **HEART:** The core predictive cockpit (Home view).
+2. **MARKETS:** Monitored Polygon pairs, liquidity depth, spread monitoring, narrative intelligence.
+3. **POSITIONS:** Active watches, break-even locks, trailing stops, capital allocation.
+4. **STRATEGIES:** Strategy DNA catalog, Multi-Agent Council breakdown, tournament rankings.
+5. **PERFORMANCE:** Predicted vs Actual learning ledger, error attribution, decision quality scoring.
+6. **CORTEX:** Security posture, -5.0% hard stop watchdog, Treasury 100 USDT DAO quota, 10 POL trade quote, emergency kill switch.
+
+---
+
+## 5. Frozen Brand & Credentials
+
+```text
+TRADEAID
+Powered by BLOCKCHAIN+ (B+)
+Engineered by NEURALOG
+CORTEX — Risk / Security / Audit Layer
+Native on Polygon
 ```
-cryptoaid-trade-ai/
-├── .env.example
-├── .github/
-│   └── workflows/
-│       ├── ci.yml                 # Automated CI test suite
-│       └── paper-trading.yml      # Automated scheduled paper trading cycle
-├── Dockerfile                     # Multi-stage production container
-├── docker-compose.yml             # Daemon + API compose configuration
-├── pyproject.toml
-├── requirements.txt
-├── scripts/
-│   ├── run_trade_ai.py            # Master daemon startup (FastAPI + PWA)
-│   ├── run_paper_daemon.py        # Independent continuous paper trading runner
-│   └── run_watchdog.py            # 24/7 observability and health watchdog
-├── src/
-│   ├── config.py                  # Single source of configuration truth
-│   ├── agents/
-│   │   ├── base.py                # BaseStrategyAgent, SignalType, AgentSignal
-│   │   ├── regime.py              # MarketRegimeDetector (6 market regimes)
-│   │   ├── scalp.py               # ScalpingStrategyAgent (micro-timeframe)
-│   │   ├── trend.py               # TrendFollowingAgent (EMA/MACD/ADX)
-│   │   ├── momentum.py            # MomentumAgent (RSI/Stochastic/ROC)
-│   │   ├── breakout.py            # BreakoutAgent (Bollinger/Donchian)
-│   │   ├── mean_reversion.py      # MeanReversionAgent (Z-Score)
-│   │   ├── volatility.py          # VolatilityAgent (ATR)
-│   │   ├── risk_agent.py          # RiskAgent (Safety veto)
-│   │   └── meta_agent.py          # MetaAgent (Consensus + Net Edge calculation)
-│   ├── api/
-│   │   ├── app.py                 # FastAPI application factory
-│   │   └── routes/
-│   │       └── v1.py              # REST API v1 endpoints
-│   ├── data/
-│   │   ├── base.py                # Data classes: Candle, Ticker, MarketSnapshot
-│   │   ├── provider.py            # Composite provider with cache
-│   │   ├── mock_feed.py           # Realistic stochastic feed generator
-│   │   └── polygon_scanner.py     # Polygon scanner evaluating depth and spread
-│   ├── dex/
-│   │   ├── polygon.py             # Bor Web3 connection, gas estimators, allowances
-│   │   ├── router.py              # SmartExecutionRouter (Uniswap V3 vs QuickSwap)
-│   │   ├── signer.py              # DedicatedWalletSigner (Chain 137 policy checks)
-│   │   └── position_guardian.py   # PersistentPositionGuardian (24/7 SL/TP/Trailing/5% stop)
-│   ├── execution/
-│   │   ├── paper_engine.py        # PaperExecutionEngine (Router + Guardian integration)
-│   │   └── live_adapter.py        # LiveExecutionAdapter (11-point fail-closed gate)
-│   ├── performance/
-│   │   ├── metrics.py             # PerformanceMetrics calculation
-│   │   └── backtest.py            # Walk-forward, out-of-sample backtest engine
-│   ├── pwa/                       # 13-view PWA Cockpit
-│   │   ├── index.html
-│   │   ├── manifest.json
-│   │   ├── sw.js
-│   │   ├── css/app.css
-│   │   └── js/app.js
-│   ├── risk/
-│   │   └── gate.py                # CryptoAidRiskGate (bytecode audit + capital breakers)
-│   ├── storage/
-│   │   ├── db.py                  # DatabaseManager (16 normalized tables)
-│   │   └── migrations.py          # Schema migrations V1 & V2
-│   └── telegram/
-│       ├── bot.py                 # Telegram bot handler (14 commands + 8 buttons)
-│       ├── dedupe.py              # Signal deduplication (cooldown + price delta)
-│       ├── formatter.py           # Standardized Telegram message formatters
-│       └── router.py              # Topic-based dispatcher
-└── tests/                         # 37 Automated pytest unit and integration tests
-```
+
+- Non-Custodial: All funds remain in the user's wallet.
+- Treasury Address: `0x3C320B3a0917fF44BF6551CDdee44402AFcF250C`
+- Network: Polygon POS (Chain ID 137, Gas: POL, Base: USDT)
+- Hard Stop Ceiling: 5.0% Maximum Drawdown per Trade.
