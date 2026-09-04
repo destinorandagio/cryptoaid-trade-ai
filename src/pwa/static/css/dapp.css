@@ -133,6 +133,38 @@ body.dapp-body {
     border-radius: 4px;
 }
 
+.wallet-zone {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.lang-picker {
+    position: relative;
+}
+.lang-select {
+    background: rgba(14, 18, 28, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 7px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+}
+.lang-select:hover, .lang-select:focus {
+    border-color: #ff1e38;
+    box-shadow: 0 0 8px rgba(255, 30, 56, 0.4);
+}
+.lang-select option {
+    background: #090c14;
+    color: #ffffff;
+    font-size: 0.72rem;
+    padding: 4px;
+}
+
 /* Wallet Button */
 .btn-connect-wallet {
     background: linear-gradient(135deg, #ff1e38, #b91c1c);

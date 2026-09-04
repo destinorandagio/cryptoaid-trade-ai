@@ -1,5 +1,5 @@
 /**
- * CryptoAID Trade AI — Web3 dApp Controller
+ * CryptoAID Trade AI — Web3 dApp Controller with Multi-Language Support
  * Chain: Polygon POS Mainnet (137 / 0x89)
  * Treasury: 0x3C320B3a0917fF44BF6551CDdee44402AFcF250C
  * USDT Polygon: 0xc2132D05D31c914a87C6611C10748AEb04B58e8F (Decimals: 6)
@@ -52,6 +52,16 @@ class Web3Controller {
             window.ethereum.on("accountsChanged", (accounts) => this.handleAccountsChanged(accounts));
             window.ethereum.on("chainChanged", (chainId) => this.handleChainChanged(chainId));
         }
+
+        // Listen for real-time language changes
+        window.addEventListener("languageChanged", () => {
+            this.updatePaymentModalUI();
+            if (this.account) {
+                this.renderWalletConnected();
+            } else {
+                this.renderWalletDisconnected();
+            }
+        });
     }
 
     checkExistingSession() {
@@ -59,6 +69,7 @@ class Web3Controller {
         if (savedAccount) {
             this.account = savedAccount;
             this.checkDaoStatus(savedAccount);
+            this.renderWalletConnected();
         }
     }
 
@@ -73,34 +84,34 @@ class Web3Controller {
         const quoteAmountEl = document.getElementById("quote-amount-display");
         const quoteDescEl = document.getElementById("quote-desc-display");
 
+        const t = (key, fallback) => (window.t ? window.t(key) : fallback);
+
         if (quoteTypeEl && quoteAmountEl && quoteDescEl) {
             if (!this.hasDaoMembership) {
-                quoteTypeEl.textContent = "ATTIVAZIONE QUOTA DAO TRADEAID (1° ACCESSO)";
+                quoteTypeEl.textContent = t("dao_title", "TRADEAID DAO QUOTA ACTIVATION (1st ACCESS)");
                 quoteAmountEl.textContent = "100.00 USDT";
-                quoteDescEl.textContent = "Include membership permanente DAO Founders e sblocco totale dei motori algoritmici.";
+                quoteDescEl.textContent = t("dao_desc", "Includes permanent DAO Founders membership and full unlock of TradeAID autonomous cockpit.");
             } else {
-                quoteTypeEl.textContent = "SESSION ACCESS PASS (USDT ON POLYGON)";
+                quoteTypeEl.textContent = t("session_title", "SESSION ACCESS PASS (USDT ON POLYGON)");
                 quoteAmountEl.textContent = "5.00 USDT";
-                quoteDescEl.textContent = "Quota di sessione per l'esecuzione autonoma e il presidio Position Guardian 24/7.";
+                quoteDescEl.textContent = t("session_desc", "Session fee for autonomous execution and 24/7 Position Guardian protection.");
             }
         }
     }
 
     async connectWallet() {
-        const statusEl = document.getElementById("wallet-status-msg");
+        const t = (key, fallback) => (window.t ? window.t(key) : fallback);
         if (!window.ethereum) {
             if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                // Mobile deep link to MetaMask / Trust Wallet
-                const dappUrl = encodeURIComponent(window.location.href);
+                // Mobile deep link to MetaMask
                 window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
                 return;
             }
-            alert("Nessun Web3 Wallet rilevato. Installa MetaMask, Rabby o apri la dApp nel browser del tuo wallet mobile (TrustWallet, Phantom, MetaMask).");
+            alert(t("alert_no_wallet", "No Web3 Wallet detected. Please install MetaMask, Rabby or open in your mobile wallet browser."));
             return;
         }
 
         try {
-            if (statusEl) statusEl.textContent = "Connessione in corso...";
             const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
             await this.handleAccountsChanged(accounts);
 
@@ -108,7 +119,7 @@ class Web3Controller {
             await this.handleChainChanged(chainId);
         } catch (err) {
             console.error("Connect error:", err);
-            if (statusEl) statusEl.textContent = "Connessione rifiutata dall'utente.";
+            alert(t("alert_connect_rejected", "Connection rejected by user."));
         }
     }
 
@@ -144,7 +155,6 @@ class Web3Controller {
                 params: [{ chainId: CONFIG.CHAIN_ID_HEX }],
             });
         } catch (switchError) {
-            // Error code 4902 means the chain has not been added to MetaMask
             if (switchError.code === 4902) {
                 try {
                     await window.ethereum.request({
@@ -173,6 +183,8 @@ class Web3Controller {
     renderWalletConnected() {
         const btnConnect = document.getElementById("btn-connect-wallet");
         const modalPay = document.getElementById("modal-onchain-paywall");
+        if (!this.account) return;
+
         const shortAddr = `${this.account.slice(0, 6)}...${this.account.slice(-4)}`;
 
         if (btnConnect) {
@@ -191,13 +203,16 @@ class Web3Controller {
 
     renderWalletDisconnected() {
         const btnConnect = document.getElementById("btn-connect-wallet");
+        const t = (key, fallback) => (window.t ? window.t(key) : fallback);
         if (btnConnect) {
-            btnConnect.innerHTML = `⚡ Connetti Web3 Wallet`;
+            btnConnect.innerHTML = t("connect_wallet", "⚡ Connect Wallet");
             btnConnect.classList.remove("connected");
         }
     }
 
     async executeAccessPayment() {
+        const t = (key, fallback) => (window.t ? window.t(key) : fallback);
+
         if (!this.account) {
             await this.connectWallet();
             if (!this.account) return;
@@ -215,7 +230,6 @@ class Web3Controller {
         const rawUnits = BigInt(amountUsdt) * BigInt(10 ** CONFIG.USDT_DECIMALS);
         
         // ERC-20 transfer(address to, uint256 value)
-        // Method signature: 0xa9059cbb
         const toClean = CONFIG.TREASURY_ADDRESS.toLowerCase().replace("0x", "").padStart(64, "0");
         const valueClean = rawUnits.toString(16).padStart(64, "0");
         const txData = `0xa9059cbb${toClean}${valueClean}`;
@@ -223,7 +237,7 @@ class Web3Controller {
         try {
             if (btnPay) btnPay.disabled = true;
             if (payStatusEl) {
-                payStatusEl.textContent = `Richiesta firma on-chain per ${amountUsdt} USDT...`;
+                payStatusEl.textContent = `Awaiting signature for ${amountUsdt} USDT...`;
                 payStatusEl.className = "status-info";
             }
 
@@ -240,7 +254,7 @@ class Web3Controller {
             });
 
             if (payStatusEl) {
-                payStatusEl.innerHTML = `Transazione confermata: <a href="${CONFIG.EXPLORER_URL}/tx/${txHash}" target="_blank" class="tx-link">${txHash.slice(0, 10)}...${txHash.slice(-6)} ↗</a>`;
+                payStatusEl.innerHTML = `Transaction submitted: <a href="${CONFIG.EXPLORER_URL}/tx/${txHash}" target="_blank" class="tx-link">${txHash.slice(0, 10)}...${txHash.slice(-6)} ↗</a>`;
                 payStatusEl.className = "status-success";
             }
 
@@ -255,14 +269,14 @@ class Web3Controller {
                 if (modalPay) modalPay.classList.add("hidden");
                 const appCockpit = document.getElementById("dapp-cockpit-view");
                 if (appCockpit) appCockpit.classList.remove("blurred");
-                alert(`Accesso Confermato! Transazione Polygon registrata: ${txHash.slice(0, 12)}... Benvenuto nel Cockpit TradeAID.`);
+                alert(`${t("alert_tx_confirmed", "Payment confirmed on-chain! Cockpit unlocked.")}\nTx: ${txHash.slice(0, 12)}...`);
             }, 1200);
 
         } catch (err) {
             console.error("Tx error:", err);
             if (btnPay) btnPay.disabled = false;
             if (payStatusEl) {
-                payStatusEl.textContent = `Firma respinta o errore: ${err.message || err}`;
+                payStatusEl.textContent = t("alert_tx_failed", "Transaction failed or rejected.");
                 payStatusEl.className = "status-error";
             }
         }
