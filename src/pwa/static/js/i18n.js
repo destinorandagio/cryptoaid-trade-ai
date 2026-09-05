@@ -15,6 +15,15 @@
 
 const TRANSLATIONS = {
     en: {
+        // 6 Canonical Sections
+        tab_heart: "HEART",
+        tab_markets: "MARKETS",
+        tab_positions: "POSITIONS",
+        tab_strategies: "STRATEGIES",
+        tab_performance: "PERFORMANCE",
+        tab_cortex: "CORTEX",
+        cortex_layer: "CORTEX — Risk / Security / Audit Layer",
+
         page_title: "TradeAID Web3 dApp — Autonomous Cockpit",
         nav_back_title: "Back to Landing Page",
         connect_wallet: " Connect Wallet",
@@ -24,7 +33,7 @@ const TRANSLATIONS = {
         
         // Institutional
         powered_by: "Powered by",
-        audited_by: "Audited & Certified by",
+        audited_by: "CORTEX — Risk / Security / Audit Layer",
         engineered_by: "Engineered by",
         native_on: "Native on",
         
@@ -98,7 +107,7 @@ const TRANSLATIONS = {
         neuralog_desc: "Quant Engine powered by proprietary Neuralog statistical models, Blockchain+ decentralized routing, and native Polygon (137) finality.",
         
         // Footer
-        ticker_engine: "TRADEAID · Powered by Blockchain+ · Audited by Cortex · Engineered by Neuralog · Polygon 137",
+        ticker_engine: "TRADEAID · Powered by BLOCKCHAIN+ (B+) · Engineered by NEURALOG · CORTEX — Risk / Security / Audit Layer · Native on Polygon",
         
         // Alerts
         alert_no_wallet: "No Web3 Wallet detected. Please install MetaMask, Rabby, or open in Trust Wallet / Phantom mobile browser.",
@@ -107,7 +116,7 @@ const TRANSLATIONS = {
         alert_tx_confirmed: "Payment confirmed on-chain! Cockpit unlocked.",
         alert_tx_failed: "Transaction failed or rejected.",
         alert_kill_confirm: "Caution: Do you want to trigger the Emergency Kill Switch and liquidate all positions to USDT?",
-        alert_kill_done: "Kill Switch ACTIVATED. All positions liquidated to USDT."
+        alert_kill_done: "Kill Switch ACTIVATED. All positions liquidated to USDT.",
         "mode_demo": "MODE: DEMO (PAPER TRADING)",
         "mode_real": "MODE: REAL TRADING (LIVE WALLET)",
         "demo_banner": "DEMO MODE: Simulated paper execution active. Connect wallet to unlock live on-chain trading.",
@@ -131,6 +140,15 @@ const TRANSLATIONS = {
     
     },
     it: {
+        // 6 Canonical Sections
+        tab_heart: "HEART",
+        tab_markets: "MERCATI",
+        tab_positions: "POSIZIONI",
+        tab_strategies: "STRATEGIE",
+        tab_performance: "PERFORMANCE",
+        tab_cortex: "CORTEX",
+        cortex_layer: "CORTEX — Livello Rischio / Sicurezza / Audit",
+
         page_title: "TradeAID Web3 dApp — Cockpit Autonomo",
         nav_back_title: "Torna alla Landing Page",
         connect_wallet: " Connetti Wallet",
@@ -139,7 +157,7 @@ const TRANSLATIONS = {
         btn_switch_polygon: "Passa a Polygon",
         
         powered_by: "Powered by",
-        audited_by: "Audited & Certified by",
+        audited_by: "CORTEX — Risk / Security / Audit Layer",
         engineered_by: "Engineered by",
         native_on: "Native on",
         
@@ -205,7 +223,7 @@ const TRANSLATIONS = {
         neuralog_title: "ENGINEERED BY NEURALOG · POWERED BY BLOCKCHAIN+",
         neuralog_desc: "Quant Engine alimentato da modelli statistici proprietari Neuralog, routing decentralizzato Blockchain+ e finalità nativa su Polygon (137).",
         
-        ticker_engine: "TRADEAID · Powered by Blockchain+ · Audited by Cortex · Engineered by Neuralog · Polygon 137",
+        ticker_engine: "TRADEAID · Powered by BLOCKCHAIN+ (B+) · Engineered by NEURALOG · CORTEX — Risk / Security / Audit Layer · Native on Polygon",
         
         alert_no_wallet: "Nessun Web3 Wallet rilevato. Installa MetaMask, Rabby o apri la dApp nel browser del tuo wallet mobile.",
         alert_connect_rejected: "Connessione rifiutata dall'utente.",
@@ -213,7 +231,7 @@ const TRANSLATIONS = {
         alert_tx_confirmed: "Pagamento confermato on-chain! Cockpit sbloccato.",
         alert_tx_failed: "Transazione fallita o rifiutata.",
         alert_kill_confirm: "Attenzione: Vuoi attivare il Kill Switch di emergenza e liquidare tutte le posizioni in USDT?",
-        alert_kill_done: "Kill Switch ATTIVATO. Tutte le posizioni liquidate in USDT."
+        alert_kill_done: "Kill Switch ATTIVATO. Tutte le posizioni liquidate in USDT.",
         "mode_demo": "MODALITÀ: DEMO (PAPER TRADING)",
         "mode_real": "MODALITÀ: TRADING REALE (LIVE WALLET)",
         "demo_banner": "MODALITÀ DEMO: Simulazione paper attiva. Connetti il wallet per sbloccare il trading reale on-chain.",
@@ -237,6 +255,15 @@ const TRANSLATIONS = {
     
     },
     zh: {
+        // 6 Canonical Sections
+        tab_heart: "HEART",
+        tab_markets: "市场",
+        tab_positions: "仓位",
+        tab_strategies: "策略",
+        tab_performance: "性能",
+        tab_cortex: "CORTEX",
+        cortex_layer: "CORTEX — 风险 / 安全 / 审计层",
+
         page_title: "TradeAID Web3 去中心化应用 — 自动交易驾驶舱",
         nav_back_title: "返回主页",
         connect_wallet: " 连接钱包",
@@ -245,7 +272,7 @@ const TRANSLATIONS = {
         btn_switch_polygon: "切换至 Polygon",
         
         powered_by: "技术支持",
-        audited_by: "审计与认证",
+        audited_by: "CORTEX — Risk / Security / Audit Layer",
         engineered_by: "工程研发",
         native_on: "原生运行于",
         
@@ -311,7 +338,7 @@ const TRANSLATIONS = {
         neuralog_title: "NEURALOG 量化研发 · BLOCKCHAIN+ 驱动",
         neuralog_desc: "基于 Neuralog 专有微观结构模型、Blockchain+ 去中心化路由及 Polygon (137) 极速结算。",
         
-        ticker_engine: "TRADEAID · Blockchain+ 驱动 · Cortex 审计 · Neuralog 研发 · Polygon 137 原生",
+        ticker_engine: "TRADEAID · Powered by BLOCKCHAIN+ (B+) · Engineered by NEURALOG · CORTEX — Risk / Security / Audit Layer · Native on Polygon",
         
         alert_no_wallet: "未检测到 Web3 钱包。请安装 MetaMask、Rabby 或在手机钱包（Trust Wallet、Phantom）内置浏览器中打开。",
         alert_connect_rejected: "用户取消了钱包连接请求。",
@@ -319,7 +346,7 @@ const TRANSLATIONS = {
         alert_tx_confirmed: "链上支付确认成功！交易驾驶舱已解锁。",
         alert_tx_failed: "交易失败或已被用户拒绝。",
         alert_kill_confirm: "警告：您确定要触发紧急熔断开关并将全部持仓立即清算为 USDT 吗？",
-        alert_kill_done: "紧急熔断已触发！全部持仓已 100% 清算为 USDT。"
+        alert_kill_done: "紧急熔断已触发！全部持仓已 100% 清算为 USDT。",
         "mode_demo": "模式：模拟交易 (PAPER TRADING)",
         "mode_real": "模式：实盘交易 (LIVE WALLET)",
         "demo_banner": "演示模式：模拟执行已激活。连接钱包以解锁链上实盘交易。",
@@ -343,6 +370,15 @@ const TRANSLATIONS = {
     
     },
     es: {
+        // 6 Canonical Sections
+        tab_heart: "HEART",
+        tab_markets: "MERCADOS",
+        tab_positions: "POSICIONES",
+        tab_strategies: "ESTRATEGIAS",
+        tab_performance: "RENDIMIENTO",
+        tab_cortex: "CORTEX",
+        cortex_layer: "CORTEX — Capa de Riesgo / Seguridad / Auditoría",
+
         page_title: "TradeAID Web3 dApp — Cockpit Autónomo",
         nav_back_title: "Volver a la página principal",
         connect_wallet: " Conectar Billetera",
@@ -351,7 +387,7 @@ const TRANSLATIONS = {
         btn_switch_polygon: "Cambiar a Polygon",
         
         powered_by: "Desarrollado por",
-        audited_by: "Auditado y Certificado por",
+        audited_by: "CORTEX — Risk / Security / Audit Layer",
         engineered_by: "Diseñado por",
         native_on: "Nativo en",
         
@@ -417,7 +453,7 @@ const TRANSLATIONS = {
         neuralog_title: "DISEÑADO POR NEURALOG · POTENCIADO POR BLOCKCHAIN+",
         neuralog_desc: "Motor cuantitativo impulsado por modelos estadísticos Neuralog, enrutamiento Blockchain+ y finalidad Polygon (137).",
         
-        ticker_engine: "TRADEAID · Desarrollado por Blockchain+ · Auditado por Cortex · Diseñado por Neuralog · Polygon 137",
+        ticker_engine: "TRADEAID · Powered by BLOCKCHAIN+ (B+) · Engineered by NEURALOG · CORTEX — Risk / Security / Audit Layer · Native on Polygon",
         
         alert_no_wallet: "No se detectó billetera Web3. Instala MetaMask, Rabby o abre en navegador móvil (Trust Wallet, Phantom).",
         alert_connect_rejected: "Conexión rechazada por el usuario.",
@@ -425,7 +461,7 @@ const TRANSLATIONS = {
         alert_tx_confirmed: "¡Pago confirmado on-chain! Cockpit desbloqueado.",
         alert_tx_failed: "Transacción fallida o rechazada.",
         alert_kill_confirm: "¿Deseas activar el interruptor de emergencia y liquidar todas las posiciones en USDT?",
-        alert_kill_done: "Interruptor de emergencia ACTIVADO. Posiciones liquidadas en USDT."
+        alert_kill_done: "Interruptor de emergencia ACTIVADO. Posiciones liquidadas en USDT.",
         "mode_demo": "MODO: DEMO (PAPER TRADING)",
         "mode_real": "MODO: TRADING REAL (LIVE WALLET)",
         "demo_banner": "MODO DEMO: Simulación paper activa. Conecte su wallet para desbloquear el trading real on-chain.",
@@ -449,6 +485,15 @@ const TRANSLATIONS = {
     
     },
     de: {
+        // 6 Canonical Sections
+        tab_heart: "HEART",
+        tab_markets: "MÄRKTE",
+        tab_positions: "POSITIONEN",
+        tab_strategies: "STRATEGIEN",
+        tab_performance: "PERFORMANCE",
+        tab_cortex: "CORTEX",
+        cortex_layer: "CORTEX — Risiko- / Sicherheits- / Audit-Schicht",
+
         page_title: "TradeAID Web3 dApp — Autonomes Cockpit",
         nav_back_title: "Zurück zur Landingpage",
         connect_wallet: " Wallet Verbinden",
@@ -457,7 +502,7 @@ const TRANSLATIONS = {
         btn_switch_polygon: "Zu Polygon wechseln",
         
         powered_by: "Unterstützt von",
-        audited_by: "Geprüft & Zertifiziert von",
+        audited_by: "CORTEX — Risk / Security / Audit Layer",
         engineered_by: "Entwickelt von",
         native_on: "Nativ auf",
         
@@ -523,7 +568,7 @@ const TRANSLATIONS = {
         neuralog_title: "ENTWICKELT VON NEURALOG · POWERED BY BLOCKCHAIN+",
         neuralog_desc: "Quant-Engine auf Basis statistischer Modelle von Neuralog, Blockchain+ Routing und nativer Polygon-Finalität (137).",
         
-        ticker_engine: "TRADEAID · Powered by Blockchain+ · Audited by Cortex · Engineered by Neuralog · Polygon 137",
+        ticker_engine: "TRADEAID · Powered by BLOCKCHAIN+ (B+) · Engineered by NEURALOG · CORTEX — Risk / Security / Audit Layer · Native on Polygon",
         
         alert_no_wallet: "Keine Web3 Wallet gefunden. Bitte MetaMask, Rabby installieren oder in mobiler Wallet öffnen.",
         alert_connect_rejected: "Verbindung vom Nutzer abgelehnt.",
@@ -531,7 +576,7 @@ const TRANSLATIONS = {
         alert_tx_confirmed: "Zahlung on-chain bestätigt! Cockpit freigeschaltet.",
         alert_tx_failed: "Transaktion fehlgeschlagen oder abgelehnt.",
         alert_kill_confirm: "Achtung: Möchtest du den Not-Aus-Schalter aktivieren und alle Positionen in USDT liquidieren?",
-        alert_kill_done: "Not-Aus-Schalter AKTIVIERT. Alle Positionen in USDT liquidiert."
+        alert_kill_done: "Not-Aus-Schalter AKTIVIERT. Alle Positionen in USDT liquidiert.",
         "mode_demo": "MODUS: DEMO (PAPER TRADING)",
         "mode_real": "MODUS: ECHTGELD-TRADING (LIVE WALLET)",
         "demo_banner": "DEMO-MODUS: Simulation aktiv. Verbinden Sie Ihr Wallet, um Live-Trading auf Polygon freizuschalten.",
@@ -555,6 +600,15 @@ const TRANSLATIONS = {
     
     },
     fr: {
+        // 6 Canonical Sections
+        tab_heart: "HEART",
+        tab_markets: "MARCHÉS",
+        tab_positions: "POSITIONS",
+        tab_strategies: "STRATÉGIES",
+        tab_performance: "PERFORMANCE",
+        tab_cortex: "CORTEX",
+        cortex_layer: "CORTEX — Couche Risque / Sécurité / Audit",
+
         page_title: "TradeAID Web3 dApp — Cockpit Autonome",
         nav_back_title: "Retour à la page d'accueil",
         connect_wallet: " Connecter Portefeuille",
@@ -563,7 +617,7 @@ const TRANSLATIONS = {
         btn_switch_polygon: "Passer à Polygon",
         
         powered_by: "Propulsé par",
-        audited_by: "Audité et Certifié par",
+        audited_by: "CORTEX — Risk / Security / Audit Layer",
         engineered_by: "Conçu par",
         native_on: "Natif sur",
         
@@ -629,7 +683,7 @@ const TRANSLATIONS = {
         neuralog_title: "CONÇU PAR NEURALOG · PROPULSÉ PAR BLOCKCHAIN+",
         neuralog_desc: "Moteur quantitatif alimenté par les modèles statistiques Neuralog, routage Blockchain+ et finalité native Polygon (137).",
         
-        ticker_engine: "TRADEAID · Propulsé par Blockchain+ · Audité par Cortex · Conçu par Neuralog · Polygon 137",
+        ticker_engine: "TRADEAID · Powered by BLOCKCHAIN+ (B+) · Engineered by NEURALOG · CORTEX — Risk / Security / Audit Layer · Native on Polygon",
         
         alert_no_wallet: "Aucun portefeuille Web3 détecté. Installez MetaMask, Rabby ou ouvrez dans votre portefeuille mobile.",
         alert_connect_rejected: "Connexion refusée par l'utilisateur.",
@@ -637,7 +691,7 @@ const TRANSLATIONS = {
         alert_tx_confirmed: "Paiement confirmé sur la blockchain ! Cockpit déverrouillé.",
         alert_tx_failed: "Échec de la transaction ou refusée.",
         alert_kill_confirm: "Attention : Voulez-vous activer l'arrêt d'urgence et liquider toutes les positions en USDT ?",
-        alert_kill_done: "Arrêt d'urgence ACTIVÉ. Toutes les positions ont été liquidées en USDT."
+        alert_kill_done: "Arrêt d'urgence ACTIVÉ. Toutes les positions ont été liquidées en USDT.",
         "mode_demo": "MODE: DÉMO (PAPER TRADING)",
         "mode_real": "MODE: TRADING RÉEL (LIVE WALLET)",
         "demo_banner": "MODE DÉMO: Simulation active. Connectez votre portefeuille pour débloquer le trading réel on-chain.",
@@ -661,6 +715,15 @@ const TRANSLATIONS = {
     
     },
     ja: {
+        // 6 Canonical Sections
+        tab_heart: "HEART",
+        tab_markets: "市場",
+        tab_positions: "ポジション",
+        tab_strategies: "戦略",
+        tab_performance: "パフォーマンス",
+        tab_cortex: "CORTEX",
+        cortex_layer: "CORTEX — リスク / セキュリティ / 監査レイヤー",
+
         page_title: "TradeAID Web3 dApp — 自律型コックピット",
         nav_back_title: "ランディングページに戻る",
         connect_wallet: " ウォレット接続",
@@ -669,7 +732,7 @@ const TRANSLATIONS = {
         btn_switch_polygon: "Polygonに切り替え",
         
         powered_by: "技術提供:",
-        audited_by: "監査・認証:",
+        audited_by: "CORTEX — Risk / Security / Audit Layer",
         engineered_by: "開発設計:",
         native_on: "ネイティブ稼働:",
         
@@ -735,7 +798,7 @@ const TRANSLATIONS = {
         neuralog_title: "NEURALOG エンジニアリング · BLOCKCHAIN+ 提供",
         neuralog_desc: "Neuralog統計モデル、Blockchain+分散型ルーティング、Polygon(137)即時ファイナリティを統合。",
         
-        ticker_engine: "TRADEAID · Powered by Blockchain+ · Audited by Cortex · Engineered by Neuralog · Polygon 137",
+        ticker_engine: "TRADEAID · Powered by BLOCKCHAIN+ (B+) · Engineered by NEURALOG · CORTEX — Risk / Security / Audit Layer · Native on Polygon",
         
         alert_no_wallet: "Web3ウォレットが見つかりません。MetaMask等をインストールするか、対応モバイルウォレットでお開きください。",
         alert_connect_rejected: "ユーザーによって接続が拒否されました。",
@@ -743,7 +806,7 @@ const TRANSLATIONS = {
         alert_tx_confirmed: "オンチェーン決済が承認されました！ コックピットがアンロックされました。",
         alert_tx_failed: "トランザクションが失敗したか、拒否されました。",
         alert_kill_confirm: "警告: 緊急キルスイッチを発動し、全ポジションをUSDTに即座清算しますか？",
-        alert_kill_done: "キルスイッチが作動しました。全ポジションがUSDTに清算されました。"
+        alert_kill_done: "キルスイッチが作動しました。全ポジションがUSDTに清算されました。",
         "mode_demo": "モード：デモ取引 (PAPER TRADING)",
         "mode_real": "モード：本番取引 (LIVE WALLET)",
         "demo_banner": "デモモード：ペーパートレード中。ウォレットを接続してオンチェーン本番取引を有効化します。",
@@ -767,6 +830,15 @@ const TRANSLATIONS = {
     
     },
     pt: {
+        // 6 Canonical Sections
+        tab_heart: "HEART",
+        tab_markets: "MERCADOS",
+        tab_positions: "POSIÇÕES",
+        tab_strategies: "ESTRATÉGIAS",
+        tab_performance: "PERFORMANCE",
+        tab_cortex: "CORTEX",
+        cortex_layer: "CORTEX — Camada de Risco / Segurança / Auditoria",
+
         page_title: "TradeAID Web3 dApp — Cockpit Autônomo",
         nav_back_title: "Voltar para a Landing Page",
         connect_wallet: " Conectar Carteira",
@@ -775,7 +847,7 @@ const TRANSLATIONS = {
         btn_switch_polygon: "Mudar para Polygon",
         
         powered_by: "Desenvolvido por",
-        audited_by: "Auditado e Certificado por",
+        audited_by: "CORTEX — Risk / Security / Audit Layer",
         engineered_by: "Projetado por",
         native_on: "Nativo em",
         
@@ -841,7 +913,7 @@ const TRANSLATIONS = {
         neuralog_title: "PROJETADO POR NEURALOG · POWERED BY BLOCKCHAIN+",
         neuralog_desc: "Motor quantitativo baseado em modelos estatísticos Neuralog, roteamento Blockchain+ e finalização nativa na Polygon (137).",
         
-        ticker_engine: "TRADEAID · Desenvolvido por Blockchain+ · Auditado por Cortex · Projetado por Neuralog · Polygon 137",
+        ticker_engine: "TRADEAID · Powered by BLOCKCHAIN+ (B+) · Engineered by NEURALOG · CORTEX — Risk / Security / Audit Layer · Native on Polygon",
         
         alert_no_wallet: "Nenhuma carteira Web3 detectada. Instale o MetaMask, Rabby ou abra no navegador da sua carteira móvel.",
         alert_connect_rejected: "Conexão rejeitada pelo usuário.",
@@ -849,7 +921,7 @@ const TRANSLATIONS = {
         alert_tx_confirmed: "Pagamento confirmado on-chain! Cockpit desbloqueado.",
         alert_tx_failed: "Transação falhou ou foi rejeitada.",
         alert_kill_confirm: "Atenção: Deseja acionar o Kill Switch e liquidar todas as posições em USDT?",
-        alert_kill_done: "Kill Switch ATIVADO. Todas as posições liquidadas em USDT."
+        alert_kill_done: "Kill Switch ATIVADO. Todas as posições liquidadas em USDT.",
         "mode_demo": "MODO: DEMO (PAPER TRADING)",
         "mode_real": "MODO: TRADING REAL (LIVE WALLET)",
         "demo_banner": "MODO DEMO: Simulação paper ativa. Conecte sua carteira para desbloquear o trading real on-chain.",
@@ -873,6 +945,15 @@ const TRANSLATIONS = {
     
     },
     ru: {
+        // 6 Canonical Sections
+        tab_heart: "HEART",
+        tab_markets: "РЫНКИ",
+        tab_positions: "ПОЗИЦИИ",
+        tab_strategies: "СТРАТЕГИИ",
+        tab_performance: "ЭФФЕКТИВНОСТЬ",
+        tab_cortex: "CORTEX",
+        cortex_layer: "CORTEX — Уровень Риска / Безопасности / Аудита",
+
         page_title: "TradeAID Web3 dApp — Автономный Кокпит",
         nav_back_title: "Назад на главную",
         connect_wallet: " Подключить Кошелек",
@@ -881,7 +962,7 @@ const TRANSLATIONS = {
         btn_switch_polygon: "Переключить на Polygon",
         
         powered_by: "При поддержке",
-        audited_by: "Аудит и Сертификация от",
+        audited_by: "CORTEX — Risk / Security / Audit Layer",
         engineered_by: "Разработано",
         native_on: "Нативно в",
         
@@ -947,7 +1028,7 @@ const TRANSLATIONS = {
         neuralog_title: "РАЗРАБОТКА NEURALOG · POWERED BY BLOCKCHAIN+",
         neuralog_desc: "Квант-движок на основе статистических моделей Neuralog, децентрализованный роутинг Blockchain+ и финализация Polygon (137).",
         
-        ticker_engine: "TRADEAID · Powered by Blockchain+ · Audited by Cortex · Engineered by Neuralog · Polygon 137",
+        ticker_engine: "TRADEAID · Powered by BLOCKCHAIN+ (B+) · Engineered by NEURALOG · CORTEX — Risk / Security / Audit Layer · Native on Polygon",
         
         alert_no_wallet: "Web3 кошелек не найден. Установите MetaMask, Rabby или откройте во встроенном браузере мобильного кошелька.",
         alert_connect_rejected: "Подключение отклонено пользователем.",
@@ -955,7 +1036,7 @@ const TRANSLATIONS = {
         alert_tx_confirmed: "Оплата подтверждена в блокчейне! Кокпит разблокирован.",
         alert_tx_failed: "Ошибка транзакции или отмена пользователем.",
         alert_kill_confirm: "Внимание: Активировать аварийный Kill Switch и ликвидировать все позиции в USDT?",
-        alert_kill_done: "Kill Switch АКТИВИРОВАН. Все позиции ликвидированы в USDT."
+        alert_kill_done: "Kill Switch АКТИВИРОВАН. Все позиции ликвидированы в USDT.",
         "mode_demo": "РЕЖИМ: ДЕМО (PAPER TRADING)",
         "mode_real": "РЕЖИМ: РЕАЛЬНЫЙ ТРЕЙДИНГ (LIVE WALLET)",
         "demo_banner": "ДЕМО-РЕЖИМ: Симуляция активна. Подключите кошелек для ончейн-трейдинга.",
@@ -979,6 +1060,15 @@ const TRANSLATIONS = {
     
     },
     ar: {
+        // 6 Canonical Sections
+        tab_heart: "HEART",
+        tab_markets: "الأسواق",
+        tab_positions: "المراكز",
+        tab_strategies: "الاستراتيجيات",
+        tab_performance: "الأداء",
+        tab_cortex: "CORTEX",
+        cortex_layer: "CORTEX — طبقة المخاطر / الأمان / التدقيق",
+
         page_title: "TradeAID Web3 dApp — مقصورة القيادة المستقلة",
         nav_back_title: "العودة إلى الصفحة الرئيسية",
         connect_wallet: " ربط المحفظة",
@@ -987,7 +1077,7 @@ const TRANSLATIONS = {
         btn_switch_polygon: "التبديل إلى Polygon",
         
         powered_by: "مدعوم من",
-        audited_by: "تدقيق واعتماد بواسطة",
+        audited_by: "CORTEX — Risk / Security / Audit Layer",
         engineered_by: "هندسة وتطوير",
         native_on: "أصلي على",
         
@@ -1053,7 +1143,7 @@ const TRANSLATIONS = {
         neuralog_title: "هندسة NEURALOG · مدعوم من BLOCKCHAIN+",
         neuralog_desc: "محرك كمي يعمل بنماذج Neuralog الإحصائية، وتوجيه لا مركزي من Blockchain+، وحتمية Polygon (137).",
         
-        ticker_engine: "TRADEAID · مدعوم من Blockchain+ · معتمد من Cortex · هندسة Neuralog · أصلي على Polygon 137",
+        ticker_engine: "TRADEAID · Powered by BLOCKCHAIN+ (B+) · Engineered by NEURALOG · CORTEX — Risk / Security / Audit Layer · Native on Polygon",
         
         alert_no_wallet: "لم يتم العثور على محفظة Web3. يرجى تثبيت MetaMask أو الفتح في متصفح محفظة الهاتف.",
         alert_connect_rejected: "تم رفض الاتصال من قبل المستخدم.",

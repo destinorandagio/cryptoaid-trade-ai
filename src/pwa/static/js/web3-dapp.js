@@ -346,6 +346,11 @@ class Web3Controller {
             window.ethereum.on("chainChanged", (chainId) => this.handleChainChanged(chainId));
         }
 
+        // Language switch listener for dynamic UI update
+        window.addEventListener("languageChanged", () => {
+            this.renderState();
+        });
+
         // Paper Portfolios tab switcher in tab-performance
         document.querySelectorAll(".paper-port-btn").forEach((btn) => {
             btn.addEventListener("click", () => {
